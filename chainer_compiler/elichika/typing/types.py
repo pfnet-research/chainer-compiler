@@ -451,14 +451,50 @@ def _make_binop(self, other, symbol, priority, func):
     return ShapeElem(func(self.value, other.value), expr=expr)
 
 
-def simplify(expr):
+def _make_binop_add(x, y):
+    return type_check.BinaryOperator(4, x, y, '+', lambda x, y: x + y)
+
+def _make_binop_sub(x, y):
+    return type_check.BinaryOperator(4, x, y, '-', lambda x, y: x - y)
+
+
+def try_eval(expr):
     try:
-        n = expr.eval()
-        if n is not None:
-            return type_check.Constant(n)
-        return expr
+        return expr.eval()
     except Exception:
-        return expr
+        return None
+
+
+def simplify(expr):
+    n = try_eval(expr)
+    if n is not None:
+        return type_check.Constant(n)
+
+    if isinstance(expr, type_check.BinaryOperator):
+        if (expr.exp == '+' or expr.exp == '-') and try_eval(expr.rhs) == 0:
+            return simplify(expr.lhs)
+
+        if expr.exp == '+' and try_eval(expr.rhs) < 0:
+            expr_rhs = type_check.Constant(- try_eval(expr.rhs))
+            return simplify(_make_binop_sub(expr.lhs, expr_rhs))
+
+        if (expr.exp == '*' or expr.exp == '/' or expr.exp == '//') and try_eval(expr.rhs) == 1:
+            return simplify(expr.lhs)
+
+        if isinstance(expr.lhs, type_check.BinaryOperator) and \
+                expr.lhs.priority == expr.priority:
+            if expr.lhs.exp == '+' or expr.lhs.exp == '*':
+                expr_rhs = type_check.BinaryOperator(expr.priority,
+                        expr.lhs.rhs, expr.rhs, expr.exp, expr.func)
+                expr_rhs = simplify(expr_rhs)
+                if isinstance(expr_rhs, type_check.Constant):
+                    return simplify(type_check.BinaryOperator(expr.lhs.priority,
+                        expr.lhs.lhs, expr_rhs, expr.lhs.exp, expr.lhs.func))
+        expr.lhs = simplify(expr.lhs)
+        expr.rhs = simplify(expr.rhs)
+    # if isinstance(expr, type_check.UnaryOperator):
+    #     expr.term = simplify(expr.term)
+    return expr
 
 
 class ShapeElem():
@@ -471,10 +507,10 @@ class ShapeElem():
         else:
             # value
             self.value = value_or_name
-            self.expr = expr if expr is not None else type_check.Constant(value_or_name)
+            self.expr = simplify(expr) if expr is not None else type_check.Constant(value_or_name)
 
     def __str__(self):
-        self.expr = simplify(self.expr)
+        # self.expr = simplify(self.expr)
         if isinstance(self.expr, type_check.Constant):
             return str(self.value)
         return "{} ({})".format(self.value, self.expr)

@@ -161,6 +161,9 @@ class ty_ChainerVariable():
 
 class ty_ChainerPooling2d():
     # max_pooling_2d / average_pooling_2d
+    def __init__(self, cover_all=None):
+        self.cover_all = cover_all
+
     def __call__(self, ty_args, ty_kwargs):
         self.check_type_forward(make_multiple_tc_variable(ty_args, ('x', 'ksize')))
 
@@ -171,6 +174,9 @@ class ty_ChainerPooling2d():
         # TODO(momohatt): use is_dummy_stride
         stride, is_dummy_stride = get_kwarg(ty_kwargs, 'stride', default=ksize)
         pad, is_dummy_pad = get_kwarg(ty_kwargs, 'pad', default=0)
+
+        if self.cover_all is None:
+            self.cover_all = get_kwarg(ty_kwargs, 'cover_all', default=True)
 
         return self.infer_return(x_type, ksize, stride, pad)
 
@@ -190,8 +196,12 @@ class ty_ChainerPooling2d():
 
         shape_0 = x_type.shape[0]
         shape_1 = x_type.shape[1]
-        shape_2 = math.ceil((x_type.shape[2] + pad[0] * 2 - ksize[0]) / stride[0]) + 1
-        shape_3 = math.ceil((x_type.shape[3] + pad[1] * 2 - ksize[1]) / stride[1]) + 1
+        if self.cover_all:
+            shape_2 = math.ceil((x_type.shape[2] + pad[0] * 2 - ksize[0]) / stride[0]) + 1
+            shape_3 = math.ceil((x_type.shape[3] + pad[1] * 2 - ksize[1]) / stride[1]) + 1
+        else:
+            shape_2 = (x_type.shape[2] + pad[0] * 2 - ksize[0]) // stride[0] + 1
+            shape_3 = (x_type.shape[3] + pad[1] * 2 - ksize[1]) // stride[1] + 1
 
         return TyChainerVariable(x_type.dtype,
                 shape=(shape_0, shape_1, shape_2, shape_3))
@@ -902,7 +912,7 @@ ext_func_ty = {
         np.zeros                       : ty_NumpyOnes(),
         chainer.Variable               : ty_ChainerVariable(),
         cuda.to_cpu                    : ty_ChainerIdentical(is_float_only=False),
-        F.average_pooling_2d           : ty_ChainerPooling2d(),
+        F.average_pooling_2d           : ty_ChainerPooling2d(cover_all=False),
         F.broadcast_to                 : ty_ChainerBroadcastTo(),
         F.concat                       : ty_ChainerConcat(),
         F.dropout                      : ty_ChainerIdentical(),
