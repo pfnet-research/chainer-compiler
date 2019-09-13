@@ -6,6 +6,7 @@ from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 
 from testcases.elichika_tests.model.MLP import MLP
 from testcases.elichika_tests.model.Resnet_with_loss import ResNet50
+from testcases.ch2o_tests.model.GoogleNet_with_loss import GoogLeNet
 
 
 def gen_MLP_model():
@@ -27,6 +28,14 @@ def gen_ResNet50_model():
     forward_args = (v, t)
 
     return model, forward_args
+
+
+def gen_GoogLeNet_model():
+    model = GoogLeNet()
+    v = np.random.rand(2, 3, 227, 227).astype(np.float32)
+    t = np.random.randint(1000, size=2)
+
+    return model, (v, t)
 
 
 class TestMLP(unittest.TestCase):

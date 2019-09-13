@@ -87,29 +87,56 @@ def generate_assertion(type_table_name, id2type, id2node, ofile=None):
 
 
 if __name__ == '__main__':
+    import argparse
+
     import numpy as np
     import chainer
     import chainer.functions as F
     import chainer.links as L
 
+    from tests.elichika_typing.EspNet import *
+    from tests.elichika_typing.Models import *
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-e", help="Execute the script", action="store_true")
+    parser.add_argument("-o",
+            help="Specify file name to output the assertions", type=str)
+    args = parser.parse_args()
+
+
     class Test():
         def forward(self):
             x = np.zeros((1, 1)).astype('float32')
-            y = F.pad_sequence(x, 5)
-            return x
+            y = F.pad_sequence([x], length=5)
+            return y
 
-    model = Test()
-    forward_args = (model, )
 
-    # --------------------------------------------------------------------------
-    code = utils.clip_head(inspect.getsource(model.forward))
-    node = gast.ast_to_gast(ast.parse(code))
-    module = sys.modules[model.forward.__module__]
-    node2type, subroutine_node = generate_node2type(
-            node, forward_args, is_debug=True, module=module,
-            type_hints=typing.get_type_hints(model.forward))
-    node2id = generate_node2id(node, subroutine_node)
-    id2type = generate_id2type(node2type, node2id)
-    id2node = generate_id2node(node2id)
+    # model, forward_args = gen_MLP_model()
+    model, forward_args = gen_GoogLeNet_model()
+    # model, forward_args = gen_AttDot_model()
+    # model, forward_args = gen_AttLoc_model()
+    # model, forward_args = gen_BLSTM_model()
+    # model, forward_args = gen_VGG2L_model()
+    # model, forward_args = gen_StatelessLSTM_model()
+    # model, forward_args = gen_Decoder_model()
+    # model, forward_args = gen_E2E_model()
 
-    generate_assertion("id2type", id2type, id2node)
+    # model, forward_args = Test(), ()
+
+    if args.e:
+        model.forward(*forward_args)
+    else:
+        code = utils.clip_head(inspect.getsource(model.forward))
+        node = gast.ast_to_gast(ast.parse(code))
+        # node = Canonicalizer().visit(node)
+        module = sys.modules[model.forward.__module__]
+        node2type, subroutine_node = generate_node2type(
+                node, (model,) + forward_args, is_debug=True, module=module,
+                type_hints=typing.get_type_hints(model.forward))
+        node2id = generate_node2id(node, subroutine_node)
+        id2type = generate_id2type(node2type, node2id)
+        id2node = generate_id2node(node2id)
+
+        if args.o:
+            ofile = open(args.o, 'w')
+            generate_assertion("id2type", id2type, id2node, ofile)
