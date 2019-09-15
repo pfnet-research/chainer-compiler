@@ -14,6 +14,7 @@ class ListSubscript(chainer.Chain):
     def forward(self):
         test_list = [0, 1, 2]
         test_list[1] = 3
+        test_list[2] += 2
         return test_list
 
 class ArraySubscript(chainer.Chain):
@@ -70,7 +71,7 @@ class ListInConstructor(chainer.Chain):
 
 class ListInfinitelyNested(chainer.Chain):
     def forward(self):
-        x = [1]
+        x = [0]
         x.append(x)
         return x[1][1][1][0]
 

@@ -510,6 +510,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
         return indices
 
     value = veval_ast(astc.c(astc.nast.value), local_field, graph, context)
+    value_obj = utils.try_get_obj(value, 'subscript', lineprop)
     value_value = utils.try_get_value(value, 'subscript', lineprop)
 
     if isinstance(value_value, values.DictValue):
@@ -567,12 +568,9 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
             node.set_outputs([ret_value])
             graph.add_node(node)
-            if isinstance(value, values.Attribute):
-                ret_attr = value.make_subscript_attribute(slice_, graph)
-                ret_attr.revise(values.Object(ret_value), update_parent=False)
-                return ret_attr
-            else:
-                return values.Object(ret_value)
+            ret_obj = value_obj.make_subscript_object(slice_, graph)
+            ret_obj.revise(ret_value, update_parent=False)
+            return ret_obj
 
         elif isinstance(astc.nast.slice, gast.gast.Slice):
 
@@ -590,12 +588,9 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
             node.set_outputs([ret_value])
             graph.add_node(node)
-            if isinstance(value, values.Attribute):
-                ret_attr = value.make_subscript_attribute(values.TupleValue(indices), graph)
-                ret_attr.revise(values.Object(ret_value), update_parent=False)
-                return ret_attr
-            else:
-                return values.Object(ret_value)
+            ret_obj = value_obj.make_subscript_object(values.TupleValue(indices), graph)
+            ret_obj.revise(ret_value, update_parent=False)
+            return ret_obj
 
         elif isinstance(astc.nast.slice, gast.gast.ExtSlice):
             indices = []
@@ -615,12 +610,9 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             ret_value = functions.generate_value_with_same_type(value_value)
             node.set_outputs([ret_value])
             graph.add_node(node)
-            if isinstance(value, values.Attribute):
-                ret_attr = value.make_subscript_attribute(values.TupleValue(indices), graph)
-                ret_attr.revise(values.Object(ret_value), update_parent=False)
-                return ret_attr
-            else:
-                return values.Object(ret_value)
+            ret_obj = value_obj.make_subscript_object(values.TupleValue(indices), graph)
+            ret_obj.revise(ret_value, update_parent=False)
+            return ret_obj
     else:
         utils.print_warning("Subscript not possible for type {}".format(type(value_value)))
 
