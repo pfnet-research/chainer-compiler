@@ -85,12 +85,23 @@ def simplify(expr):
         if isinstance(expr.lhs, type_check.BinaryOperator) and \
                 expr.lhs.priority == expr.priority:
             if expr.lhs.exp == '+' or expr.lhs.exp == '*':
-                expr_rhs = type_check.BinaryOperator(expr.priority,
-                        expr.lhs.rhs, expr.rhs, expr.exp, expr.func)
-                expr_rhs = simplify(expr_rhs)
-                if isinstance(expr_rhs, type_check.Constant):
-                    return simplify(type_check.BinaryOperator(expr.lhs.priority,
-                        expr.lhs.lhs, expr_rhs, expr.lhs.exp, expr.lhs.func))
+                expr_exp = expr.exp
+            elif expr.lhs.exp == '-':
+                if expr.exp == '+':
+                    expr_exp = '-'
+                else:
+                    expr_exp = '+'
+            else:
+                assert False
+
+            _, expr_func = binops[expr_exp]
+            expr_rhs = type_check.BinaryOperator(expr.priority,
+                    expr.lhs.rhs, expr.rhs, expr_exp, expr_func)
+            expr_rhs = simplify(expr_rhs)
+            if isinstance(expr_rhs, type_check.Constant):
+                return simplify(type_check.BinaryOperator(expr.lhs.priority,
+                    expr.lhs.lhs, expr_rhs, expr.lhs.exp, expr.lhs.func))
+
         expr.lhs = simplify(expr.lhs)
         expr.rhs = simplify(expr.rhs)
 
@@ -142,6 +153,11 @@ class ShapeElem():
         if self.value is None or other.value is None:
             return True
         return self.value > other.value
+
+    def __lt__(self, other):
+        if self.value is None or other.value is None:
+            return True
+        return self.value < other.value
 
 
     __iadd__ = __add__
