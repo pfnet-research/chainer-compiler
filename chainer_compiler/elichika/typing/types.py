@@ -688,14 +688,12 @@ def unify(ty1, ty2, inspect_shape=True):
                 unify(t1, t2)
             return
         if ty1.is_fixed_len and not ty2.is_fixed_len:
-            for ty in ty1.get_tys():
-                unify(ty, ty2.get_ty())
             ty1.coerce_to_variable_len(ty2.get_ty())
             return
         if (not ty1.is_fixed_len) and ty2.is_fixed_len:
-            unify(ty2, ty1)
+            ty2.coerce_to_variable_len(ty1.get_ty())
             return
-        unify(ty2.get_ty(), ty1.get_ty())
+        unify(ty1.get_ty(), ty2.get_ty())
         return
 
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):

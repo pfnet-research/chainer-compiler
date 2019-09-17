@@ -696,7 +696,7 @@ class TypeChecker():
                 ty_i_.shape = ty_iteration.shape[1:]
             unify(ty_i, ty_i_)
         else:
-            unify(ty_iteration, TySequence(ty_i, None))
+            unify(TySequence(ty_i, None), ty_iteration)
         tc.infer_expr(node.elt)
 
         utils.add_dict(self.nodetype, tc.nodetype)
