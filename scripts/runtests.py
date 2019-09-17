@@ -276,6 +276,7 @@ TEST_CASES = [
     # TestCase(NODE_TEST, 'test_expand_dim_changed'),
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
     TestCase(NODE_TEST, 'test_squeeze'),
+    TestCase(NODE_TEST, 'test_squeeze_negative_axes'),
     TestCase(NODE_TEST, 'test_unsqueeze_axis_0'),
     TestCase(NODE_TEST, 'test_unsqueeze_axis_1'),
     TestCase(NODE_TEST, 'test_unsqueeze_axis_2'),
