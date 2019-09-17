@@ -169,6 +169,13 @@ void FuseNGraphOperations(Graph* graph) {
             if (node.inputs().size() > 1) {
                 return false;
             }
+        } else if (node.op_type() == Node::kSqueeze || node.op_type() == Node::kUnsqueeze) {
+            // nGraph does not support Squeeze-11 or Unsqueeze-11.
+            for (int axis : node.axes()) {
+                if (axis < 0) {
+                    return false;
+                }
+            }
         }
 
         return true;

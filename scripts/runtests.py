@@ -276,7 +276,14 @@ TEST_CASES = [
     # TestCase(NODE_TEST, 'test_expand_dim_changed'),
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
     TestCase(NODE_TEST, 'test_squeeze'),
-    TestCase(NODE_TEST, 'test_unsqueeze'),
+    TestCase(NODE_TEST, 'test_squeeze_negative_axes'),
+    TestCase(NODE_TEST, 'test_unsqueeze_axis_0'),
+    TestCase(NODE_TEST, 'test_unsqueeze_axis_1'),
+    TestCase(NODE_TEST, 'test_unsqueeze_axis_2'),
+    TestCase(NODE_TEST, 'test_unsqueeze_axis_3'),
+    TestCase(NODE_TEST, 'test_unsqueeze_negative_axes'),
+    TestCase(NODE_TEST, 'test_unsqueeze_two_axes'),
+    TestCase(NODE_TEST, 'test_unsqueeze_three_axes'),
     TestCase(NODE_TEST, 'test_flatten_axis0'),
     TestCase(NODE_TEST, 'test_flatten_axis1'),
     TestCase(NODE_TEST, 'test_flatten_axis2'),
@@ -698,6 +705,10 @@ for test in TEST_CASES:
         new_test.name = test.name + '_two_phase'
         new_test.is_backprop_two_phase = True
         new_tests.append(new_test)
+
+    # TODO(hamaji): Temporarily disabled due to shape inference change in ONNX.
+    if test.name.startswith('backprop_test_oc_split_2'):
+        continue
 
     # computation_order is supported in limited test cases
     if test.name.startswith('backprop_test_oc'):
