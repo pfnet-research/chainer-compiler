@@ -17,7 +17,6 @@ def get():
                 'roipooling2d' in name or
                 'prelu' in name or
                 'tile' in name or
-                'group3' in name or
                 'resizeimages' in name)
         tests.append(TestCase(name=name,
                               test_dir=test_dir,
