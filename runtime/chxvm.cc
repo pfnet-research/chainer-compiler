@@ -141,6 +141,9 @@ std::unique_ptr<ChxVMState> ChxVM::Prepare(const InOuts& program_inputs, const C
     for (const std::unique_ptr<ChxVMInputDesc>& input : input_descs_) {
         auto found = program_inputs.find(input->name);
         CHECK(found != program_inputs.end()) << "Input '" << input->name << "' not found";
+        if (!options.check_types) {
+            continue;
+        }
         const ChxVMVar& var = *found->second;
         if (var.IsArray()) {
             const chainerx::Array& a = var.GetArray();
