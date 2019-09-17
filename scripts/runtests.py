@@ -705,6 +705,10 @@ for test in TEST_CASES:
         new_test.is_backprop_two_phase = True
         new_tests.append(new_test)
 
+    # TODO(hamaji): Temporarily disabled due to shape inference change in ONNX.
+    if test.name.startswith('backprop_test_oc_split_2'):
+        continue
+
     # computation_order is supported in limited test cases
     if test.name.startswith('backprop_test_oc'):
         for two_phase in [False, True]:
