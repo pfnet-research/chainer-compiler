@@ -75,6 +75,10 @@ def simplify(expr):
             expr_rhs = type_check.Constant(- _try_eval(expr.rhs))
             return simplify(_make_binop_expr(expr.lhs, expr_rhs, '-'))
 
+        if expr.exp == '-' and _try_eval(expr.rhs) < 0:
+            expr_rhs = type_check.Constant(- _try_eval(expr.rhs))
+            return simplify(_make_binop_expr(expr.lhs, expr_rhs, '+'))
+
         if (expr.exp == '*' or expr.exp == '/' or expr.exp == '//') and _try_eval(expr.rhs) == 1:
             return simplify(expr.lhs)
 
@@ -89,6 +93,7 @@ def simplify(expr):
                         expr.lhs.lhs, expr_rhs, expr.lhs.exp, expr.lhs.func))
         expr.lhs = simplify(expr.lhs)
         expr.rhs = simplify(expr.rhs)
+
     # if isinstance(expr, type_check.UnaryOperator):
     #     expr.term = simplify(expr.term)
     return expr

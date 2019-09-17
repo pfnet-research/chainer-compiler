@@ -715,7 +715,7 @@ class ty_ChainerPadSequence():
         self.length, lacks_length = get_kwarg(ty_kwargs, 'length', None)
 
         if not xs_type.is_fixed_len:
-            ret_shape = (None,) * (xs_type.get().ndim + 1)
+            ret_shape = list((None,) * (xs_type.get().ndim + 1))
             if not lacks_length:
                 ret_shape[1] = self.length
             return TyChainerVariable(xs_type.get().dtype, shape=ret_shape)
