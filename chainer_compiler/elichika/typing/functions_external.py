@@ -820,7 +820,8 @@ class ty_ChainerConvolution2D():
         x_type, = ty_args
 
         assert x_type.dtype.kind == 'f'
-        assert x_type.dtype == conv.b.dtype
+        if conv.b is not None:
+            assert x_type.dtype == conv.b.dtype
         assert x_type.ndim == 4
 
         if conv.in_channels is not None:
@@ -867,7 +868,7 @@ class ty_ChainerEmbedID():
 
         if not is_incomplete_shape(x_type.shape):
             assert all([t < embed.W.shape[0] for t in x_type.shape])
-        return TyChainerVariable(embed.W.dtype, shape=out_shape)
+        return TyChainerVariable(embed.W.dtype, shape=ret_shape)
 
 
 class ty_ChainerNStepBiLSTM():

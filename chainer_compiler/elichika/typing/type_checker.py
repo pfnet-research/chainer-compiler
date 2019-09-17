@@ -691,6 +691,7 @@ class TypeChecker():
         ty_i = tc.generate_fresh_TyVar(gen.target)
         if isinstance(ty_iteration, TyTensor):
             ty_i_ = TyTensor(ty_iteration.dtype, ty_iteration.kind,
+                    ty_iteration.ndim - 1,
                     shape=ty_iteration.shape[1:])
             if ty_iteration.shape is not None:
                 ty_i_.shape = ty_iteration.shape[1:]

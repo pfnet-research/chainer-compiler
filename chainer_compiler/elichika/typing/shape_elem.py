@@ -157,7 +157,13 @@ class ShapeElem():
     __rfloordiv__ = _flip(__floordiv__)
 
     def __eq__(self, other):
+        # XXX: equality against None should always be true
+        if self.value is None:
+            return True
+
         if isinstance(other, ShapeElem):
+            if other.value is None:
+                return True
             return self.value == other.value
         else:
             return self.value == other
