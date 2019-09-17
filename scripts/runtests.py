@@ -517,6 +517,15 @@ TEST_CASES = [
 
     TestCase(SIMPLE_TEST, 'test_sign_model'),
     TestCase(SIMPLE_TEST, 'test_single_relu_model'),
+    # TODO(hamaji): Come up with a good way to handle ONNX's shape
+    # inference for sequence types.
+    TestCase(SIMPLE_TEST, 'test_sequence_model1', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model2', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model3', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model4', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model5', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model6', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model7', skip_shape_inference=True),
 ]
 
 TEST_CASES += [
