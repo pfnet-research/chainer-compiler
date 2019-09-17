@@ -462,7 +462,7 @@ def type_of_value(value) -> 'TyObj':
         return TyDType(value)
     if isinstance(value, ShapeElem):
         if isinstance(value.value, int):
-            return TyInt(value.get_value())
+            return TyInt(value.value)
         return TyInt()
 
     return TyUserDefinedClass(type(value).__name__, value)

@@ -843,9 +843,9 @@ class TypeChecker():
 
         if isinstance(ty_obj, TyTensor):
             self.infer_slice(node.slice)
-            ty_ret = TyTensor(ty_obj.dtype, ty_obj.kind)
-            ty_ret.shape = self.infer_Subscript_shape(ty_obj.shape, node.slice)
-            return ty_ret
+            ret_shape = self.infer_Subscript_shape(ty_obj.shape, node.slice)
+            return TyTensor(ty_obj.dtype, ty_obj.kind,
+                    len(ret_shape), shape=ret_shape)
 
 
     def infer_Subscript_shape(self, shape, node_slice):
@@ -855,7 +855,7 @@ class TypeChecker():
             if not self.is_const_slice(node_slice):
                 return (None,) + shape[1:]
             get_slice = eval('lambda s: s[{}]'.format(utils.slice_to_str(node_slice)))
-            shape_0 = ShapeElem(len(get_slice((0,) * shape[0].get_value())))  # TODO
+            shape_0 = ShapeElem(len(get_slice((0,) * shape[0].value)))  # TODO
             return (shape_0,) + shape[1:]
         if isinstance(node_slice, gast.ExtSlice):
             shape_ = ()

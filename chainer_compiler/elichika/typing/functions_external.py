@@ -349,9 +349,13 @@ class ty_ChainerHstack():
         xs_type = ty_args[0]
 
         assert isinstance(xs_type, TySequence)
-        if lacks_value(xs_type):
+        if not xs_type.is_fixed_len:
             x_type = xs_type.get()
-            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
+            if x_type.ndim < 2:
+                ret_shape = (None,)
+            else:
+                ret_shape = (x_type.shape[0], None)
+            return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
         self.check_type_forward(type_check.Variable(xs_type, 'xs'))
         return self.infer_return(xs_type)
@@ -385,9 +389,13 @@ class ty_ChainerVstack():
         xs_type = ty_args[0]
 
         assert isinstance(xs_type, TySequence)
-        if lacks_value(xs_type):
+        if not xs_type.is_fixed_len:
             x_type = xs_type.get()
-            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
+            if x_type.ndim < 2:
+                ret_shape = (None, x_type.shape[0])
+            else:
+                ret_shape = (None, x_type.shape[1])
+            return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
         self.check_type_forward(type_check.Variable(xs_type, 'xs'))
         return self.infer_return(xs_type)
@@ -639,7 +647,7 @@ class ty_ChainerSeparate():
         ret_ty = TyChainerVariable(x_type.dtype, shape=ret_shape)
         if not n.has_value():
             return TyTuple(ret_ty)
-        return TyTuple([ret_ty] * n.get_value())
+        return TyTuple([ret_ty] * n.value)
 
 
 class ty_ChainerSplitAxis():
@@ -650,19 +658,19 @@ class ty_ChainerSplitAxis():
 
         if isinstance(ty_args[1], TyNum):
             sections = ty_args[1].value
-            return self.infer_return(x_type, sections)
+            return self.infer_return(x_type, sections, is_indices=False)
 
         # 1-D array
         indices_type = ty_args[1]
         assert isinstance(indices_type, TyTensor)
 
         assert indices_type.ndim == 1
-        n = indices_type.shape[0].get_value()
-        return self.infer_return(x_type, n)
+        n = indices_type.shape[0].value
+        return self.infer_return(x_type, n + 1, is_indices=True)
 
     # TODO: check_type_forward
 
-    def infer_return(self, x_type, n_split):
+    def infer_return(self, x_type, n_split, is_indices):
         if n_split is None:
             if self.axis is None:
                 return TyTuple(TyChainerVariable(x_type.dtype, ndim=x_type.ndim))
@@ -670,7 +678,10 @@ class ty_ChainerSplitAxis():
             ret_shape[self.axis] = None
             return TyTuple(TyChainerVariable(x_type.dtype, shape=ret_shape))
         ret_shape = list(x_type.shape)
-        ret_shape[self.axis] = ret_shape[self.axis] // n_split
+        if is_indices:
+            ret_shape[self.axis] = None
+        else:
+            ret_shape[self.axis] = ret_shape[self.axis] // n_split
         return TyTuple(
             [TyChainerVariable(x_type.dtype, shape=ret_shape)] * n_split)
 
