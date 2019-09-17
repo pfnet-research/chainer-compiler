@@ -56,7 +56,7 @@ def calculate_reshape(orig_shape, input_shape):
     # orig_shape must be wrapped
     if is_incomplete_shape(orig_shape):
         if any([i == -1 for i in input_shape]):
-            return None
+            return (None,) * len(input_shape)
         return input_shape
     orig_shape = unwrap_shape(orig_shape)
     fill = abs(size_of_shape(orig_shape) // size_of_shape(input_shape))
@@ -153,7 +153,7 @@ class ty_NumpyFull():
         assert isinstance(shape_type, TyNum) or isinstance(shape_type, TyTuple)
 
         shape = extract_value_from_ty(shape_type)
-        if isinstance(shape, int):
+        if not isinstance(shape_type, TySequence):
             shape = (shape,)
         return TyNdarray(dtype, shape=shape)
 
@@ -799,15 +799,15 @@ class ty_ChainerLinear():
     def infer_return_shape(self, linear, x_type):
         x_shape = x_type.shape
 
-        if self.n_batch_axes > 1:
-            batch_shape = x_shape[:self.n_batch_axes]
-            batch_size = size_of_shape(batch_shape)
-            x_shape = calculate_reshape(x_shape, (batch_size, -1))
-        elif x_type.ndim > 2:
-            x_shape = calculate_reshape(x_shape, (x_shape[0], -1))
-
         if linear.in_size is not None:
             assert x_shape[1] == linear.in_size
+
+        if self.n_batch_axes > 1:
+            batch_shape = x_shape[:self.n_batch_axes]
+            x_shape = batch_shape + \
+                    (size_of_shape(x_shape[self.n_batch_axes:]),)
+        elif x_type.ndim > 2:
+            x_shape = (x_shape[0], size_of_shape(x_shape[1:]))
 
         y_shape = wrap_shape((x_shape[0], linear.out_size))
         if self.n_batch_axes > 1:
