@@ -362,7 +362,7 @@ class TyVar(TyObj):
         self.lineno = lineno
 
     def show(self):
-        if self.ty:
+        if self.ty is not None:
             return str(self.ty)
         if self.lineno is not None:
             return "a{} (from line {})".format(self.i, self.lineno)

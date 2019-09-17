@@ -782,8 +782,8 @@ class ty_ChainerLocalResponseNormalization():
 
 class ty_ChainerLinear():
     def __call__(self, linear, ty_args, ty_kwargs):
-        x_type = ty_args[0]
-        n_batch_axes, lacks_n_batch_axes = \
+        x_type, = ty_args
+        self.n_batch_axes, lacks_n_batch_axes = \
                 get_kwarg(ty_kwargs, 'n_batch_axes', default=1)
 
         if linear.b is not None:
@@ -791,16 +791,16 @@ class ty_ChainerLinear():
         if lacks_n_batch_axes:
             return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
 
-        assert n_batch_axes >= 1
+        assert self.n_batch_axes >= 1
 
-        out_shape = self.infer_return_shape(linear, x_type, n_batch_axes)
+        out_shape = self.infer_return_shape(linear, x_type)
         return TyChainerVariable(x_type.dtype, shape=out_shape)
 
-    def infer_return_shape(self, linear, x_type, n_batch_axes):
+    def infer_return_shape(self, linear, x_type):
         x_shape = x_type.shape
 
-        if n_batch_axes > 1:
-            batch_shape = x_shape[:n_batch_axes]
+        if self.n_batch_axes > 1:
+            batch_shape = x_shape[:self.n_batch_axes]
             batch_size = size_of_shape(batch_shape)
             x_shape = calculate_reshape(x_shape, (batch_size, -1))
         elif x_type.ndim > 2:
@@ -810,7 +810,7 @@ class ty_ChainerLinear():
             assert x_shape[1] == linear.in_size
 
         y_shape = wrap_shape((x_shape[0], linear.out_size))
-        if n_batch_axes > 1:
+        if self.n_batch_axes > 1:
             y_shape = calculate_reshape(y_shape, (batch_shape + (-1,)))
         return y_shape
 
@@ -873,46 +873,41 @@ class ty_ChainerEmbedID():
 
 class ty_ChainerNStepBiLSTM():
     def __call__(self, nblstm, ty_args, ty_kwargs):
-        hx_type = ty_args[0]
-        cx_type = ty_args[1]
-        xs_type = ty_args[2]
+        hx_type, cx_type, xs_type = ty_args
         assert isinstance(xs_type, TySequence)
 
-        if not xs_type.is_fixed_len:
-            # TODO
-            return TyTuple([hx_type, cx_type, xs_type])
-
-        xs_dtypes = [t.dtype for t in xs_type.get_tys()]
-        xs_shapes = [t.shape for t in xs_type.get_tys()]
-        assert all_same(xs_dtypes)
+        xs_len = len(xs_type.get_tys()) if xs_type.is_fixed_len else None
 
         if isinstance(hx_type, TyTensor):
             hx_shape = hx_type.shape
             hx_dtype = hx_type.dtype
         else:
-            hx_shape = (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size)
-            hx_dtype = xs_type.get_tys()[0].dtype
+            hx_shape = (nblstm.n_layers * 2, xs_len, nblstm.out_size)
+            hx_dtype = xs_type.get().dtype
 
         if isinstance(cx_type, TyTensor):
             cx_shape = cx_type.shape
             cx_dtype = cx_type.dtype
         else:
-            cx_shape = (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size)
+            cx_shape = (nblstm.n_layers * 2, xs_len, nblstm.out_size)
             cx_dtype = hx_dtype
 
-        if hx_shape is None or cx_shape is None:
-            # TODO: 適当
-            return TyTuple([hx_type, cx_type, xs_type])
+        hy_type = TyChainerVariable(hx_dtype, shape=hx_shape)
+        cy_type = TyChainerVariable(cx_dtype, shape=cx_shape)
 
         assert hx_shape[0] // 2 == nblstm.n_layers
         assert hx_shape == cx_shape
         N = hx_shape[2]
 
-        hy_type = TyChainerVariable(hx_dtype, shape=hx_shape)
-        cy_type = TyChainerVariable(cx_dtype, shape=cx_shape)
+        if not xs_type.is_fixed_len:
+            # TODO
+            ys_shape = (xs_type.get().shape[0], 2 * N)
+            ys_type = TyList(TyChainerVariable(xs_type.get().dtype, shape=ys_shape))
+            return TyTuple([hy_type, cy_type, ys_type])
 
-        if any([t.shape is None for t in xs_type.get_tys()]):
-            return TyTuple([hy_type, cy_type, TyList(TyChainerVariable(xs_dtypes[0]))])
+        xs_dtypes = [t.dtype for t in xs_type.get_tys()]
+        xs_shapes = [t.shape for t in xs_type.get_tys()]
+        assert all_same(xs_dtypes)
 
         # TODO(momohatt): nblstm doesn't have attribute in_size
         # assert all([i == nblstm.in_size for _, i in xs_shapes])
