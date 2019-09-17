@@ -439,7 +439,7 @@ class TestControl(unittest.TestCase):
         self.assertEqual(str(id2type[11]), "int -> int list")	# Name range (line 2)
         self.assertEqual(str(id2type[13]), "int")	# Num 4 (line 2)
         self.assertEqual(str(id2type[14]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[15]), "int")	# Name x (line 3)
+        self.assertEqual(str(id2type[15]), "optional(int)")	# Name x (line 3)
         self.assertEqual(str(id2type[17]), "int")	# Call self.f(x) (line 3)
         self.assertEqual(str(id2type[18]), "class Test -> optional(int) -> int")	# Attribute self.f (line 3)
         self.assertEqual(str(id2type[19]), "class Test")	# Name self (line 3)
