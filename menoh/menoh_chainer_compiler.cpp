@@ -630,6 +630,11 @@ menoh_error_code menoh_build_model(
 
         auto ctx = std::make_unique<chainerx::Context>();
         chainerx::ContextScope context_scope(*ctx);
+        const std::string device_spec = value_or(j, "device", std::string(""));
+        if (!device_spec.empty()) {
+            chainerx::Device* device = &ctx->GetDevice(device_spec);
+            chainerx::SetDefaultDevice(device);
+        }
 
         auto xgraph = *(builder->xgraph);
 
@@ -791,9 +796,17 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
         }
         chainerx::SetDefaultContext(model->context.get());
         chainerx::ContextScope(*(model->context));
+        chainerx::Device& device = chainerx::GetDefaultDevice();
         {
             chainerx::NoBackpropModeScope scope;
-            auto outputs = model->chxvm->Run(model->inputs, model->chxvm_options);
+            chainer_compiler::runtime::InOuts inputs(model->inputs);
+            for (auto& p : inputs) {
+                if (&device != &p.second->GetArray().device()) {
+                    p.second = std::make_shared<chainer_compiler::runtime::ChxVMVar>(p.second->GetArray().ToDevice(device));
+                }
+            }
+
+            auto outputs = model->chxvm->Run(inputs, model->chxvm_options);
             model->outputs.clear();
             for (auto p : outputs) {
                 CHECK(p.second->IsArray()) << "menoh does not support non-array outputs";
