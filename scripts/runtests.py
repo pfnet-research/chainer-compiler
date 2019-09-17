@@ -573,7 +573,7 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_ELU'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Embedding'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Embedding_sparse'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_GLU', fail=True),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_GLU'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_GLU_dim'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_LeakyReLU'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_LeakyReLU_with_negval'),
