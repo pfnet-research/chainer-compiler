@@ -65,8 +65,8 @@ int main(int argc, char** argv) {
     args.add<std::string>("backend", '\0', "The name of the backend", false, "chxvm");
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
-    /*
     args.add<std::string>("device", 'd', "ChainerX device to be used", false);
+    /*
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_chxvm", '\0', "Output ChxVM program", false);
     */
@@ -164,6 +164,7 @@ int main(int argc, char** argv) {
         config["check_infs"] = args.exist("check_infs");
         config["catch_exception"] = !args.exist("no_catch");
         config["dump_memory_usage"] = args.exist("trace");
+        config["device"] = args.get<std::string>("device");
         config["dump_outputs_dir"] = args.get<std::string>("dump_outputs_dir");
         auto model = model_builder.build_model(model_data, args.get<std::string>("backend"), config.dump());
         for (const auto& p : test_case->inputs) {
