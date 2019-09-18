@@ -34,6 +34,9 @@ make test
 unlink /usr/local/cuda/lib64/stubs/libcuda.so.1
 cd ..
 
+./build/tools/run_onnx data/shufflenet --compiler_log --use_dldt
+./build/tools/run_onnx data/shufflenet --compiler_log -d cuda --use_tensorrt
+
 PYTHONPATH=. python3 scripts/runtests.py -g --fuse
 LD_LIBRARY_PATH=$HOME/ngraph_dist/lib:$LD_LIBRARY_PATH PYTHONPATH=. python3 scripts/runtests.py --ngraph
 PYTHONPATH=. python3 -m pytest -sv tests
