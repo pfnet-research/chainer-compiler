@@ -4,12 +4,14 @@
 #include <chainerx/routines/sorting.h>
 
 #include <common/log.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
 chainerx::Array ArgMaxOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
+    const int axis = ResolveAxis(x, this->axis);
     chainerx::Array r = chainerx::ArgMax(x, axis);
     if (keepdims) {
         chainerx::Shape shape = x.shape();
@@ -20,6 +22,7 @@ chainerx::Array ArgMaxOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
 }
 
 chainerx::Array HardmaxOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
+    const int axis = ResolveAxis(x, this->axis);
     chainerx::Shape shape = {1, 1};
     for (size_t i = 0; i < x.shape().size(); ++i) {
         shape[i >= axis] *= x.shape()[i];
