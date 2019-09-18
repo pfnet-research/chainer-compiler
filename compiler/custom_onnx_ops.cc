@@ -229,75 +229,6 @@ ONNX_CHAINER_OPERATOR_SET_SCHEMA(
                 .Attr("output_shape", "The size of the output image.", AttributeProto::INTS)
                 .TypeAndShapeInferenceFunction(InferResizeImages));
 
-// TODO(hamaji): Remove this once
-// https://github.com/onnx/onnx/pull/1855 is merged.
-static const char* Expand_ver9_doc = R"DOC(
-Broadcast the input tensor following the given shape and the broadcast rule.
-The broadcast rule is similar to numpy.array(input) * numpy.ones(shape):
-Dimensions are right alignment;
-Two corresponding dimension must have the same value, or one of them is equal to 1.
-Also, this operator is similar to numpy.broadcast_to(input, shape),
-but the major difference is numpy.broadcast_to() does not allow shape to be smaller than input.size().
-It is possible that the output.shape is not equal to shape, when some dimensions in shape is equal to 1,
-or the shape.ndim < input.shape.ndim.
-)DOC";
-ONNX_WORKAROUND_OPERATOR_SET_SCHEMA(
-        Expand,
-        9,
-        OpSchema()
-                .SetDoc(Expand_ver9_doc)
-                .Input(0, "input", "Input tensor", "T")
-                .Input(1, "shape", "A 1-D tensor indicates the shape you want to expand to, following the broadcast rule", "tensor(int64)")
-                .Output(0, "output", "Output tensor", "T")
-                .TypeConstraint("T", OpSchema::all_tensor_types(), "Constrain input and output types to all tensors.")
-                .TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-                    // Type inference
-                    propagateElemTypeFromInputToOutput(ctx, 0, 0);
-                    // Shape Inference if 2nd input data (the target shape) is available
-                    const TensorProto* target_shape_initializer = ctx.getInputData(1);
-                    if (!target_shape_initializer) {
-                        return;
-                    }
-                    // The target_shape vector represents the specified shape for output.
-                    std::vector<int64_t> target_shape;
-                    if (target_shape_initializer->has_raw_data()) {
-                        const std::string& bytes = target_shape_initializer->raw_data();
-                        target_shape.insert(
-                                target_shape.end(),
-                                reinterpret_cast<const int64_t*>(bytes.c_str()),
-                                reinterpret_cast<const int64_t*>(bytes.c_str() + bytes.size()));
-                    } else {
-                        const auto& data = target_shape_initializer->int64_data();
-                        target_shape.insert(target_shape.end(), data.begin(), data.end());
-                    }
-                    auto& input_shape = getInputShape(ctx, 0);
-                    auto* output_shape = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
-                    int num_target_dims = static_cast<int>(target_shape.size());
-                    int num_new_dims = std::max(input_shape.dim_size(), num_target_dims);
-                    for (int i = 0; i < num_new_dims; ++i) {
-                        auto* new_dim = output_shape->add_dim();
-                        int target_index = i + num_target_dims - num_new_dims;
-                        int64_t target_dim = target_index < 0 ? 1 : target_shape[target_index];
-                        int input_index = i + input_shape.dim_size() - num_new_dims;
-                        if (input_index < 0) {
-                            new_dim->set_dim_value(target_dim);
-                        } else if (input_shape.dim(input_index).has_dim_value()) {
-                            const int64_t input_dim = input_shape.dim(input_index).dim_value();
-                            if (input_dim != target_dim && input_dim != 1) {
-                                if (target_dim != 1) {
-                                    fail_shape_inference("Incompatible dimensions in Expand (", input_dim, " vs ", target_dim);
-                                }
-                                target_dim = input_dim;
-                            }
-                            new_dim->set_dim_value(target_dim);
-                        } else if (target_dim != 1) {
-                            new_dim->set_dim_value(target_dim);
-                        } else {
-                            new_dim->CopyFrom(input_shape.dim(input_index));
-                        }
-                    }
-                }));
-
 namespace {
 
 void InferPadBatchSize(InferenceContext& ctx) {
@@ -458,7 +389,6 @@ public:
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerResizeImages)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerSoftmaxCrossEntropy)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerSelectItem)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, Expand)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, Split)>());
     }
 };
