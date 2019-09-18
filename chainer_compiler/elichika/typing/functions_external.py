@@ -45,13 +45,6 @@ def make_multiple_tc_variable(ty_args, names):
     return [type_check.Variable(t, n) for t, n in zip(ty_args, names)]
 
 
-def make_sequence_tc_Variable(ty_arg, name):
-    ret = []
-    for i in range(ty_arg.size()):
-        ret.append(type_check.Variable(ty_arg[i], '{}[{}]'.format(name, i)))
-    return ret
-
-
 def calculate_reshape(orig_shape, input_shape):
     # orig_shape must be wrapped
     if is_incomplete_shape(orig_shape):
@@ -178,7 +171,7 @@ class ty_ChainerPooling2d():
         pad, _ = get_kwarg(ty_kwargs, 'pad', default=0)
 
         if self.cover_all is None:
-            self.cover_all = get_kwarg(ty_kwargs, 'cover_all', default=True)
+            self.cover_all, _ = get_kwarg(ty_kwargs, 'cover_all', default=True)
 
         return self.infer_return(x_type, ksize, stride, pad)
 
