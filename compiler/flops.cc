@@ -177,6 +177,7 @@ int64_t CalculateFlops(const Node& node, int* num_unknown_flops) {
     if (subgraphs.empty()) {
         int64_t flops = CalculateFlopsImpl(node);
         if (flops < 0 && num_unknown_flops) {
+            // std::cerr << "Unknown flops: " << node.ToString() << std::endl;
             ++*num_unknown_flops;
         }
         return flops;
