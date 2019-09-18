@@ -56,7 +56,7 @@ def calculate_reshape(orig_shape, input_shape):
     # orig_shape must be wrapped
     if is_incomplete_shape(orig_shape):
         if any([i == -1 for i in input_shape]):
-            return (None,) * len(input_shape)
+            return wrap_shape([i if i != -1 else None for i in input_shape])
         return input_shape
     orig_shape = unwrap_shape(orig_shape)
     fill = abs(size_of_shape(orig_shape) // size_of_shape(input_shape))
@@ -70,8 +70,6 @@ def remove_dims(shape, dims_to_remove):
     dims_to_remove = [d % len(shape) for d in dims_to_remove]
     return tuple([shape[i] for i in range(len(shape)) if i not in dims_to_remove])
 
-
-# TODO(momohatt): use chainer.utils.type_check.expect
 
 def infer_return_type(inference_logic, args, is_fake_shape, is_fake_dtype):
     ty_result = inference_logic(*args)
@@ -799,10 +797,9 @@ class ty_ChainerLinear():
 
         if self.n_batch_axes > 1:
             batch_shape = x_shape[:self.n_batch_axes]
-            x_shape = batch_shape + \
-                    (size_of_shape(x_shape[self.n_batch_axes:]),)
+            x_shape = calculate_reshape(x_shape, (size_of_shape(batch_shape), -1))
         elif x_type.ndim > 2:
-            x_shape = (x_shape[0], size_of_shape(x_shape[1:]))
+            x_shape = calculate_reshape(x_shape, (x_shape[0], -1))
 
         y_shape = wrap_shape((x_shape[0], linear.out_size))
         if self.n_batch_axes > 1:
