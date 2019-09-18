@@ -741,7 +741,7 @@ def unify(ty1, ty2, inspect_shape=True):
 def unify_shapeElem(e1, e2):
     if e1.value and e2.value:
         if e1.value != e2.value:
-            raise Exception
+            e1.value = e2.value = None
 
     # TODO: which expr should we use?
     set_attr_if_None(e1, e2, 'value')
