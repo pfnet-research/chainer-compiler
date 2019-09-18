@@ -271,6 +271,11 @@ bool ReplaceFlatten(Graph* graph, Node* node) {
         return false;
     }
 
+    // TODO(hamaji): Maybe better to simplify negative flatten here.
+    if (node->axis() < 0) {
+        return false;
+    }
+
     CHECK_LT(1, type.dims().size()) << "The input of Flatten must have at least 2 dimensions";
     GraphBuilder gb(graph, "SimplifyFlatten", node->output(0));
     int64_t d0 = 1;

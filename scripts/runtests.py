@@ -290,6 +290,10 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_flatten_axis2'),
     TestCase(NODE_TEST, 'test_flatten_axis3'),
     TestCase(NODE_TEST, 'test_flatten_default_axis'),
+    TestCase(NODE_TEST, 'test_flatten_negative_axis1'),
+    TestCase(NODE_TEST, 'test_flatten_negative_axis2'),
+    TestCase(NODE_TEST, 'test_flatten_negative_axis3'),
+    TestCase(NODE_TEST, 'test_flatten_negative_axis4'),
 
     TestCase(NODE_TEST, 'test_slice'),
     TestCase(NODE_TEST, 'test_slice_default_axes'),
