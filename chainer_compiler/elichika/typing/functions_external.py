@@ -29,7 +29,7 @@ def make_pair(x):
 
 def get_kwarg(ty_kwargs, key, default):
     if key in ty_kwargs.keys():
-        # TODO(momohatt): when unable to get the correct value, do something
+        # when unable to get the correct value, returns None
         return extract_value_from_ty(ty_kwargs[key]), lacks_value(ty_kwargs[key])
     return default, False
 
@@ -466,14 +466,11 @@ class ty_ChainerReshape():
 
         assert shape_type.is_fixed_len
 
-        if lacks_value(shape_type):
-            return TyChainerVariable(x_type.dtype,
-                    shape=extract_value_from_ty(shape_type))
+        self.shape = extract_value_from_ty(shape_type)
+        return self.infer_return(x_type)
 
-        return self.infer_return(x_type, extract_value_from_ty(shape_type))
-
-    def infer_return(self, x_type, shape):
-        ret_shape = calculate_reshape(x_type.shape, shape)
+    def infer_return(self, x_type):
+        ret_shape = calculate_reshape(x_type.shape, self.shape)
         return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
@@ -605,9 +602,14 @@ class ty_ChainerSwapAxes():
         self.axis1 = extract_value_from_ty(axis1_type)
         self.axis2 = extract_value_from_ty(axis2_type)
 
-        # TODO: move this to check_type_forward
-        assert self.axis1 < x_type.ndim and self.axis2 < x_type.ndim
+        self.check_type_forward(type_check.make_variable(x_type, 'x'))
         return self.infer_return(x_type)
+
+    def check_type_forward(self, x_type):
+        type_check.expect(
+                self.axis1 < x_type.ndim,
+                self.axis2 < x_type.ndim
+                )
 
     def infer_return(self, x_type):
         ret_shape = list(x_type.shape)
@@ -820,15 +822,6 @@ class ty_ChainerConvolution2D():
             assert x_type.shape[1] == conv.in_channels
 
         return self.infer_return(conv, x_type)
-
-        # TODO
-
-        # w_type = type_of_value(conv.W)
-        # b_type = type_of_value(conv.b)
-        # self.groups = conv.groups
-
-        # self.check_type_forward(make_multiple_tc_variable(
-        #     [x_type, w_type, b_type], ('x', 'w', 'b')))
 
     def infer_return(self, conv, x_type):
         ksize = make_pair(conv.ksize)
