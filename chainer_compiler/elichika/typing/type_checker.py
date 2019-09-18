@@ -437,21 +437,9 @@ class TypeChecker():
         return self.nodetype[node]
 
 
-    def read_type_annotation(self, node):
-        if isinstance(node, gast.Call):
-            if isinstance(node.func, gast.Name):
-                if node.id == 'Ndarray':
-                    pass
-
-
     def infer_FunctionDef(self, node):
         # FunctionDef(identifier name, arguments args, stmt* body,
         # expr* decorator_list, expr? returns)
-        for arg in node.args.args:
-            if arg.annotation is None:
-                continue
-            # convert type annotation to something
-
         ty_args = [self.tyenv[arg.id] for arg in node.args.args]
         ty = None
 
