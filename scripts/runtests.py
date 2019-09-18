@@ -301,6 +301,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_slice_end_out_of_bounds'),
     TestCase(NODE_TEST, 'test_slice_neg'),
     TestCase(NODE_TEST, 'test_slice_neg_steps'),
+    TestCase(NODE_TEST, 'test_slice_negative_axes'),
     TestCase(NODE_TEST, 'test_slice_start_out_of_bounds'),
     TestCase(NODE_TEST, 'test_gather_0'),
     TestCase(NODE_TEST, 'test_gather_1'),

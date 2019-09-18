@@ -15,7 +15,7 @@ namespace runtime {
 chainerx::Array SliceOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     std::vector<chainerx::ArrayIndex> indices(data.ndim(), chainerx::Slice());
     for (size_t i = 0; i < axes.size(); ++i) {
-        int64_t axis = axes[i];
+        int64_t axis = ResolveAxis(data, axes[i]);
         int64_t start = starts[i];
         int64_t end = ends[i];
         indices[axis] = chainerx::Slice(start, end, 1);
@@ -35,7 +35,7 @@ std::vector<chainerx::ArrayIndex> GetIndicesForDynamicSlice(
     CHECK_EQ(1, ends.ndim());
     std::vector<chainerx::ArrayIndex> indices(data.ndim(), chainerx::Slice());
     for (int64_t i = 0; i < starts.shape()[0]; ++i) {
-        int64_t axis = axes.has_value() ? int64_t(chainerx::AsScalar(axes->At({i}))) : i;
+        int64_t axis = ResolveAxis(data, axes.has_value() ? int64_t(chainerx::AsScalar(axes->At({i}))) : i);
         int64_t start = int64_t(chainerx::AsScalar(starts.At({i})));
         int64_t end = int64_t(chainerx::AsScalar(ends.At({i})));
         int64_t step = steps.has_value() ? int64_t(chainerx::AsScalar(steps->At({i}))) : 1;
