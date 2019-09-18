@@ -111,6 +111,9 @@ void FuseNGraphOperations(Graph* graph) {
     };
 
     const std::set<Node::OpType> negative_axes_ops = {
+            Node::kArgMax,
+            Node::kArgMin,
+            Node::kFlatten,
             Node::kReduceL1,
             Node::kReduceL2,
             Node::kReduceLogSum,
