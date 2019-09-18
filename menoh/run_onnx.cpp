@@ -1,3 +1,4 @@
+#include <chrono>
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -73,8 +74,8 @@ int main(int argc, char** argv) {
     args.add<std::string>("dump_outputs_dir", '\0', "Dump each output of ChxVM ops to this directory", false);
     /*
     args.add<std::string>("report_json", '\0', "Dump report in a JSON", false);
-    args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     */
+    args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
     args.add("equal_nan", '\0', "Treats NaN equal");
@@ -186,5 +187,18 @@ int main(int argc, char** argv) {
             outputs.emplace(p.first, std::move(var));
         }
         VerifyOutputs(outputs, *test_case, args, !args.exist("no_check_values"), args.exist("always_show_diff"));
+
+        int iterations = args.get<int>("iterations");
+        if (iterations > 1) {
+            chainerx::GetDefaultDevice().Synchronize();
+            std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
+            for (int i = 1; i < iterations; ++i) {
+                model.run();
+            }
+            chainerx::GetDefaultDevice().Synchronize();
+            std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+            double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() * 0.001 / (iterations - 1);
+            std::cout << "Average elapsed: " << elapsed << " msec" << std::endl;
+        }
     }
 }
