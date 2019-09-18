@@ -174,13 +174,10 @@ class ty_ChainerPooling2d():
     def __call__(self, ty_args, ty_kwargs):
         self.check_type_forward(make_multiple_tc_variable(ty_args, ('x', 'ksize')))
 
-        x_type = ty_args[0]
-
-        # TODO(momohatt): handle cases where ksize is unknown
-        ksize = ty_args[1].value
-        # TODO(momohatt): use lacks_stride
-        stride, lacks_stride = get_kwarg(ty_kwargs, 'stride', default=ksize)
-        pad, lacks_pad = get_kwarg(ty_kwargs, 'pad', default=0)
+        x_type, ksize_type = ty_args
+        ksize = extract_value_from_ty(ksize_type)
+        stride, _ = get_kwarg(ty_kwargs, 'stride', default=ksize)
+        pad, _ = get_kwarg(ty_kwargs, 'pad', default=0)
 
         if self.cover_all is None:
             self.cover_all = get_kwarg(ty_kwargs, 'cover_all', default=True)
@@ -256,7 +253,7 @@ class ty_ChainerConcat():
         self.axis = axis
 
     def __call__(self, ty_args, ty_kwargs):
-        xs_type = ty_args[0]
+        xs_type, = ty_args
 
         assert isinstance(xs_type, TySequence)
         self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', default=1)
@@ -301,7 +298,7 @@ class ty_ChainerStack():
         self.axis = axis
 
     def __call__(self, ty_args, ty_kwargs):
-        xs_type = ty_args[0]
+        xs_type, = ty_args
 
         assert isinstance(xs_type, TySequence)
         self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', default=1)
@@ -346,7 +343,7 @@ class ty_ChainerStack():
 
 class ty_ChainerHstack():
     def __call__(self, ty_args, ty_kwargs):
-        xs_type = ty_args[0]
+        xs_type, = ty_args
 
         assert isinstance(xs_type, TySequence)
         if not xs_type.is_fixed_len:
@@ -386,7 +383,7 @@ class ty_ChainerHstack():
 
 class ty_ChainerVstack():
     def __call__(self, ty_args, ty_kwargs):
-        xs_type = ty_args[0]
+        xs_type, = ty_args
 
         assert isinstance(xs_type, TySequence)
         if not xs_type.is_fixed_len:
@@ -449,8 +446,7 @@ class ty_ChainerExpandDims():
 
 class ty_ChainerBroadcastTo():
     def __call__(self, ty_args, ty_kwargs):
-        x_type = ty_args[0]
-        shape_type = ty_args[1]
+        x_type, shape_type = ty_args
 
         assert shape_type.is_fixed_len
 
@@ -488,8 +484,7 @@ class ty_ChainerRepeat():
         self.axis = None
 
     def __call__(self, ty_args, ty_kwargs):
-        x_type = ty_args[0]
-        repeats_type = ty_args[1]
+        x_type, repeats_type = ty_args
         self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', 0)
 
         if lacks_value(repeats_type) or lacks_axis:
@@ -760,7 +755,7 @@ class ty_ChainerPadSequence():
 
 class ty_ChainerLocalResponseNormalization():
     def __call__(self, ty_args, ty_kwargs):
-        x_type = ty_args[0]
+        x_type, = ty_args
 
         self.check_type(x_type)
         return self.infer_return(x_type)
