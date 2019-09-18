@@ -350,7 +350,7 @@ private:
 
         const std::string& extra_args = g_use_dldt_fp16 ? " --data_type=FP16" : "";
 
-        FileCache cache(CacheBasePath(node), ".xml", {serialized_onnx, extra_args});
+        FileCache cache(CacheBasePath(node), "", {serialized_onnx, extra_args});
 
         if (!cache.IsReady() || !g_use_cached_model) {
             const std::string onnx_path = DumpONNXToTmpFile(node, serialized_onnx);
@@ -365,7 +365,7 @@ private:
                            " --input_model ",
                            onnx_path,
                            " --model_name ",
-                           cache.GetTmpFilename(),
+                           cache.GetFilename(),
                            extra_args);
             if (g_compiler_log) {
                 CLOG() << "Run command: " << cmdline << std::endl;
@@ -373,6 +373,11 @@ private:
             int ret = system(cmdline.c_str());
             CHECK_EQ(0, ret) << "Command failed: " << cmdline;
 
+            {
+                // Create a stamp file.
+                std::ofstream ofs(cache.GetTmpFilename());
+                ofs << dldt_dir << std::endl;
+            }
             cache.Commit();
         }
 
