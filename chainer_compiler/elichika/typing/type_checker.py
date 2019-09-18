@@ -270,7 +270,7 @@ class TypeChecker():
     def infer_function(self, node, ty_args: List['TyObj'], type_hints={}):
         # TODO(momohatt): varargs
         assert isinstance(node, gast.FunctionDef)
-        if node.args.vararg == []:
+        if node.args.vararg is None:
             assert len(ty_args) == len(node.args.args), \
                     "Wrong number of arguments: expected {}, got {}".format(
                             len(node.args.args), len(ty_args))
@@ -464,7 +464,12 @@ class TypeChecker():
                 self.tyenv[target.id] = ty_val
                 self.nodetype[target] = ty_val
                 return
-            self.tyenv[target.id] = self.nodetype[target] = copy_ty(ty_val)
+
+            # XXX: Changing following 2 lines into
+            #   self.tyenv[target.id] = self.nodetype[target] = copy_ty(ty_val)
+            # will allow self.nodetype[target] to change afterwards
+            self.tyenv[target.id] = copy_ty(ty_val)
+            self.nodetype[target] = copy_ty(ty_val)
             return
 
         if isinstance(target, gast.Attribute):
