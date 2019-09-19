@@ -237,8 +237,8 @@ std::vector<chainerx::Array> DoSomethingOp::RunImpl(chainer_compiler::runtime::C
     if (func_name == "ChainerCVRPNDecode") {
         constexpr int64_t k_n_pyramids = 5;
         const std::vector<double> k_scales({1. / 4, 1. / 8, 1. / 16, 1. / 32, 1. / 64});
-        assert(k_scales.size() == k_n_pyramids);
-        assert(inputs.size() == (3 * k_n_pyramids + 1));
+        CHECK_EQ(k_n_pyramids, k_scales.size());
+        CHECK_EQ((3 * k_n_pyramids + 1), inputs.size());
         const std::vector<chainerx::Array> hs(inputs.begin() + 0 * k_n_pyramids, inputs.begin() + 1 * k_n_pyramids);
         const std::vector<chainerx::Array> locs(inputs.begin() + 1 * k_n_pyramids, inputs.begin() + 2 * k_n_pyramids);
         const std::vector<chainerx::Array> confs(inputs.begin() + 2 * k_n_pyramids, inputs.begin() + 3 * k_n_pyramids);
