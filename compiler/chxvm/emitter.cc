@@ -451,7 +451,12 @@ private:
             }
 
             const std::string env_prefix =
-                    StrCat("PYTHONPATH=", snpe_dir, "/lib/python", " LD_LIBRARY_PATH=", snpe_dir, "/lib/x86_64-linux-clang ");
+                    StrCat("PYTHONPATH=",
+                           snpe_dir,
+                           "/lib/python",
+                           " LD_LIBRARY_PATH=",
+                           snpe_dir,
+                           "/lib/x86_64-linux-clang SYMPHONY_INIT_TEST=SYMPHONY_YES ");
 
             const std::string cmdline =
                     StrCat(env_prefix,
@@ -471,6 +476,7 @@ private:
                         StrCat(env_prefix,
                                snpe_dir,
                                "/bin/x86_64-linux-clang/snpe-dlc-quantize",
+                               " --verbose --debug3 ",
                                " --input_dlc ",
                                dlc_out,
                                " --output_dlc ",
