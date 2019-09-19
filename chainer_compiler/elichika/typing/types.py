@@ -616,7 +616,7 @@ def set_attr_if_None(obj1, obj2, attr_name):
 
 
 def unify(ty1, ty2, inspect_shape=True):
-    # inspect_shape: shapeの同一性まで見るかどうか
+    # inspect_shape: forces shapes to be identical iff True
     ty1 = ty1.deref()
     ty2 = ty2.deref()
 

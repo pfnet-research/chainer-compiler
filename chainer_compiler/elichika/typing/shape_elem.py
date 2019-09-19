@@ -62,6 +62,7 @@ def _try_eval(expr):
         return None
 
 
+# TODO: Maybe use SymPy?
 def simplify(expr):
     n = _try_eval(expr)
     if n is not None:

@@ -153,22 +153,31 @@ class TypeChecker():
             self.ty_obj = ty_obj  # method call against
 
     def __init__(self, tyenv=None, attribute_tyenv=None, is_debug=False, module=None):
-        # string -> TyObj (internal type env)
+        # type environments for local objects
+        # string -> TyObj
         self.tyenv = {} if tyenv is None else copy_tyenv(tyenv)
-        # type environments
-        self.nodetype = {}  # Node -> TyObj (for elichika to use)
-        self.is_debug = is_debug
-        self.module = module
-        self.subroutine_node = {}  # Node (Call) -> Node (FunctionDef)
 
-        # types of object attributes which are overwritten in forward()
-        # (object, str) -> TyObj)
+        # type environments for model attributes
+        # (object, str) -> TyObj
         self.attribute_tyenv = {} if attribute_tyenv is None \
                 else copy_tyenv(attribute_tyenv)
 
-        # Path from the root of AST to the current node (only stmt and expr)
+        # annotation to input AST
+        # Node -> TyObj
+        self.nodetype = {}
+
+        self.is_debug = is_debug
+        self.module = module
+
+        # map from user-defined function call points to inlined function ASTs
+        # Node (Call) -> Node (FunctionDef)
+        self.subroutine_node = {}
+
+        # Path from the root of current AST to the current node (only stmt and expr)
         self.stack = []
 
+        # typing type hints
+        # string -> TyObj
         self.type_hints = {}
 
 
@@ -247,17 +256,7 @@ class TypeChecker():
 
 
     def infer(self, node):
-        """
-        Adds local type information to self.tyenv while traversing the AST
-        while inlining functions and rewriting the argument 'node'
-        returns: type
-        """
         self.infer_mod(node)
-
-        # if self.is_debug:
-        #     print('=== Type Environment ===')
-        #     self.dump_nodetype()
-
         return self.nodetype
 
 
@@ -276,7 +275,7 @@ class TypeChecker():
                             len(node.args.args), len(ty_args))
 
         if self.is_debug:
-            print("\x1b[33m======================= function {} =======================\x1b[39m".format(node.name))
+            print("\x1b[33m==================== function {} ====================\x1b[39m".format(node.name))
 
         self.type_hints = type_hints
 
@@ -439,7 +438,7 @@ class TypeChecker():
 
     def infer_FunctionDef(self, node):
         # FunctionDef(identifier name, arguments args, stmt* body,
-        # expr* decorator_list, expr? returns)
+        #             expr* decorator_list, expr? returns)
         ty_args = [self.tyenv[arg.id] for arg in node.args.args]
         ty = None
 
@@ -879,7 +878,6 @@ class TypeChecker():
                 raise self.ArgumentRequired(func=x)
             return type_of_value(x)
 
-        # case of Tuple assignment
         # XXX: print comes here
         ty_var = TyVar()
         self.tyenv[node.id] = ty_var
