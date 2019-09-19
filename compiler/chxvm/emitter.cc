@@ -642,11 +642,18 @@ private:
             CLOG() << "Fusion group (" << node.fusion_type() << ") " << GetFusionGroupSummary(node) << std::endl;
         }
 
-        auto run_onnx_serialize = [](const Graph& body) {
+        std::unordered_map<std::string, int> opset_imports;
+
+        auto run_onnx_serialize = [&opset_imports](const Graph& body) {
             std::string serialized;
             {
                 onnx::ModelProto xmodel;
-                body.ToONNX(xmodel.mutable_graph());
+                body.ToONNX(xmodel.mutable_graph(), true);
+                for (const auto& op : opset_imports) {
+                    onnx::OperatorSetIdProto* id = xmodel.mutable_opset_import()->Add();
+                    id->set_domain(op.first);
+                    id->set_version(op.second);
+                }
                 xmodel.SerializeToString(&serialized);
             }
             return serialized;
@@ -663,6 +670,7 @@ private:
         }
 
         if (g_use_snpe && node.fusion_type() == "snpe") {
+            opset_imports[""] = 9;
             EmitFusionGroupSNPE(node, run_onnx_serialize(body), prog);
             return;
         }
