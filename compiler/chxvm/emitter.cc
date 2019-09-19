@@ -605,6 +605,7 @@ private:
             std::string serialized;
             {
                 onnx::ModelProto xmodel;
+                body.CheckSanity("fusion group sub-onnx check");
                 body.ToONNX(xmodel.mutable_graph(), true);
                 for (const auto& op : opset_imports) {
                     onnx::OperatorSetIdProto* id = xmodel.mutable_opset_import()->Add();
