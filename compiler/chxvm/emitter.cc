@@ -415,7 +415,7 @@ private:
         std::string quantize_calib_data;
 
         if (g_snpe_quantize) {
-            quantize_input_fname = "./input.txt";
+            quantize_input_fname = StrCat("./input_", node.fusion_type(), "_", node.chainer_fusion_group(), ".txt");
             std::ofstream ofs(quantize_input_fname.c_str());
             std::random_device rd;
             std::mt19937 gen(rd());
