@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <fstream>
 #include <map>
+#include <random>
 
 #include <common/log.h>
 #include <common/strutil.h>
@@ -410,7 +411,32 @@ private:
     void EmitFusionGroupSNPE(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
         const Graph& body = *node.subgraph();
 
-        FileCache cache(CacheBasePath(node), ".dlc", {serialized_onnx});
+        std::string quantize_input_fname;
+        std::string quantize_calib_data;
+
+        if (g_snpe_quantize) {
+            quantize_input_fname = "./input.txt";
+            std::ofstream ofs(quantize_input_fname.c_str());
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_real_distribution<float> dis(-1.0, 1.0);
+            for (Value* v : body.input_values()) {
+                CHECK(v->type().HasKnownShape());
+                const std::string data_fname =
+                        StrCat("./", node.fusion_type(), "_", node.chainer_fusion_group(), "_input_data_", v->name(), ".bin");
+
+                std::ofstream bin_data(data_fname.c_str(), std::ios::out | std::ios::binary);
+                for (int64_t i = 0; i < v->type().NumElements(); ++i) {
+                    float f = dis(gen);
+                    bin_data.write(reinterpret_cast<char*>(&f), sizeof(f));
+                    quantize_calib_data.append(reinterpret_cast<char*>(&f), sizeof(f));
+                }
+
+                ofs << data_fname << std::endl;
+            }
+        }
+
+        FileCache cache(CacheBasePath(node), ".dlc", {serialized_onnx, quantize_calib_data});
 
         if (!cache.IsReady() || !g_use_cached_model) {
             const std::string onnx_path = DumpONNXToTmpFile(node, serialized_onnx);
@@ -419,19 +445,38 @@ private:
             const char* snpe_dir = getenv("SNPE_ROOT");
             CHECK(snpe_dir) << "SNPE_ROOT is not set properly";
 
-            // TODO(take-cheeze): Support quantization
+            std::string dlc_out = cache.GetTmpFilename();
+            if (g_snpe_quantize) {
+                dlc_out += ".raw";
+            }
+
+            const std::string env_prefix =
+                    StrCat("PYTHONPATH=", snpe_dir, "/lib/python", " LD_LIBRARY_PATH=", snpe_dir, "/lib/x86_64-linux-clang ");
+
             const std::string cmdline =
-                    StrCat("PYTHONPATH=",
-                           snpe_dir,
-                           "/lib/python",
+                    StrCat(env_prefix,
                            " python2.7 ",
                            snpe_dir,
                            "/bin/x86_64-linux-clang/snpe-onnx-to-dlc"
                            " --model_path ",
                            onnx_path,
                            " --output_path ",
-                           cache.GetTmpFilename());
+                           dlc_out);
             CHECK_CMDLINE(cmdline);
+
+            if (g_snpe_quantize) {
+                const std::string cmdline =
+                        StrCat(env_prefix,
+                               snpe_dir,
+                               "/bin/x86_64-linux-clang/snpe-dlc-quantize",
+                               " --input_dlc ",
+                               dlc_out,
+                               " --output_dlc ",
+                               cache.GetTmpFilename(),
+                               " --input_list ",
+                               quantize_input_fname);
+                CHECK_CMDLINE(cmdline);
+            }
 
             cache.Commit();
 
