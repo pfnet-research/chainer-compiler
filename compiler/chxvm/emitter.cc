@@ -482,9 +482,7 @@ private:
 
             if (g_dump_snpe_dlc_info) {
                 std::string cmdline =
-                        StrCat("PYTHONPATH=",
-                               snpe_dir,
-                               "/lib/python",
+                        StrCat(env_prefix,
                                " python2.7 ",
                                snpe_dir,
                                "/bin/x86_64-linux-clang/snpe-dlc-info"
