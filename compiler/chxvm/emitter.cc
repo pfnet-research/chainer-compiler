@@ -338,6 +338,12 @@ private:
         return StrCat("/tmp/chainer_compiler_", node.fusion_type(), "_tmp_", node.chainer_fusion_group());
     }
 
+#define CHECK_CMDLINE(cmdline)                             \
+    if (g_compiler_log) {                                  \
+        CLOG() << "Run command: " << cmdline << std::endl; \
+    }                                                      \
+    CHECK_EQ(system(cmdline.c_str()), 0) << "Command failed: " << cmdline << "\ninput onnx:\n" << body.DebugString()
+
     void EmitFusionGroupDldt(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
         const Graph& body = *node.subgraph();
 
@@ -367,11 +373,7 @@ private:
                            " --model_name ",
                            cache.GetFilename(),
                            extra_args);
-            if (g_compiler_log) {
-                CLOG() << "Run command: " << cmdline << std::endl;
-            }
-            int ret = system(cmdline.c_str());
-            CHECK_EQ(0, ret) << "Command failed: " << cmdline;
+            CHECK_CMDLINE(cmdline);
 
             {
                 // Create a stamp file.
@@ -429,11 +431,7 @@ private:
                            onnx_path,
                            " --output_path ",
                            cache.GetTmpFilename());
-            if (g_compiler_log) {
-                CLOG() << "Run command: " << cmdline << std::endl;
-            }
-            int ret = system(cmdline.c_str());
-            CHECK_EQ(0, ret) << "Command failed: " << cmdline;
+            CHECK_CMDLINE(cmdline);
 
             cache.Commit();
 
@@ -450,11 +448,7 @@ private:
                 if (!g_snpe_dlc_info_out_prefix.empty()) {
                     cmdline += StrCat(" -s ", g_snpe_dlc_info_out_prefix, node.chainer_fusion_group(), ".txt");
                 }
-                if (g_compiler_log) {
-                    CLOG() << "Dumping snpe-dlc-info of: " << cache.GetFilename() << " with: " << cmdline << std::endl;
-                }
-                int ret = system(cmdline.c_str());
-                CHECK_EQ(0, ret) << "Command failed: " << cmdline;
+                CHECK_CMDLINE(cmdline);
             }
         }
 
@@ -486,6 +480,8 @@ private:
 
         EMIT(SnpeDlc, outputs, inputs, input_names, ss.str(), snpe_device);
     }
+
+#undef CHECK_CMDLINE
 
     void EmitFusionGroupTVM(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
         const Graph& body = *node.subgraph();
