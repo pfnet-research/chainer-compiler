@@ -603,6 +603,7 @@ private:
             std::string serialized;
             {
                 onnx::ModelProto xmodel;
+                body.CheckSanity("fusion group sub-onnx check");
                 body.ToONNX(xmodel.mutable_graph());
                 xmodel.SerializeToString(&serialized);
             }
