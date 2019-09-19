@@ -97,3 +97,7 @@ See examples directory for more details. You can run the MNIST example by
 ```shell-session
 $ python3 examples/mnist/train_mnist.py --compile --dump_onnx -d cuda
 ```
+
+## Use with SNPE
+- Set `$SNPE_ROOT` to the directory of extracted `snpe-1.x.x.zip`
+- Pass `-DCHAINER_COMPILER_SNPE_INCLUDE_DIR=$SNPE_ROOT/include -DCHAINER_COMPILER_SNPE_LIBRARY_DIR=$SNPE_ROOT/lib/x86_64-linux-clang` to cmake. Replace `x86_64-linux-clang` with target architecture for ChxVM runtime when needed
