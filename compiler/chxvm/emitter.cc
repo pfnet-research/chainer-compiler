@@ -458,7 +458,9 @@ private:
                            " python2.7 ",
                            snpe_dir,
                            "/bin/x86_64-linux-clang/snpe-onnx-to-dlc"
-                           " --model_path ",
+                           // TODO(take-cheeze): Set DLC model version
+                           // " --model_version chxvm ",
+                           " --input_network ",
                            onnx_path,
                            " --output_path ",
                            dlc_out);
