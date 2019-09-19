@@ -280,8 +280,7 @@ class ty_ChainerConcat():
     def infer_return(self, xs_type):
         ret_shape = list(xs_type[0].shape)
         ret_shape[self.axis] = sum([x_type.shape[self.axis] for x_type in xs_type])
-        return TyChainerVariable(dtype=xs_type[0].dtype,
-                shape=ret_shape)
+        return TyChainerVariable(dtype=xs_type[0].dtype, shape=ret_shape)
 
 
 class ty_ChainerStack():
@@ -328,8 +327,7 @@ class ty_ChainerStack():
     def infer_return(self, xs_type):
         ret_shape = list(xs_type[0].shape)
         ret_shape.insert(self.axis, len(xs_type))
-        return TyChainerVariable(xs_type.get().dtype,
-                shape=ret_shape)
+        return TyChainerVariable(xs_type.get().dtype, shape=ret_shape)
 
 
 class ty_ChainerHstack():
@@ -590,7 +588,7 @@ class ty_ChainerSwapAxes():
         x_type, axis1_type, axis2_type = ty_args
 
         if lacks_value(axis1_type) or lacks_value(axis2_type):
-            return TyChainerVariable(x_type.dtype)
+            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
 
         self.axis1 = extract_value_from_ty(axis1_type)
         self.axis2 = extract_value_from_ty(axis2_type)

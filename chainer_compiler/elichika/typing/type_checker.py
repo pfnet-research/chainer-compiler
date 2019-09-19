@@ -134,8 +134,7 @@ def call_binop(op, node, tyl, tyr):
 
 # ==============================================================================
 
-# TODO
-func_to_ignore = [print, logging.info]
+func_to_ignore = [logging.info]
 
 
 list_attr_ty = {
@@ -466,7 +465,8 @@ class TypeChecker():
 
             # XXX: Changing following 2 lines into
             #   self.tyenv[target.id] = self.nodetype[target] = copy_ty(ty_val)
-            # will allow self.nodetype[target] to change afterwards
+            # will allow self.nodetype[target] to change afterwards, which will
+            # be more suitable for elichika but contradict with python semantics.
             self.tyenv[target.id] = copy_ty(ty_val)
             self.nodetype[target] = copy_ty(ty_val)
             return
@@ -543,7 +543,7 @@ class TypeChecker():
 
     def infer_If(self, node):
         # If(expr test, stmt* body, stmt* orelse)
-        # TODO(momohatt): determine what type should ty_test be
+        # XXX: type of node.test can be anything
         self.infer_expr(node.test)
         x = lazy_initializer(node)
 
@@ -827,7 +827,7 @@ class TypeChecker():
                 return ty_obj.get_ty()
             if isinstance(node.slice, gast.Slice):
                 return ty_obj
-            assert False, "indices must be integers or slices"
+            assert False, "ExtSlice for lists/tuples is not supported"
 
         if isinstance(ty_obj, TyDict):
             self.infer_slice(node.slice, ty_obj.keyty)
@@ -847,16 +847,19 @@ class TypeChecker():
         if isinstance(node_slice, gast.Slice):
             if not self.is_const_slice(node_slice):
                 return (None,) + shape[1:]
+            if shape[0].value is None and (node_slice.upper is None or
+                    extract_value_from_ty(self.nodetype[node_slice.upper]) < 0):
+                return (None,) + shape[1:]
             get_slice = eval('lambda s: s[{}]'.format(utils.slice_to_str(node_slice)))
             shape_0 = ShapeElem(len(get_slice((0,) * shape[0].value)))  # TODO
             return (shape_0,) + shape[1:]
         if isinstance(node_slice, gast.ExtSlice):
-            shape_ = ()
+            ret_shape = ()
             for i in range(len(node_slice.dims)):
-                shape_ += self.infer_Subscript_shape(shape[i:i+1],
+                ret_shape += self.infer_Subscript_shape(shape[i:i+1],
                         node_slice.dims[i])
-            shape_ += shape[len(node_slice.dims):]
-            return shape_
+            ret_shape += shape[len(node_slice.dims):]
+            return ret_shape
 
 
     def infer_Name(self, node):
