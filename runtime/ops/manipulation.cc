@@ -18,6 +18,7 @@ chainerx::Array SizeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
 }
 
 chainerx::Array FlattenOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
+    const int axis = ResolveAxis(input, this->axis);
     int64_t d0 = 1;
     int64_t d1 = 1;
     for (size_t i = 0; i < input.shape().size(); ++i) {

@@ -38,11 +38,11 @@ class BLSTM(chainer.Chain):
         ilens = cuda.to_cpu(ilens)
         hy, cy, ys = self.nblstm(None, None, xs)
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
-        xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
+        xs = F.split_axis(ys, np.cumsum(ilens[:-1]), 0)
         del hy, cy
 
         # final tanh operation
-        xs = F.split_axis(F.tanh(F.vstack(xs)), np.cumsum(ilens[:-1]), axis=0)
+        xs = F.split_axis(F.tanh(F.vstack(xs)), np.cumsum(ilens[:-1]), 0)
 
         # EDIT(hamaji): Unnecessary, as `force_tuple` is True by default.
         # # 1 utterance case, it becomes an array, so need to make a utt tuple
