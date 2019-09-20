@@ -615,6 +615,22 @@ def set_attr_if_None(obj1, obj2, attr_name):
         return
 
 
+def occur(var, ty):
+    if isinstance(ty, TyVar):
+        if var is ty:
+            return True
+        occur(var, ty.ty)
+    if isinstance(ty, TyArrow):
+        return any([occur(var, t) for t in ty.argty]) or occur(var, ty.retty)
+    if isinstance(ty, TySequence):
+        if ty.is_fixed_len:
+            return any([occur(var, t) for t in ty.get_tys()])
+        return occur(var, ty.get_ty())
+    if isinstance(ty, TyDict):
+        return occur(var, ty.keyty) or occur(var, ty.valty)
+    return False
+
+
 def unify(ty1, ty2, inspect_shape=True):
     # inspect_shape: forces shapes to be identical iff True
     ty1 = ty1.deref()
@@ -643,11 +659,14 @@ def unify(ty1, ty2, inspect_shape=True):
     if isinstance(ty1, TyVar):
         if isinstance(ty2, TyVar) and ty1 is ty2:
             return
-        # TODO(momohatt): occur check
+        if occur(ty1, ty2):
+            raise UnifyError(ty1, ty2)
         ty1.set(ty2)
         return
 
     if isinstance(ty2, TyVar):
+        if occur(ty2, ty1):
+            raise UnifyError(ty1, ty2)
         ty2.set(ty1)
         return
 
