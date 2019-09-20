@@ -3,6 +3,7 @@ import pprint
 import unittest
 
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
+from chainer_compiler.elichika.testtools import type_checker_tools
 
 from testcases.elichika_tests.utils import sequence_utils
 from testcases.elichika_tests.model.EspNet_AttDot import AttDot
@@ -14,6 +15,7 @@ from testcases.elichika_tests.model.EspNet_VGG2L import VGG2L
 from testcases.elichika_tests.model.StatelessLSTM import StatelessLSTM
 
 def gen_AttDot_model():
+    type_checker_tools.reset_state()
     eprojs = 3
     dunits = 4
     att_dim = 5
@@ -33,6 +35,7 @@ def gen_AttDot_model():
 
 
 def gen_AttLoc_model():
+    type_checker_tools.reset_state()
     eprojs = 3
     dunits = 4
     att_dim = 5
@@ -54,7 +57,7 @@ def gen_AttLoc_model():
 
 
 def gen_StatelessLSTM_model():
-    # StatelessLSTM
+    type_checker_tools.reset_state()
     batch_size = 3
     in_size = 7
     out_size = 4
@@ -70,7 +73,7 @@ def gen_StatelessLSTM_model():
 
 
 def gen_VGG2L_model():
-    # VGG2L
+    type_checker_tools.reset_state()
     idim = 5
     elayers = 2
     cdim = 3
@@ -92,7 +95,7 @@ def gen_VGG2L_model():
 
 
 def gen_BLSTM_model():
-    # BLSTM
+    type_checker_tools.reset_state()
     idim = 5
     elayers = 2
     cdim = 3
@@ -114,7 +117,7 @@ def gen_BLSTM_model():
 
 
 def gen_Decoder_model():
-    # Decoder
+    type_checker_tools.reset_state()
     eprojs = 3
     dunits = 4
     att_dim = 5
@@ -144,6 +147,7 @@ def gen_Decoder_model():
 
 
 def gen_E2E_model():
+    type_checker_tools.reset_state()
     (idim, odim, args), (xs, ilens, ys) = test_recipe()
     model = E2E(idim, odim, args, nobias=True)
     forward_args = (xs, ilens, ys)

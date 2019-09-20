@@ -1,8 +1,10 @@
 import ast, gast
 import inspect
+import numpy as np
 import sys
 import typing
 
+from chainer_compiler.elichika.typing import types
 from chainer_compiler.elichika.typing.type_checker import TypeChecker
 from chainer_compiler.elichika.typing.utils import node_description
 from chainer_compiler.elichika.parser import utils
@@ -84,6 +86,10 @@ def generate_assertion(type_table_name, id2type, id2node, ofile=None):
         else:
             ofile.write(output + '\n')
 
+
+def reset_state():
+    np.random.seed(42)
+    types.var_counter = 0
 
 
 if __name__ == '__main__':
