@@ -803,6 +803,9 @@ class TypeChecker():
 
             return ty_node
 
+        if isinstance(ty_obj, TyNone):
+            return TyVar()
+
 
     def infer_Subscript(self, node):
         # Subscript(expr value, slice slice, expr_context ctx)
