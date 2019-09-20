@@ -10,6 +10,16 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(third-party)
 
+if(WIN32)
+  set(RM_RF rd /s /q)
+  set(ENV_SET set)
+  set(TOUCH echo.>)
+else()
+  set(RM_RF rm -rf)
+  set(ENV_SET )
+  set(TOUCH touch)
+endif()
+
 # Sets default settings from the associated env-var if existed.
 # Usage:
 #   set_option_(FOO "Option FOO" OFF)
@@ -47,11 +57,14 @@ set_option_(CHAINER_COMPILER_ENABLE_OPENCV "Enable OPENCV" OFF)
 set_option_(CHAINER_COMPILER_ENABLE_OPENMP "Enable OPENMP" OFF)
 set_option_(CHAINER_COMPILER_ENABLE_PYTHON "Enable PYTHON" OFF)
 set_option_(CHAINER_COMPILER_ENABLE_TVM    "Enable TVM" OFF)
+set_option_(CHAINER_COMPILER_ENABLE_TENSORRT "Enable TensorRT" OFF)
 set_option_(CHAINER_COMPILER_USE_SYSTEM_PROTOBUF "Use protobuf installed in the system" OFF)
 
 option(CHAINER_COMPILER_PREBUILT_CHAINERX_DIR "The path to prebuilt ChainerX" OFF)
 option(CHAINER_COMPILER_NGRAPH_DIR "The path to ngraph_dist" OFF)
 option(CHAINER_COMPILER_DLDT_DIR "The path to dldt" OFF)
+option(CHAINER_COMPILER_SNPE_LIBRARY_DIR "The path to libSNPE.so" OFF)
+option(CHAINER_COMPILER_SNPE_INCLUDE_DIR "The path to SNPE headers" OFF)
 
 option(CHAINER_COMPILER_BUILD_TESTS "Build C++ tests" ON)
 option(CHAINER_COMPILER_GENERATE_TESTS "Generate tests for scripts/runtests.py" ON)
@@ -73,6 +86,11 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
 if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+    add_compile_options(/wd4125) # for protobuf
+    add_compile_options(/wd4127) # for protobuf
+    add_compile_options(/wd4244) # for protobuf
+
+    set(CHAINER_COMPILER_PTHREAD_LIBRARIES )
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
@@ -81,11 +99,26 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-trigraphs")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+    set(CHAINER_COMPILER_PTHREAD_LIBRARIES pthread)
 endif()
 
 set(CMAKE_CXX_STANDARD 14)
 
 find_package(PythonInterp 3)
+
+if(MSVC)
+    # gtest for Windows
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
+        # TODO(durswd): Remove it. It is hack for MSVC+LLVM
+        target_compile_options(gtest INTERFACE -Wno-global-constructors PRIVATE -w)
+    else()
+        # ChainerX is linked with MultiThreaded DLL, including gtest
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    endif()
+
+    # gtest for protobuf
+    set(protobuf_MSVC_STATIC_RUNTIME OFF)
+endif()
 
 # Make both chainer-compiler and ChainerX consistent.
 set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_ENABLE_CUDA})
@@ -116,6 +149,8 @@ else()
   set_subdirectory_option_(protobuf_BUILD_TESTS OFF)
   add_subdirectory(third_party/protobuf/cmake EXCLUDE_FROM_ALL)
   include_directories(third_party/protobuf/src)
+  SET_TARGET_PROPERTIES(protoc PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/)
+  SET_TARGET_PROPERTIES(protoc PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/)
   set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/protoc)
   set(PROTOBUF_LIBRARY libprotobuf)
 endif()
@@ -201,6 +236,15 @@ if(NOT ("${CHAINER_COMPILER_DLDT_DIR}" STREQUAL "OFF"))
   link_directories(AFTER ${CHAINER_COMPILER_DLDT_LINK_DIRS})
 endif()
 
+if(NOT ("${CHAINER_COMPILER_SNPE_INCLUDE_DIR}" STREQUAL "OFF") AND NOT ("${CHAINER_COMPILER_SNPE_LIBRARY_DIR}" STREQUAL "OFF"))
+  add_definitions(-DCHAINER_COMPILER_ENABLE_SNPE=1)
+  set(CHAINER_COMPILER_SNPE_LIBRARIES SNPE)
+  include_directories(
+    "${CHAINER_COMPILER_SNPE_INCLUDE_DIR}"
+    "${CHAINER_COMPILER_SNPE_INCLUDE_DIR}/zdl")
+  link_directories(AFTER "${CHAINER_COMPILER_SNPE_LIBRARY_DIR}")
+endif()
+
 if(${CHAINER_COMPILER_ENABLE_TVM})
   add_definitions(-DCHAINER_COMPILER_ENABLE_TVM=1)
   set(CHAINER_COMPILER_TVM_INCLUDE_DIRS ${CHAINER_COMPILER_TVM_INCLUDE_DIRS} /usr/local/include/HalideIR)
@@ -210,7 +254,29 @@ if(${CHAINER_COMPILER_ENABLE_TVM})
   link_directories(AFTER ${CHAINER_COMPILER_TVM_LINK_DIRS})
 endif()
 
+if(${CHAINER_COMPILER_ENABLE_TENSORRT})
+  add_definitions(-DCHAINER_COMPILER_ENABLE_TENSORRT=1)
+  set(CHAINER_COMPILER_TENSORRT_LIBRARIES nvinfer nvonnxparser)
+endif()
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx ${CMAKE_CURRENT_BINARY_DIR}/third_party/onnx)
+
+set(CHAINER_COMPILER_DEPENDENCY_LIBRARIES
+  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
+  onnx
+  onnx_proto
+  ${PROTOBUF_LIBRARY}
+  ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
+  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
+  ${CHAINER_COMPILER_DLDT_LIBRARIES}
+  ${CHAINER_COMPILER_TVM_LIBRARIES}
+  ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  ${CHAINER_COMPILER_SNPE_LIBRARIES}
+  ${CHAINER_COMPILER_TENSORRT_LIBRARIES}
+  absl::variant
+  absl::optional
+  ${OpenCV_LIBS}
+  )
 
 add_custom_target(large_tests)
 
@@ -243,13 +309,14 @@ add_subdirectory(compiler)
 add_subdirectory(common)
 add_subdirectory(configs)
 add_subdirectory(feeder)
+add_subdirectory(menoh)
 add_subdirectory(runtime)
 add_subdirectory(scripts)
 add_subdirectory(tools)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
-  COMMAND rm -rf "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && PYTHONPATH=third_party/onnx-chainer pytest --value-check-runtime skip third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  COMMAND ${RM_RF} "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && ${ENV_SET} PYTHONPATH=third_party/onnx-chainer pytest --value-check-runtime skip third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
   DEPENDS
   third_party/onnx-chainer/tests/functions_tests/test_activations.py
   third_party/onnx-chainer/tests/functions_tests/test_arrays.py
@@ -293,7 +360,7 @@ function(gen_ch2o_test dir ch2o_test all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${ch2o_test_py} ${out_dir} --quiet && touch ${out_stamp}
+    COMMAND ${ENV_SET} PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${ch2o_test_py} ${out_dir} --quiet && ${TOUCH} ${out_stamp}
     MAIN_DEPENDENCY ${ch2o_test_py}
     DEPENDS ${CH2O_FILES}
     )
@@ -441,6 +508,7 @@ set(ELICHIKA_FILES
 include(scripts/elichika_tests.py)
 
 function(gen_elichika_test dir all)
+
   string(REPLACE "/" "_" name ${dir})
   set(elichika_tests_py ${CMAKE_CURRENT_SOURCE_DIR}/scripts/elichika_tests.py)
   set(out_stamp ${CMAKE_CURRENT_BINARY_DIR}/stamp_out/elichika_${name})
@@ -454,7 +522,7 @@ function(gen_elichika_test dir all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${elichika_tests_py} --generate ${dir} && touch ${out_stamp}
+    COMMAND ${ENV_SET} PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${elichika_tests_py} --generate ${dir} && ${TOUCH} ${out_stamp}
     DEPENDS ${elichika_tests_py} ${ELICHIKA_FILES} ${test_files}
     )
 
@@ -473,7 +541,6 @@ gen_elichika_test(model "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node/ndarray "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node/Functions "${CHAINER_COMPILER_TEST_ALL}")
-gen_elichika_test(node/Functions/Activation "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node/Links "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(syntax "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(chainercv_model/resnet "${CHAINER_COMPILER_TEST_ALL}")

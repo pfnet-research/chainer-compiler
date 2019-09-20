@@ -522,8 +522,46 @@ class Attribute:
         assert self.has_obj()
         return self.obj
 
+    def make_subscript_attribute(self, subscript: 'Object', graph: 'Graph'):
+        return SubscriptAttribute(self.name+"subscript"+str(utils.get_guid()), self, subscript, graph)
+
     def __str__(self):
         return self.name
+
+class SubscriptAttribute(Attribute):
+    def __init__(self, name: 'str', parent: 'Attribute', subscript: 'Object', graph: 'Graph'):
+        super().__init__(name)
+        self.attribute_parent = parent
+        self.subscript = subscript
+        self.graph = graph
+
+    def revise(self, obj: 'Object', update_parent = True):
+        super().revise(obj)
+        if not update_parent:
+            return
+
+        assert isinstance(self.attribute_parent, Attribute)
+        target_value = utils.try_get_value(self.attribute_parent, 'subscript', -1)
+        revision_value = utils.try_get_value(self.obj, 'subscript', -1)
+        subscript_value = utils.try_get_value(self.subscript, 'subscript', -1)
+
+        if isinstance(subscript_value, TupleValue):
+            # ex. x[1,2]
+            if subscript_value.has_constant_value():
+                subscripts = [utils.try_get_value(x, 'subscript', -1) for x in subscript_value.get_constant_value()]
+            else:
+                if config.show_warnings:
+                    assert False, "This subscript is not supported."
+
+        else:
+            # ex. x[1]
+            subscripts = [subscript_value]
+        node = nodes.NodeSetItem(target_value, subscripts, revision_value)
+        ret_value = functions.generate_value_with_same_type(target_value)
+        node.set_outputs([ret_value])
+        self.graph.add_node(node)
+        self.attribute_parent.revise(Object(ret_value))
+
 
 class Object():
     def __init__(self, value: 'Value'):

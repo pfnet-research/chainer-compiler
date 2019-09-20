@@ -23,6 +23,7 @@ class Generator(object):
 TESTS = [
     Generator('model', 'MLP'),
     Generator('model', 'Alex'),
+    Generator('model', 'GoogleNet'),
     Generator('model', 'Resnet_with_loss'),
     Generator('model', 'MyLSTM'),
 
@@ -43,8 +44,6 @@ TESTS = [
     Generator('node', 'Id'),
     Generator('node', 'Linear'),
     Generator('node', 'PadSequence'),
-    Generator('node', 'Relu'),
-    Generator('node', 'Softmax'),
     Generator('node', 'SoftmaxCrossEntropy'),
     Generator('node', 'Unpooling2D'),
     Generator('node', 'Variable'),
@@ -77,15 +76,15 @@ TESTS = [
     Generator('node/Functions', 'Separate'),
     Generator('node/Functions', 'Sigmoid'),
     Generator('node/Functions', 'MathMisc'),
+    Generator('node/Functions', 'MinMax'),
     Generator('node/Functions', 'SplitAxis'),
     Generator('node/Functions', 'Squeeze'),
     Generator('node/Functions', 'Stack'),
     Generator('node/Functions', 'Sum'),
     Generator('node/Functions', 'SwapAxes'),
     Generator('node/Functions', 'Vstack'),
-
-    Generator('node/Functions/Activation', 'Elu'),
-    Generator('node/Functions/Activation', 'LeakyRelu'),
+    Generator('node/Functions', 'Activations'),
+    Generator('node/Functions', 'Transpose'),
 
     Generator('node/Links', 'NStepLSTM'),
     Generator('node/Links', 'NStepBiLSTM'),
@@ -114,12 +113,17 @@ TESTS = [
     Generator('syntax', 'Dict'),
     Generator('syntax', 'GetItem'),
     Generator('syntax', 'HasItem'),
-    Generator('syntax', 'Lambda')
+    Generator('syntax', 'Lambda'),
+    Generator('syntax', 'List')
 ]
 
 
 def get_test_generators(dirname):
     return [test for test in TESTS if test.dirname == dirname]
+
+
+def print_test_dirs():
+    print(' '.join(sorted(set(gen.dirname for gen in TESTS))))
 
 
 def print_test_generators(dirname):
@@ -193,7 +197,9 @@ def get():
 
 
 if __name__ == '__main__':
-    if sys.argv[1] == '--list':
+    if sys.argv[1] == '--dirs':
+        print_test_dirs()
+    elif sys.argv[1] == '--list':
         print_test_generators(sys.argv[2])
     elif sys.argv[1] == '--generate':
         generate_tests(sys.argv[2])

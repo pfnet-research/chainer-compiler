@@ -88,6 +88,7 @@ absl::variant<chainerx::Array, std::vector<std::string>> TensorProtoToArray(onnx
     chainerx::Shape shape(xtensor.dims().begin(), xtensor.dims().end());
 
     if (xtensor.data_type() == onnx::TensorProto::STRING) {
+        CHECK_LT(shape.size(), 2) << ">1D string tensor is not supported";
         return std::vector<std::string>(xtensor.string_data().begin(), xtensor.string_data().end());
     }
 
@@ -249,6 +250,24 @@ template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<
 template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<int64_t>& data);
 
 Tensor::Tensor(const std::string& name, const Tensor& t) : data_(t.data_), name_(name), doc_string_(t.doc_string_) {
+}
+
+bool Tensor::IsArray() const {
+    return absl::holds_alternative<chainerx::Array>(data_);
+}
+
+const void* Tensor::GetRawData() const {
+    return runtime::RawStartPtr(chx());
+}
+
+const chainerx::Array& Tensor::chx() const {
+    CHECK(IsArray());
+    return absl::get<0>(data_);
+}
+
+const std::vector<std::string>& Tensor::str() const {
+    CHECK(!IsArray());
+    return absl::get<1>(data_);
 }
 
 }  // namespace chainer_compiler

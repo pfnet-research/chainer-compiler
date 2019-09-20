@@ -126,7 +126,7 @@ def try_get_value(value, name, lineprop, is_none_allowed = False) -> 'values.Val
     raise Exception('Value {} is invalid. in L.{}'.format(name, lineprop))
 
 class LineProperty():
-    def __init__(self, lineno=-1, filename=''):
+    def __init__(self, lineno=-1, filename='', parent : 'LineProperty' = None):
         self.lineno = lineno
         self.filename = filename
 

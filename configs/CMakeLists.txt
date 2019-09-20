@@ -6,16 +6,24 @@ set(jsons
   dldt
   ngraph
   nvrtc
+  snpe
+  tensorrt
   tvm
   )
 set(json_cs)
+
+if(WIN32)
+  set(mv_command move)
+else()
+  set(mv_command mv)
+endif()
 
 foreach(json ${jsons})
   set(json "${json}.json")
   set(out ${CMAKE_CURRENT_BINARY_DIR}/${json}.cc)
   add_custom_command(
     OUTPUT ${out}
-    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/json_to_cc.py ${CMAKE_CURRENT_SOURCE_DIR}/${json} > ${json}.tmp && mv ${json}.tmp ${out}
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/json_to_cc.py ${CMAKE_CURRENT_SOURCE_DIR}/${json} > ${json}.tmp && ${mv_command} ${json}.tmp ${out}
     MAIN_DEPENDENCY ${json}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/json_to_cc.py
     )

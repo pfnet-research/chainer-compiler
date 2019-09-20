@@ -26,5 +26,9 @@ int64_t GetUsedMemory();
 
 void StripChxVMProgram(ChxVMProgramProto* program);
 
+bool IsDir(const std::string& filename);
+
+std::vector<std::string> ListDir(const std::string& dirname);
+
 }  // namespace runtime
 }  // namespace chainer_compiler

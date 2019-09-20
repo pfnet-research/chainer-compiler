@@ -24,7 +24,7 @@ target_link_libraries(chainer_compiler_feeder_test
   ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
   gtest
   gtest_main
-  pthread
+  ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
   ${OpenCV_LIBS}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   absl::variant

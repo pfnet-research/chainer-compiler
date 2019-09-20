@@ -7,7 +7,7 @@
 namespace chainer_compiler {
 
 template <class Stream>
-inline void StrCatToStream(Stream& oss) {
+inline void StrCatToStream(Stream&) {
 }
 
 template <class Stream, class Arg0, class... Args>

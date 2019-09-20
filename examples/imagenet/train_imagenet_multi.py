@@ -144,8 +144,8 @@ def main():
                         help='Enables runtime verbose log')
     parser.add_argument('--skip_runtime_type_check', action='store_true',
                         help='Skip runtime type check')
-    parser.add_argument('--dump_memory_usage', action='store_true',
-                        help='Dump memory usage')
+    parser.add_argument('--dump_memory_usage', type=int, default=0,
+                        help='Dump memory usage (0-2)')
     parser.add_argument('--quiet_period', type=int, default=0,
                         help='Quiet period after runtime report')
     parser.add_argument('--overwrite_batchsize', action='store_true',
@@ -210,8 +210,8 @@ def main():
             runtime_kwargs['verbose'] = True
         if args.skip_runtime_type_check:
             runtime_kwargs['check_types'] = False
-        if args.dump_memory_usage:
-            runtime_kwargs['dump_memory_usage'] = True
+        if args.dump_memory_usage >= 1:
+            runtime_kwargs['dump_memory_usage'] = args.dump_memory_usage
             free, total = cupy.cuda.runtime.memGetInfo()
             used = total - free
             runtime_kwargs['base_memory_usage'] = used

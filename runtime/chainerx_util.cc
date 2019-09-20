@@ -68,6 +68,10 @@ chainerx::Array MakeScalarArray(float f) {
     return MakeArray(chainerx::Dtype::kFloat32, {}, &f);
 }
 
+chainerx::Array MakeDtypeScalarArray(chainerx::Dtype dtype, chainerx::Scalar s) {
+    return chainerx::Full({}, s, dtype);
+}
+
 chainerx::Array MakeHostArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src) {
     std::shared_ptr<void> data(MakeSharedPtrData(dtype, shape, src));
     chainerx::Array array(
@@ -225,29 +229,97 @@ chainerx::Array NumpyMatMul(const chainerx::Array& a, const chainerx::Array& b) 
     return chainerx::Stack(stack).Reshape(new_shape);
 }
 
-chainerx::Array GroupedConv(
+chainerx::Array ApplyAsymmetricPad(const chainerx::Array& x, Int64StackVector* pads_ptr, float value, int64_t beg_dim) {
+    Int64StackVector& pads = *pads_ptr;
+    // Don't apply pad in symmetric pad
+    if (pads.size() == (x.shape().size() - beg_dim)) {
+        return x;
+    }
+
+    CHECK_EQ((x.ndim() - beg_dim) * 2, pads.size());
+    const chainerx::Shape shape = x.shape();
+    chainerx::Shape new_shape = x.shape();
+    std::vector<chainerx::ArrayIndex> indices1, indices2;
+    for (int i = 0; i < beg_dim; ++i) {
+        indices1.push_back(chainerx::Slice(0, shape[i]));
+        indices2.push_back(chainerx::Slice(0, shape[i]));
+    }
+    for (int i = beg_dim; i < shape.size(); ++i) {
+        const int64_t pad_idx = i - beg_dim;
+        const int64_t pad_beg = pads[pad_idx], pad_end = pads[pads.size() / 2 + pad_idx];
+        new_shape[i] += pad_beg + pad_end;
+        auto len = shape[i] + std::min<int64_t>(0, pad_beg) + std::min<int64_t>(0, pad_end);
+
+        const auto start1 = std::max<int64_t>(-pad_beg, 0);
+        const auto start2 = std::max<int64_t>(pad_beg, 0);
+        const auto end1 = std::min(shape[i] + pad_end, shape[i]);
+        const auto end2 = std::min(new_shape[i] - pad_end, new_shape[i]);
+
+        CHECK_EQ(end1 - start1, len) << "Shape mis-match: " << shape[i] << " " << pad_beg << " " << pad_end << "      " << start1 << " "
+                                     << end1 << " " << len;
+        CHECK_EQ(end2 - start2, len) << "Shape mis-match: " << shape[i] << " " << pad_beg << " " << pad_end << "      " << start2 << " "
+                                     << end2 << " " << len;
+
+        indices1.push_back(chainerx::Slice(start1, end1));
+        indices2.push_back(chainerx::Slice(start2, end2));
+    }
+    chainerx::Array result = chainerx::Full(new_shape, value, x.dtype(), x.device());
+    BlitArray(x.At(indices1), result.At(indices2));
+
+    // Clear applied pads
+    pads.resize(x.shape().size() - beg_dim);
+    std::fill(pads.begin(), pads.end(), 0);
+
+    return result;
+}
+
+Int64StackVector CalculateAutoPad(
+        const std::string& auto_pad,
         const chainerx::Array& x,
+        const Int64StackVector& kernel_shape,
+        const Int64StackVector& strides,
+        const Int64StackVector& in_pads) {
+    CHECK_EQ(kernel_shape.size(), in_pads.size());
+    CHECK_EQ(strides.size(), in_pads.size());
+    CHECK_EQ(x.shape().size(), in_pads.size() + 2);
+
+    Int64StackVector pads = in_pads;
+    Int64StackVector pads_end;
+    pads_end.resize(in_pads.size());
+    bool end_pad = false;
+    if (!auto_pad.empty()) {
+        CHECK_EQ(auto_pad, "SAME_UPPER");
+        for (size_t i = 0; i < pads.size(); ++i) {
+            const int64_t in_dim = x.shape()[2 + i];
+            const int64_t stride = strides[i];
+            const int64_t kernel = kernel_shape[i];
+
+            int64_t legacy_target_size = (in_dim + stride - 1) / stride;
+            int64_t pad_needed = (legacy_target_size - 1) * stride + kernel - in_dim;
+
+            pads[i] = pad_needed / 2;
+            pads_end[i] = pad_needed - pads[i];
+            end_pad = end_pad || pads_end[i] > 0;
+        }
+    }
+
+    if (end_pad) {
+        pads.insert(pads.end(), pads_end.begin(), pads_end.end());
+    }
+
+    return pads;
+}
+
+chainerx::Array GroupedConv(
+        const chainerx::Array& in_x,
         const chainerx::Array& w,
         const absl::optional<chainerx::Array>& b,
         const Int64StackVector& strides,
         const Int64StackVector& in_pads,
         int group,
         const std::string& auto_pad) {
-    Int64StackVector pads = in_pads;
-    if (auto_pad == "SAME_UPPER") {
-        for (size_t i = 0; i < pads.size(); ++i) {
-            const int64_t in_dim = x.shape()[2 + i];
-            const int64_t stride = strides[i];
-            const int64_t kernel = w.shape()[2 + i];
-
-            int64_t legacy_target_size = (in_dim + stride - 1) / stride;
-            int64_t pad_needed = (legacy_target_size - 1) * stride + kernel - in_dim;
-
-            pads[i] = pad_needed / 2;
-        }
-    } else {
-        CHECK_EQ("NOTSET", auto_pad);
-    }
+    Int64StackVector pads = CalculateAutoPad(auto_pad, in_x, Int64StackVector(w.shape().begin() + 2, w.shape().end()), strides, in_pads);
+    chainerx::Array x = ApplyAsymmetricPad(in_x, &pads);
 
     if (group == 1) {
         return chainerx::Conv(x, w, b, strides, pads);
@@ -311,7 +383,6 @@ chainerx::Array GroupedConvGradWeight(
 
     chainerx::Shape ws_shape = w.shape();
     ws_shape[0] /= group;
-    ws_shape[1] /= group;
     std::vector<chainerx::Array> xs = SplitByLengths(x, 1, std::vector<int64_t>(group, x.shape()[1] / group));
     std::vector<chainerx::Array> gys = SplitByLengths(gy, 1, std::vector<int64_t>(group, gy.shape()[1] / group));
     std::vector<chainerx::Array> gws(group);
@@ -320,6 +391,34 @@ chainerx::Array GroupedConvGradWeight(
                 w.dtype(), ws_shape, xs[i], gys[i], strides, pads, false /* cover_all */, absl::nullopt);
     }
     return chainerx::Concatenate(gws, 0);
+}
+
+// TODO(take-cheeze): Implement in ChainerX
+chainerx::Array SlowRound(const chainerx::Array& x) {
+    std::vector<double> result_data(x.GetTotalSize());
+    chainerx::Array double_x = x.AsType(chainerx::Dtype::kFloat64);
+    CHECK(IsNativeDevice(&x.device()));
+    const double* x_ptr = reinterpret_cast<const double*>(RawStartPtr(double_x));
+    for (size_t i = 0; i < result_data.size(); ++i) {
+        result_data[i] = std::rint(x_ptr[i]);
+    }
+
+    chainerx::Array y = MakeArray(chainerx::Dtype::kFloat64, x.shape(), result_data.data());
+
+    // Back to input(x) dtype
+    return y.AsType(x.dtype());
+}
+
+void* RawStartPtr(const chainerx::Array& a) {
+    CHECK(a.IsContiguous());
+    return static_cast<char*>(a.raw_data()) + a.offset();
+}
+
+int ResolveAxis(const chainerx::Array& x, int axis) {
+    const int64_t ax = axis < 0 ? axis + x.ndim() : axis;
+    CHECK_GE(ax, 0);
+    CHECK_LT(ax, x.ndim());
+    return ax;
 }
 
 }  // namespace runtime

@@ -163,7 +163,8 @@ RUN apt-get update -y && \
     unzip \
     sudo \
     ninja-build \
-    libopencv-dev && \
+    libopencv-dev \
+    libnvinfer-dev && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 RUN echo deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main \
     >> /etc/apt/sources.list.d/llvm.list && \
@@ -194,7 +195,8 @@ ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:${LD_LIBRA
 
 FROM ci-base AS dev-base
 RUN git clone --recursive https://github.com/pfnet-research/chainer-compiler.git
-RUN python3 -m pip install --user gast packaging
+# TODO(take-cheeze): Update gast to 0.3.x
+RUN python3 -m pip install --user gast==0.2.2 packaging
 RUN export CHAINER_VERSION=$(python3 -c "import imp;print(imp.load_source('_version','chainer-compiler/third_party/chainer/chainer/_version.py').__version__)") && \
     python3 -m pip install --user cupy-cuda101==$CHAINER_VERSION
 RUN CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j8 \

@@ -29,6 +29,15 @@ void SequenceAppendOp::RunImpl(ChxVMState* st) {
     st->GetSequence(seq)->emplace_back(*st->GetVar(value));
 }
 
+void SequenceInsertOp::RunImpl(
+        ChxVMState* st, const ChxVMSequence& seq, const chainerx::Array& value, const StrictScalar& index, ChxVMSequence* output) {
+    *output = seq;
+    int64_t i = static_cast<int64_t>(index);
+    if (i < 0) i += seq.size();
+    CHECK_LT(i, seq.size());
+    output->insert(output->begin() + i, ChxVMVar(value));
+}
+
 void SequenceExtendOp::RunImpl(ChxVMState* st, const ChxVMSequence& a, const ChxVMSequence& b, ChxVMSequence* output) {
     *output = a;
     for (const auto& a : b) output->push_back(a);
@@ -46,6 +55,14 @@ void SequencePopOp::RunImpl(ChxVMState* st) {
     v->pop_back();
 }
 
+void SequenceEraseOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const StrictScalar& index, ChxVMSequence* output) {
+    *output = seq;
+    int64_t i = static_cast<int64_t>(index);
+    if (i < 0) i += seq.size();
+    CHECK_LT(i, seq.size());
+    output->erase(output->begin() + i);
+}
+
 chainerx::Array SequenceLookupOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const StrictScalar& index) {
     int64_t i = static_cast<int64_t>(index);
     if (i < 0) i += seq.size();
@@ -61,6 +78,15 @@ void SequenceLookupGradOp::RunImpl(
     CHECK_LT(i, sz);
     gx->resize(sz);
     (*gx)[i] = ChxVMVar(gy);
+}
+
+void SequenceUpdateOp::RunImpl(
+        ChxVMState* st, const ChxVMSequence& seq, const StrictScalar& index, const chainerx::Array& value, ChxVMSequence* output) {
+    *output = seq;
+    int64_t i = static_cast<int64_t>(index);
+    if (i < 0) i += seq.size();
+    CHECK_LT(i, seq.size());
+    (*output)[i] = ChxVMVar(value);
 }
 
 void SequenceGetSliceOp::RunImpl(
@@ -121,6 +147,9 @@ chainerx::Array SequenceStackOp::RunImpl(ChxVMState* st, const ChxVMSequence& se
 }
 
 std::tuple<chainerx::Array, chainerx::Array> SequenceConcatOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq) {
+    const int axis = this->axis < 0 ? this->axis + seq.size() : this->axis;
+    CHECK_GE(axis, 0);
+    CHECK_LT(axis, seq.size());
     int64_t index = 0;
     std::vector<int64_t> indices;
     for (const ChxVMVar& v : seq) {
@@ -133,17 +162,19 @@ std::tuple<chainerx::Array, chainerx::Array> SequenceConcatOp::RunImpl(ChxVMStat
 }
 
 void SequenceSplitAxisOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& seq, const chainerx::Array& indices_or_sections, ChxVMSequence* output) {
-    if (indices_or_sections.ndim() == 0) {
-        int64_t sections = static_cast<int64_t>(chainerx::AsScalar(indices_or_sections));
+        ChxVMState* st, const chainerx::Array& seq, const absl::optional<chainerx::Array>& indices_or_sections, ChxVMSequence* output) {
+    const int axis = ResolveAxis(seq, this->axis);
+    if (!indices_or_sections.has_value() || indices_or_sections->ndim() == 0) {
+        int64_t sections =
+                indices_or_sections.has_value() ? static_cast<int64_t>(chainerx::AsScalar(*indices_or_sections)) : seq.shape()[axis];
         for (const chainerx::Array& a : chainerx::Split(seq, sections, axis)) {
             output->emplace_back(a);
         }
     } else {
-        CHECK_EQ(1, indices_or_sections.ndim());
+        CHECK_EQ(1, indices_or_sections->ndim());
         std::vector<int64_t> indices;
-        for (int i = 0; i < indices_or_sections.shape()[0]; ++i) {
-            indices.push_back(static_cast<int64_t>(chainerx::AsScalar(indices_or_sections.At({i}))));
+        for (int i = 0; i < indices_or_sections->shape()[0]; ++i) {
+            indices.push_back(static_cast<int64_t>(chainerx::AsScalar(indices_or_sections->At({i}))));
         }
         for (const chainerx::Array& a : chainerx::Split(seq, indices, axis)) {
             output->emplace_back(a);
@@ -194,6 +225,7 @@ void SplitToSequence(chainerx::Array v, int axis, ChxVMSequence* seq) {
 }  // namespace
 
 void SequenceSeparateOp::RunImpl(ChxVMState* st, const chainerx::Array& input, ChxVMSequence* output) {
+    const int axis = ResolveAxis(input, this->axis);
     SplitToSequence(input, axis, output);
 }
 

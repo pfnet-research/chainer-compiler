@@ -78,6 +78,13 @@ Node* GraphBuilder::MOp(
     return node;
 }
 
+Node* GraphBuilder::MOp(const onnx::NodeProto& base, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
+    const std::string name = GenName(nullptr, base.name());
+    Node* node = graph_->AddNode(base, inputs, outputs, name);
+    added_nodes_.push_back(node);
+    return node;
+}
+
 Value* GraphBuilder::Const(const chainerx::Array& ary, Value* value) {
     Value* v = value ? Op(Node::kConstant, {}, {value}) : Op(Node::kConstant, {});
     v->producer()->set_tensor_value(new Tensor(v->name(), ary));
@@ -103,16 +110,16 @@ template Value* GraphBuilder::Const(const Type& type, const std::vector<float>& 
 template Value* GraphBuilder::Const(const Type& type, const std::vector<int>& data, Value* value);
 template Value* GraphBuilder::Const(const Type& type, const std::vector<int64_t>& data, Value* value);
 
-Value* GraphBuilder::Param(const chainerx::Array& ary) {
-    const std::string& name = GenName();
+Value* GraphBuilder::Param(const chainerx::Array& ary, Value* base_value) {
+    const std::string& name = GenName(base_value);
     std::unique_ptr<Tensor> tensor(new Tensor(name, ary));
     Value* value = graph_->AddInputValue(name, Type(tensor->dtype(), tensor->dims()));
     value->ResetInitializer(std::move(tensor));
     return value;
 }
 
-Value* GraphBuilder::Temp() {
-    return graph_->AddValue(GenName());
+Value* GraphBuilder::Temp(const std::string& name_hint) {
+    return graph_->AddValue(GenName(nullptr, name_hint));
 }
 
 Value* GraphBuilder::Temp(const Type& type) {
@@ -123,8 +130,15 @@ Value* GraphBuilder::Null() {
     return graph_->AddNullValue();
 }
 
-std::string GraphBuilder::GenName() {
-    return StrCat(category_, '_', target_->name(), '_', target_->Counter());
+std::string GraphBuilder::GenName(Value* value, const std::string& name_hint) {
+    if (value == nullptr) {
+        value = target_;
+    }
+    std::string basic_name = value->name();
+    if (!name_hint.empty()) {
+        basic_name += StrCat("_", name_hint);
+    }
+    return StrCat(category_, '_', basic_name, '_', value->Counter());
 }
 
 }  // namespace chainer_compiler

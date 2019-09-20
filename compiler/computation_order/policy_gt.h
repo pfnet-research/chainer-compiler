@@ -6,6 +6,7 @@
 
 namespace chainer_compiler {
 
-std::vector<Order> GTPolicy(const Graph& graph);
+std::vector<Order> GTPolicyTimeCentric(const Graph& graph);
+std::vector<Order> GTPolicyMemoryCentric(const Graph& graph);
 
 }  // namespace chainer_compiler

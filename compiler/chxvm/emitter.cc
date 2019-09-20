@@ -6,6 +6,10 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <compiler/chxvm/chxvm_value.h>
+#include <compiler/chxvm/simple_node_emitter.h>
+#include <compiler/chxvm/value_id_manager.h>
+#include <compiler/file_cache.h>
 #include <compiler/flags.h>
 #include <compiler/flops.h>
 #include <compiler/gen_chxvm_codegen.h>
@@ -38,21 +42,6 @@ namespace {
 
 using chainer_compiler::runtime::ChxVMProgramProto;
 
-// TODO(hamaji): Move this to the middle end, not codegen.
-std::vector<int64_t> ComplementStrideOrPad(const std::vector<int64_t>& orig, const Value* input, int64_t default_value) {
-    const Type& type = input->type();
-    // Fill strides or pads for statically known input shape.
-    if (!orig.empty() || !type.HasKnownShape()) {
-        return orig;
-    }
-    std::vector<int64_t> filled;
-    CHECK_LT(2, type.ndim()) << type.DebugString();
-    for (int i = 0; i < type.ndim() - 2; ++i) {
-        filled.push_back(default_value);
-    }
-    return filled;
-}
-
 void FillOpInfo(const Node& node, const std::string& debug_info, ChxVMProgramProto* prog) {
     runtime::ChxVMInstructionProto* inst = prog->mutable_instructions(prog->instructions_size() - 1);
     inst->set_debug_info(debug_info);
@@ -71,28 +60,12 @@ public:
         EmitGraph(graph, program, false /* in_loop */, graph.output_values());
         EmitOutputs(graph.output_values(), program);
         if (dump_value_names) {
-            std::map<int, const Value*> values;
-            for (auto p : value_ids_) {
-                values.emplace(p.second, p.first);
-            }
-            std::cerr << "=== " << values.size() << " variables ===\n";
-            int64_t total = 0;
-            for (auto p : values) {
-                const Value* v = p.second;
-                int64_t size = v->GetNBytes();
-                total += size;
-                std::cerr << "$" << p.first << ": " << v->name() << ' ' << size << std::endl;
-            }
-            int64_t total_mb = total / 1000 / 1000;
-            std::cerr << "Total size of all values: " << total_mb << "MB" << std::endl;
+            value_ids_.DumpValueIds();
         }
-        EmitStackQuit(program);
     }
 
     void AssignValueIds(const std::vector<Value*>& values) {
-        for (const Value* v : values) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->ToString();
-        }
+        value_ids_.AssignValueIds(values);
     }
 
     void EmitNodes(const std::vector<Node*>& nodes, runtime::ChxVMProgramProto* program) {
@@ -102,100 +75,35 @@ public:
     }
 
     int GetValueId(const Value* v) const {
-        CHECK(!v->name().empty()) << v->ToString();
-        auto found = value_ids_.find(v);
-        CHECK(found != value_ids_.end()) << "Value not exist: " << v->ToString();
-        return found->second;
+        return value_ids_.GetValueId(v);
     }
 
     ChxVMValue GetOutputValue(const Node& node, int i) {
-        CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory: " << node.DebugString();
-        Value* output = node.output(i);
-        CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory: " << node.DebugString();
-        return ChxVMValue(GetValueId(output), output);
+        return ChxVMValue::GetOutputValue(node, i, value_ids_);
     }
 
 private:
     void AssignValueIds(const Graph& graph) {
-        for (const Value* v : graph.input_values()) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->ToString();
-        }
-        for (const Value* v : graph.temp_values()) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->ToString();
-        }
-        for (const Value* v : graph.output_values()) {
-            // We allow graph output to be null.
-            // TODO(hamaji): Revisit this design. Probably, it would
-            // be better to mark outputs are unnecessary instead of
-            // using null values.
-            CHECK(value_ids_.emplace(v, next_value_id_++).second || v->name().empty()) << v->ToString();
-        }
-    }
-
-    int GetStackId(int i) const {
-        auto found = stack_ids_.find(i);
-        CHECK(found != stack_ids_.end()) << "Stack not exist: " << i;
-        return found->second;
-    }
-
-    void EmitStackQuit(ChxVMProgramProto* prog) {
-        for (auto p : stack_ids_) {
-            FREE(p.second);
-        }
+        value_ids_.AssignValueIds(graph);
     }
 
     void EmitNode(const Graph* graph, const Node& node, ChxVMProgramProto* prog) {
-        auto in = [this, &node](int i) {
-            CHECK_LT(i, node.inputs().size()) << i << "th input of " << node.op_type() << " is mandatory: " << node.DebugString();
-            Value* input = node.input(i);
-            CHECK(!input->IsNull()) << i << "th input of " << node.op_type() << " is mandatory: " << node.DebugString();
-            return GetValueId(input);
-        };
-
-        // Optional input.
-        auto oin = [this, in, &node](int i) {
-            if (i >= static_cast<int>(node.inputs().size())) return -1;
-            if (node.input(i)->IsNull()) return -1;
-            return in(i);
-        };
-
-        auto out = [this, &node](int i) { return GetOutputValue(node, i); };
-
-        // Optional output.
-        auto oout = [this, out, &node](int i) {
-            if (i >= static_cast<int>(node.outputs().size())) return ChxVMValue(-1);
-            if (node.output(i)->IsNull()) return ChxVMValue(-1);
-            return out(i);
-        };
-
-        auto pads = [&node]() {
-            std::vector<int64_t> pads = node.pads();
-            // Both Chainer and ChainerX expect paddings for beginning
-            // and end are the same.
-            CHECK_EQ(pads.size() % 2, 0);
-            for (size_t i = 0; i < pads.size() / 2; ++i) {
-                CHECK_EQ(pads[i], pads[i + pads.size() / 2]);
-            }
-            pads.resize(pads.size() / 2);
-            return ComplementStrideOrPad(pads, node.input(0), 0);
-        };
-
-        auto strides = [&node]() {
-            std::vector<int64_t> strides = node.strides();
-            return ComplementStrideOrPad(strides, node.input(0), 1);
-        };
-
-        auto direction = [&node]() {
-            const std::string& dir = node.direction();
-            if (dir == "" || dir == "forward")
-                return 0;
-            else if (dir == "reverse")
-                return 1;
-            else if (dir == "bidirectional")
-                return 2;
-            else
-                CHECK(false) << "Unknown direction: " << dir << ": " << node.DebugString();
-        };
+        if (node.op_type() == Node::kChainerFusionGroup) {
+            EmitFusionGroup(node, prog);
+        } else if (node.op_type() == Node::kIf) {
+            EmitIf(node, prog);
+        } else if (node.op_type() == Node::kLoop) {
+            EmitLoop(node, prog);
+        } else if (node.op_type() == Node::kBatchNormalization) {
+            EmitBatchNormalization(node, prog);
+        } else if (node.op_type() == Node::kConstant) {
+            EmitConstant(node, prog);
+        } else if (node.op_type() == Node::kChainerSequenceConstants) {
+            EmitConstantSequence(node, prog);
+        } else {
+            EmitSimpleNode(node, value_ids_, prog);
+        }
+    }
 
 #define EMIT(op, ...)                            \
     do {                                         \
@@ -203,517 +111,12 @@ private:
         FillOpInfo(node, node.ToString(), prog); \
     } while (0);
 
-#define EMIT_SIMPLE_UNARY_OP(name, sym)           \
-    do {                                          \
-        if (node.op_type() == name) {             \
-            CHECK_EQ(1UL, node.inputs().size());  \
-            CHECK_EQ(1UL, node.outputs().size()); \
-            EMIT(sym, out(0), in(0));             \
-            return;                               \
-        }                                         \
-    } while (0)
-
-#define EMIT_SIMPLE_BINARY_OP(name, sym)          \
-    do {                                          \
-        if (node.op_type() == name) {             \
-            CHECK_EQ(2UL, node.inputs().size());  \
-            CHECK_EQ(1UL, node.outputs().size()); \
-            EMIT(sym, out(0), in(0), in(1));      \
-            return;                               \
-        }                                         \
-    } while (0)
-
-        EMIT_SIMPLE_UNARY_OP(Node::kNeg, Neg);
-        EMIT_SIMPLE_UNARY_OP(Node::kReciprocal, Reciprocal);
-        EMIT_SIMPLE_UNARY_OP(Node::kExp, Exp);
-        EMIT_SIMPLE_UNARY_OP(Node::kLog, Log);
-        EMIT_SIMPLE_UNARY_OP(Node::kSqrt, Sqrt);
-        EMIT_SIMPLE_UNARY_OP(Node::kSin, Sin);
-        EMIT_SIMPLE_UNARY_OP(Node::kSinh, Sinh);
-        EMIT_SIMPLE_UNARY_OP(Node::kCos, Cos);
-        EMIT_SIMPLE_UNARY_OP(Node::kCosh, Cosh);
-        EMIT_SIMPLE_UNARY_OP(Node::kTan, Tan);
-        EMIT_SIMPLE_UNARY_OP(Node::kTanh, Tanh);
-        EMIT_SIMPLE_UNARY_OP(Node::kAsin, Arcsin);
-        EMIT_SIMPLE_UNARY_OP(Node::kAsinh, Arcsinh);
-        EMIT_SIMPLE_UNARY_OP(Node::kAcos, Arccos);
-        EMIT_SIMPLE_UNARY_OP(Node::kAcosh, Arccosh);
-        EMIT_SIMPLE_UNARY_OP(Node::kAtan, Arctan);
-        EMIT_SIMPLE_UNARY_OP(Node::kAtanh, Arctanh);
-        EMIT_SIMPLE_UNARY_OP(Node::kErf, Erf);
-        EMIT_SIMPLE_UNARY_OP(Node::kAbs, Abs);
-        EMIT_SIMPLE_UNARY_OP(Node::kRelu, Relu);
-        EMIT_SIMPLE_UNARY_OP(Node::kFloor, Floor);
-        EMIT_SIMPLE_UNARY_OP(Node::kCeil, Ceil);
-        EMIT_SIMPLE_UNARY_OP(Node::kSigmoid, Sigmoid);
-        EMIT_SIMPLE_UNARY_OP(Node::kNot, Not);
-        EMIT_SIMPLE_UNARY_OP(Node::kIdentity, Identity);
-        EMIT_SIMPLE_UNARY_OP(Node::kIsNaN, IsNaN);
-        EMIT_SIMPLE_UNARY_OP(Node::kSign, Sign);
-        EMIT_SIMPLE_UNARY_OP(Node::kRound, Round);
-        EMIT_SIMPLE_UNARY_OP(Node::kSoftplus, Softplus);
-
-        EMIT_SIMPLE_BINARY_OP(Node::kAdd, Add);
-        EMIT_SIMPLE_BINARY_OP(Node::kSub, Sub);
-        EMIT_SIMPLE_BINARY_OP(Node::kMul, Mul);
-        EMIT_SIMPLE_BINARY_OP(Node::kDiv, Div);
-        EMIT_SIMPLE_BINARY_OP(Node::kPow, Pow);
-        EMIT_SIMPLE_BINARY_OP(Node::kEqual, Equal);
-        EMIT_SIMPLE_BINARY_OP(Node::kGreater, Greater);
-        EMIT_SIMPLE_BINARY_OP(Node::kChainerGenericIs, GenericIs);
-        EMIT_SIMPLE_BINARY_OP(Node::kAnd, And);
-        EMIT_SIMPLE_BINARY_OP(Node::kOr, Or);
-        EMIT_SIMPLE_BINARY_OP(Node::kXor, Xor);
-
-        EMIT_SIMPLE_BINARY_OP(Node::kChainerReluGrad, ReluGrad);
-        EMIT_SIMPLE_BINARY_OP(Node::kChainerSelectItem, SelectItem);
-
-        if (node.op_type() == Node::kDropout) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_LE(1UL, node.outputs().size());
-            CHECK_GE(2UL, node.outputs().size());
-            if (node.outputs().size() >= 2UL) {
-                WARN_ONCE("The second output of Dropout is not handled yet");
-            }
-            EMIT(Dropout, out(0), oout(1), in(0), node.ratio());
-        } else if (node.op_type() == Node::kSelu) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_LE(1UL, node.outputs().size());
-            EMIT(Selu, out(0), in(0), node.alpha(), node.gamma());
-        } else if (node.op_type() == Node::kIsInf) {
-            EMIT(IsInf, out(0), in(0), node.detect_negative(), node.detect_positive());
-        } else if (node.op_type() == Node::kLeakyRelu) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_LE(1UL, node.outputs().size());
-            EMIT(LeakyRelu, out(0), in(0), node.alpha());
-        } else if (node.op_type() == Node::kElu) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_LE(1UL, node.outputs().size());
-            EMIT(Elu, out(0), in(0), node.alpha());
-        } else if (node.op_type() == Node::kChainerLinear) {
-            EMIT(Linear, out(0), in(0), in(1), oin(2), node.n_batch_axes());
-        } else if (node.op_type() == Node::kChainerLinearGradWeight) {
-            EMIT(LinearGradWeight, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kConv) {
-            CHECK_LE(2UL, node.inputs().size());
-            CHECK_GE(3UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            // TODO(ChainerX): Support dilation.
-            for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
-            // Support auto_pad only for MNIST
-            CHECK(node.auto_pad() == "NOTSET" || node.auto_pad() == "SAME_UPPER");
-            EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads(), node.group(), node.auto_pad());
-        } else if (node.op_type() == Node::kConvTranspose) {
-            CHECK_LE(2UL, node.inputs().size());
-            CHECK_GE(3UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            // TODO(ChainerX): Support dilation.
-            for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
-            // TODO(hamaji): Handle output_padding and output_shape.
-            std::vector<int64_t> output_shape(node.output_shape());
-            EMIT(ConvTranspose, out(0), in(0), in(1), oin(2), strides(), pads(), node.group(), output_shape);
-        } else if (node.op_type() == Node::kChainerConvTransposeWithDynamicOutputShape) {
-            CHECK_EQ(3UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ConvTransposeWithDynamicShape, out(0), in(0), in(1), in(2), strides(), pads(), node.group());
-        } else if (node.op_type() == Node::kChainerConvGradWeight) {
-            CHECK_EQ(3UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            // TODO(ChainerX): Support dilation.
-            for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
-            EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads(), node.group());
-        } else if (node.op_type() == Node::kRNN) {
-            CHECK(node.activations().empty()) << "activations not supporte yet";
-            CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
-            CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
-            EMIT(RNN, oout(0), oout(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), node.hidden_size(), direction());
-        } else if (node.op_type() == Node::kGRU) {
-            CHECK(node.activations().empty()) << "activations not supporte yet";
-            CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
-            CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
-            EMIT(GRU,
-                 oout(0),
-                 oout(1),
-                 in(0),
-                 in(1),
-                 in(2),
-                 oin(3),
-                 oin(4),
-                 oin(5),
-                 node.hidden_size(),
-                 node.linear_before_reset(),
-                 direction());
-        } else if (node.op_type() == Node::kLSTM) {
-            CHECK(node.activations().empty()) << "activations not supporte yet";
-            CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
-            CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
-            EMIT(LSTM,
-                 oout(0),
-                 oout(1),
-                 oout(2),
-                 oout(3),
-                 in(0),
-                 in(1),
-                 in(2),
-                 oin(3),
-                 oin(4),
-                 oin(5),
-                 oin(6),
-                 oin(7),
-                 node.hidden_size(),
-                 direction());
-        } else if (node.op_type() == Node::kChainerLSTMGrad) {
-            EMIT(LSTMGrad, out(0), out(1), out(2), out(3), in(0), in(1));
-        } else if (node.op_type() == Node::kShape) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Shape, out(0), in(0));
-        } else if (node.op_type() == Node::kSize) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Size, out(0), in(0));
-        } else if (node.op_type() == Node::kReshape) {
-            CHECK_EQ(2UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Reshape, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kExpand) {
-            CHECK_EQ(2UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Expand, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kSqueeze) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Squeeze, out(0), in(0), node.axes());
-        } else if (node.op_type() == Node::kUnsqueeze) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Unsqueeze, out(0), in(0), node.axes());
-        } else if (node.op_type() == Node::kMatMul) {
-            CHECK_EQ(2UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(MatMul, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kGemm) {
-            CHECK_EQ(3UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Gemm, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
-        } else if (node.op_type() == Node::kBatchNormalization) {
-            EmitBatchNormalization(node, prog);
-        } else if (node.op_type() == Node::kLRN) {
-            EMIT(LRN, out(0), oout(1), in(0), node.alpha(), node.beta(), node.bias(), node.size());
-        } else if (node.op_type() == Node::kChainerLRNGrad) {
-            EMIT(LRNGrad, out(0), in(0), in(1), in(2), in(3), node.alpha(), node.beta(), node.bias(), node.size());
-        } else if (node.op_type() == Node::kUpsample || node.op_type() == Node::kResize) {
-            CHECK_EQ("nearest", node.mode()) << "Only nearest upsampling is supported";
-            EMIT(Resize, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kChainerResizeGrad) {
-            EMIT(ResizeGrad, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kPad) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            CHECK_EQ("constant", node.mode()) << "Only constant padding is supported";
-            EMIT(Pad, out(0), in(0), node.pads(), node.value());
-        } else if (node.op_type() == Node::kMaxPool) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
-            if (node.outputs().size() != 1) {
-                CHECK_EQ(3UL, node.outputs().size());
-                CHECK(node.output(1)->IsNull());
-            }
-            EMIT(MaxPool, out(0), oout(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
-        } else if (node.op_type() == Node::kChainerMaxPoolGrad) {
-            CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
-            EMIT(MaxPoolGrad, out(0), in(0), in(1), node.kernel_shape(), node.chainer_cover_all());
-        } else if (node.op_type() == Node::kChainerROIMaxPool2D) {
-            EMIT(ROIMaxPool2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale());
-        } else if (node.op_type() == Node::kChainerROIAveragePool2D) {
-            EMIT(ROIAveragePool2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale());
-        } else if (node.op_type() == Node::kChainerROIMaxAlign2D) {
-            EMIT(ROIMaxAlign2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale(), node.sampling_ratio_list());
-        } else if (node.op_type() == Node::kChainerROIAverageAlign2D) {
-            EMIT(ROIAverageAlign2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale(), node.sampling_ratio_list());
-        } else if (node.op_type() == Node::kRoiAlign) {
-            std::vector<int64_t> sampling_ratio = {node.sampling_ratio(), node.sampling_ratio()};
-            std::vector<int64_t> output_shape = {node.output_height(), node.output_width()};
-            if (node.mode() == "avg") {
-                EMIT(ROIAverageAlign2D, out(0), in(0), in(1), in(2), output_shape, node.spatial_scale(), sampling_ratio);
-            } else if (node.mode() == "max") {
-                EMIT(ROIMaxAlign2D, out(0), in(0), in(1), in(2), output_shape, node.spatial_scale(), sampling_ratio);
-            } else {
-                CHECK(false) << "Unknown RoiAlign mode: " << node.mode();
-            }
-        } else if (node.op_type() == Node::kChainerResizeImages) {
-            EMIT(ResizeImages, out(0), in(0), node.output_shape());
-        } else if (node.op_type() == Node::kAveragePool) {
-            CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
-            CHECK_EQ(1UL, node.inputs().size());
-            EMIT(AveragePool, out(0), oout(1), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
-        } else if (node.op_type() == Node::kChainerAveragePoolGrad) {
-            CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
-            EMIT(AveragePoolGrad, out(0), in(0), in(1), node.kernel_shape(), node.count_include_pad());
-        } else if (node.op_type() == Node::kChainerPadBatchSize) {
-            EMIT(PadBatchSize, out(0), in(0), node.size());
-        } else if (node.op_type() == Node::kSoftmax) {
-            EMIT(Softmax, out(0), in(0), node.axis(), node.chainer_is_onnx_semantics());
-        } else if (node.op_type() == Node::kLogSoftmax) {
-            EMIT(LogSoftmax, out(0), in(0), node.axis(), node.chainer_is_onnx_semantics());
-        } else if (node.op_type() == Node::kArgMax) {
-            EMIT(ArgMax, out(0), in(0), node.axis(), node.keepdims());
-        } else if (node.op_type() == Node::kHardmax) {
-            EMIT(Hardmax, out(0), in(0), node.axis());
-        } else if (node.op_type() == Node::kReduceMax) {
-            EMIT(ReduceMax, out(0), in(0), node.axes(), node.keepdims());
-        } else if (node.op_type() == Node::kReduceMin) {
-            EMIT(ReduceMin, out(0), in(0), node.axes(), node.keepdims());
-        } else if (node.op_type() == Node::kReduceSum) {
-            EMIT(ReduceSum, out(0), in(0), node.axes(), node.keepdims());
-        } else if (node.op_type() == Node::kReduceSumSquare) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ReduceSumSquare, out(0), in(0), node.axes(), node.keepdims());
-        } else if (node.op_type() == Node::kChainerReduceSumTo) {
-            CHECK_EQ(2UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ReduceSumTo, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kReduceMean) {
-            EMIT(ReduceMean, out(0), in(0), node.axes(), node.keepdims());
-        } else if (node.op_type() == Node::kReduceProd) {
-            EMIT(ReduceProd, out(0), in(0), node.axes(), node.keepdims());
-        } else if (node.op_type() == Node::kCast) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Cast, out(0), in(0), node.to());
-        } else if (node.op_type() == Node::kOneHot) {
-            EMIT(OneHot, out(0), in(0), in(1), in(2), node.axis());
-        } else if (node.op_type() == Node::kConstantFill) {
-            if (node.input_as_shape()) {
-                CHECK_EQ(1UL, node.inputs().size());
-            } else {
-                CHECK_EQ(0UL, node.inputs().size());
-            }
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ConstantFill, out(0), oin(0), node.dtype(), node.extra_shape(), node.shape(), node.value());
-        } else if (node.op_type() == Node::kEyeLike) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(EyeLike, out(0), in(0), node.dtype(), node.k());
-        } else if (node.op_type() == Node::kSlice) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            CHECK_NE(0UL, node.starts().size());
-            CHECK_NE(0UL, node.ends().size());
-            CHECK_EQ(node.starts().size(), node.ends().size());
-            std::vector<int64_t> axes(node.axes());
-            if (axes.empty()) {
-                for (size_t i = 0; i < node.starts().size(); ++i) axes.push_back(i);
-            } else {
-                CHECK_EQ(node.starts().size(), axes.size());
-            }
-            EMIT(Slice, out(0), in(0), axes, node.starts(), node.ends());
-        } else if (node.op_type() == Node::kDynamicSlice) {
-            EMIT(DynamicSlice, out(0), in(0), in(1), in(2), oin(3), oin(4));
-        } else if (node.op_type() == Node::kChainerGetItem) {
-            std::vector<int> ins;
-            for (size_t i = 1; i < node.inputs().size(); ++i) ins.push_back(in(i));
-            EMIT(GetItem, out(0), in(0), ins, node.slice_specs());
-        } else if (node.op_type() == Node::kChainerGetItemGrad) {
-            std::vector<int> ins;
-            for (size_t i = 2; i < node.inputs().size(); ++i) ins.push_back(in(i));
-            EMIT(GetItemGrad, out(0), in(0), in(1), ins, node.slice_specs());
-        } else if (node.op_type() == Node::kGather) {
-            CHECK_EQ(2UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Gather, out(0), in(0), in(1), node.axis());
-        } else if (node.op_type() == Node::kConcat) {
-            CHECK_EQ(1UL, node.outputs().size());
-            std::vector<int> ins;
-            for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
-            EMIT(Concat, out(0), ins, node.axis());
-        } else if (node.op_type() == Node::kChainerConcatGrad) {
-            std::vector<int> shapes;
-            for (size_t i = 1; i < node.inputs().size(); ++i) shapes.push_back(in(i));
-            std::vector<ChxVMValue> outs;
-            for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
-            EMIT(ConcatGrad, outs, in(0), shapes, node.axis());
-        } else if (node.op_type() == Node::kSplit) {
-            CHECK_EQ(1UL, node.inputs().size());
-            std::vector<ChxVMValue> outs;
-            for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
-            EMIT(Split, outs, in(0), node.axis(), node.split());
-        } else if (node.op_type() == Node::kClip) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Clip, out(0), in(0), node.max(), node.min());
-        } else if (node.op_type() == Node::kMax) {
-            CHECK_EQ(1UL, node.outputs().size());
-            std::vector<int> ins;
-            for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
-            EMIT(Max, out(0), ins);
-        } else if (node.op_type() == Node::kMin) {
-            CHECK_EQ(1UL, node.outputs().size());
-            std::vector<int> ins;
-            for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
-            EMIT(Min, out(0), ins);
-        } else if (node.op_type() == Node::kTranspose) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Transpose, out(0), in(0), node.perm());
-        } else if (node.op_type() == Node::kDepthToSpace) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(DepthToSpace, out(0), in(0), node.blocksize());
-        } else if (node.op_type() == Node::kSpaceToDepth) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(SpaceToDepth, out(0), in(0), node.blocksize());
-        } else if (node.op_type() == Node::kChainerBatchNormalizationGrad) {
-            CHECK_EQ(2UL, node.inputs().size());
-            CHECK_EQ(3UL, node.outputs().size());
-            EMIT(BatchNormalizationGrad, out(0), out(1), out(2), in(0), in(1));
-        } else if (node.op_type() == Node::kChainerSelectItemGrad) {
-            EMIT(SelectItemGrad, out(0), in(0), in(1), in(2));
-        } else if (node.op_type() == Node::kChainerGatherGrad) {
-            EMIT(GatherGrad, out(0), in(0), in(1), in(2), node.axis());
-        } else if (node.op_type() == Node::kChainerDynamicSliceGrad) {
-            EMIT(DynamicSliceGrad, out(0), in(0), in(1), in(2), in(3), oin(4), oin(5));
-        } else if (node.op_type() == Node::kChainerFusionGroup) {
-            EmitFusionGroup(node, prog);
-        } else if (node.op_type() == Node::kIf) {
-            EmitIf(node, prog);
-        } else if (node.op_type() == Node::kLoop) {
-            EmitLoop(node, prog);
-        } else if (node.op_type() == Node::kConstant) {
-            EmitConstant(node, prog);
-        } else if (node.op_type() == Node::kChainerDoSomething) {
-            std::vector<int> ins;
-            std::vector<ChxVMValue> outs;
-            for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
-            for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
-            EMIT(DoSomething, outs, ins, node.function_name());
-        } else if (node.op_type() == Node::kChainerSequenceConstants) {
-            EmitConstantSequence(node, prog);
-        } else if (node.op_type() == Node::kChainerPrint) {
-            std::vector<int> ins;
-            for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
-            EMIT(Print, ins);
-        } else if (node.op_type() == Node::kChainerSequenceCreate) {
-            std::vector<int> ins;
-            for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
-            EMIT(SequenceCreate, out(0), ins);
-        } else if (node.op_type() == Node::kChainerSequenceSize) {
-            EMIT(SequenceSize, out(0), in(0));
-        } else if (node.op_type() == Node::kChainerSequenceLengths) {
-            EMIT(SequenceLengths, out(0), in(0));
-        } else if (node.op_type() == Node::kChainerSequenceAppend) {
-            ChxVMValue o(out(0));
-            if (node.input(0)->users().size() == 1) {
-                // Avoid O(N^2) copies for the simple case.
-                EMIT(SequenceMove, o, in(0));
-                EMIT(SequenceAppend, o.id(), in(1));
-            } else {
-                EMIT(SequenceCopy, o, in(0));
-                EMIT(SequenceAppend, o.id(), in(1));
-            }
-        } else if (node.op_type() == Node::kChainerSequenceExtend) {
-            EMIT(SequenceExtend, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kChainerSequencePop) {
-            ChxVMValue o0(out(0));
-            if (node.input(0)->users().size() == 1) {
-                // Avoid O(N^2) copies for the simple case.
-                EMIT(SequenceMove, o0, in(0));
-                EMIT(SequencePop, out(1), o0.id());
-            } else {
-                EMIT(SequenceCopy, o0, in(0));
-                EMIT(SequencePop, out(1), o0.id());
-            }
-        } else if (node.op_type() == Node::kChainerSequenceLookup) {
-            EMIT(SequenceLookup, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kChainerSequenceGetSlice) {
-            EMIT(SequenceGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
-        } else if (node.op_type() == Node::kChainerSequenceLookupGrad) {
-            EMIT(SequenceLookupGrad, out(0), in(0), in(1), in(2));
-        } else if (node.op_type() == Node::kChainerSequenceGetSliceGrad) {
-            EMIT(SequenceGetSliceGrad, out(0), in(0), in(1), oin(2), oin(3), oin(4));
-        } else if (node.op_type() == Node::kChainerSequenceStack) {
-            EMIT(SequenceStack, out(0), in(0), node.axis());
-        } else if (node.op_type() == Node::kChainerSequenceConcat) {
-            EMIT(SequenceConcat, out(0), oout(1), in(0), node.axis());
-        } else if (node.op_type() == Node::kChainerSequenceSplitAxis) {
-            EMIT(SequenceSplitAxis, out(0), in(0), in(1), node.axis());
-        } else if (node.op_type() == Node::kChainerSequenceSeparate) {
-            EMIT(SequenceSeparate, out(0), in(0), node.axis());
-        } else if (node.op_type() == Node::kChainerSequenceUnpad) {
-            EMIT(SequenceUnpad, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kChainerSequencePad) {
-            EMIT(SequencePad, out(0), in(0), node.length(), node.value());
-        } else if (node.op_type() == Node::kChainerSequenceRange) {
-            EMIT(SequenceRange, out(0), in(0), oin(1), oin(2));
-        } else if (node.op_type() == Node::kChainerGenericLen) {
-            EMIT(GenericLen, out(0), in(0));
-        } else if (node.op_type() == Node::kChainerGenericGetItem) {
-            EMIT(GenericGetItem, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kChainerGenericGetSlice) {
-            EMIT(GenericGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
-        } else if (node.op_type() == Node::kChainerGenericAdd) {
-            EMIT(GenericAdd, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kChainerGenericAccumulateGrad) {
-            EMIT(GenericAccumulateGrad, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kChainerNullConstant) {
-            EMIT(NullConstant, out(0));
-        } else if (node.op_type() == Node::kWhere) {
-            CHECK_EQ(3UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Where, out(0), in(0), in(1), in(2));
-        } else if (node.op_type() == Node::kQuantizeLinear) {
-            CHECK_LE(2UL, node.inputs().size());
-            CHECK_GE(3UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(QuantizeLinear, out(0), in(0), in(1), oin(2));
-        } else if (node.op_type() == Node::kDequantizeLinear) {
-            CHECK_LE(2UL, node.inputs().size());
-            CHECK_GE(3UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(DequantizeLinear, out(0), in(0), in(1), oin(2));
-        } else if (node.op_type() == Node::kQLinearConv) {
-            CHECK_LE(8UL, node.inputs().size());
-            CHECK_GE(9UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            // TODO(ChainerX): Support dilation.
-            for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
-            EMIT(QLinearConv,
-                 out(0),
-                 in(0),
-                 in(1),
-                 in(2),
-                 in(3),
-                 in(4),
-                 in(5),
-                 in(6),
-                 in(7),
-                 oin(8),
-                 strides(),
-                 pads(),
-                 node.group(),
-                 node.auto_pad());
-        } else if (node.op_type() == Node::kMatMulInteger) {
-            CHECK_LE(2UL, node.inputs().size());
-            CHECK_GE(4UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(MatMulInteger, out(0), in(0), in(1), oin(2), oin(3));
-        } else if (node.op_type() == Node::kConvInteger) {
-            CHECK_LE(2UL, node.inputs().size());
-            CHECK_GE(4UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ConvInteger, out(0), in(0), in(1), oin(2), oin(3), strides(), pads(), node.group(), node.auto_pad());
-        } else if (node.op_type() == Node::kBitShift) {
-            CHECK_EQ(2UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(BitShift, out(0), in(0), in(1), node.direction());
-        } else {
-            CHECK(false) << "Unsupported op: " << node.op_type();
-        }
-    }
-
     void EmitConstantImpl(const Node& node, const Tensor* value, ChxVMValue out, bool host, ChxVMProgramProto* prog) {
+        if (!value->IsArray()) {
+            EMIT(StringConstant, out, value->str());
+            return;
+        }
+
         Dtype dtype = value->dtype();
         std::vector<int64_t> shape;
         for (int64_t d : value->dims()) {
@@ -773,7 +176,7 @@ private:
         CHECK_EQ(1, node.outputs().size());
         std::vector<int> const_values;
         for (const auto& tensor : node.tensor_values()) {
-            int id = next_value_id_++;
+            int id = value_ids_.AssignNextId();
             EmitConstantImpl(node, tensor.get(), ChxVMValue(id), false, prog);
             const_values.push_back(id);
         }
@@ -890,80 +293,73 @@ private:
         return ret;
     }
 
-    void EmitFusionGroup(const Node& node, ChxVMProgramProto* prog) {
-        const Graph& body = *node.subgraph();
-        int num_input_values = 0;
-        for (Value* value : body.input_values()) {
-            if (!value->initializer()) ++num_input_values;
-        }
-        CHECK_EQ(node.inputs().size(), num_input_values);
-        CHECK_EQ(node.outputs().size(), body.output_values().size());
-        const std::string& debug_info = node.ToString();
-
-#define EMIT(op, ...)                                               \
-    do {                                                            \
-        Add##op##Op(prog, __VA_ARGS__);                             \
-        FillOpInfo(node, StrCat(debug_info, " @", __LINE__), prog); \
+#define EMIT(op, ...)                                                    \
+    do {                                                                 \
+        Add##op##Op(prog, __VA_ARGS__);                                  \
+        FillOpInfo(node, StrCat(node.ToString(), " @", __LINE__), prog); \
     } while (0)
 
-        if (g_use_ngraph && node.fusion_type() == "ngraph") {
+    void EmitFusionGroupNGraph(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
 #if 0
-            for (Node* node : body.nodes()) {
-                node->set_chainer_order(-1);
-                node->set_chainer_fusion_group(0);
-            }
+        const Graph& body = *node.subgraph();
+        for (Node* node : body.nodes()) {
+            node->set_chainer_order(-1);
+            node->set_chainer_fusion_group(0);
+        }
 #endif
 
-            if (g_compiler_log) {
-                CLOG() << "Fusion group (nGraph) " << GetFusionGroupSummary(node) << std::endl;
-            }
-
-            onnx::ModelProto xmodel;
-            body.ToONNX(xmodel.mutable_graph());
-            std::string onnx;
-            xmodel.SerializeToString(&onnx);
-
-            std::vector<int> inputs;
-            std::vector<ChxVMValue> outputs;
-            for (Value* value : node.inputs()) {
-                inputs.push_back(GetValueId(value));
-            }
-            for (Value* value : node.outputs()) {
-                outputs.emplace_back(GetValueId(value), value);
-            }
-
-            std::string ngraph_device = g_ngraph_device;
-            if (ngraph_device.empty()) {
-                ngraph_device = "CPU";
-            }
-            EMIT(NGraph, outputs, inputs, onnx, ngraph_device);
-            return;
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        for (Value* value : node.inputs()) {
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            outputs.emplace_back(GetValueId(value), value);
         }
 
-        if (g_use_dldt && node.fusion_type() == "dldt") {
+        std::string ngraph_device = g_ngraph_device;
+        if (ngraph_device.empty()) {
+            ngraph_device = "CPU";
+        }
+        EMIT(NGraph, outputs, inputs, serialized_onnx, ngraph_device);
+    }
+
+    std::string DumpONNXToTmpFile(const Node& node, const std::string& serialized) {
+        const std::string& onnx_path = StrCat("/tmp/chainer_compiler_", node.fusion_type(), "_tmp_", node.chainer_fusion_group(), ".onnx");
+
+        std::ofstream ofs(onnx_path);
+        CHECK(ofs) << "Failed to open output file: " << onnx_path;
+        CHECK(ofs.write(serialized.data(), serialized.size()));
+
+        return onnx_path;
+    }
+
+    std::string CacheBasePath(const Node& node) {
+        return StrCat("/tmp/chainer_compiler_", node.fusion_type(), "_tmp_", node.chainer_fusion_group());
+    }
+
+#define CHECK_CMDLINE(cmdline)                             \
+    if (g_compiler_log) {                                  \
+        CLOG() << "Run command: " << cmdline << std::endl; \
+    }                                                      \
+    CHECK_EQ(system(cmdline.c_str()), 0) << "Command failed: " << cmdline << "\ninput onnx:\n" << body.DebugString()
+
+    void EmitFusionGroupDldt(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
+        const Graph& body = *node.subgraph();
+
 #if 0
-            for (Node* node : body.nodes()) {
-                node->set_chainer_order(-1);
-                node->set_chainer_fusion_group(0);
-            }
+        for (Node* node : body.nodes()) {
+            node->set_chainer_order(-1);
+            node->set_chainer_fusion_group(0);
+        }
 #endif
 
-            if (g_compiler_log) {
-                CLOG() << "Fusion group (dldt) " << GetFusionGroupSummary(node) << std::endl;
-            }
+        const std::string& extra_args = g_use_dldt_fp16 ? " --data_type=FP16" : "";
 
-            onnx::ModelProto xmodel;
-            body.ToONNX(xmodel.mutable_graph());
+        FileCache cache(CacheBasePath(node), "", {serialized_onnx, extra_args});
 
-            // TODO(hamaji): Introduce cache for compiled models.
-            const std::string& dldt_model = StrCat("/tmp/dldt_tmp_", node.chainer_fusion_group());
-            const std::string& onnx_path = StrCat(dldt_model, ".onnx");
-
-            {
-                std::ofstream ofs(onnx_path);
-                CHECK(ofs) << "Failed to open output file: " << onnx_path;
-                CHECK(xmodel.SerializeToOstream(&ofs));
-            }
+        if (!cache.IsReady() || !g_use_cached_model) {
+            const std::string onnx_path = DumpONNXToTmpFile(node, serialized_onnx);
 
             const char* dldt_dir_env = getenv("CHAINER_COMPILER_DLDT_DIR");
             std::string dldt_dir = dldt_dir_env ? dldt_dir_env : CHAINER_COMPILER_DLDT_DIR;
@@ -975,82 +371,272 @@ private:
                            " --input_model ",
                            onnx_path,
                            " --model_name ",
-                           dldt_model,
-                           g_use_dldt_fp16 ? " --data_type=FP16" : "");
-            CLOG() << "Run command: " << cmdline << std::endl;
-            int ret = system(cmdline.c_str());
-            CHECK_EQ(0, ret) << "Command failed: " << cmdline;
+                           cache.GetFilename(),
+                           extra_args);
+            CHECK_CMDLINE(cmdline);
 
-            std::vector<int> inputs;
-            std::vector<ChxVMValue> outputs;
-            for (Value* value : node.inputs()) {
-                inputs.push_back(GetValueId(value));
+            {
+                // Create a stamp file.
+                std::ofstream ofs(cache.GetTmpFilename());
+                ofs << dldt_dir << std::endl;
             }
-            for (Value* value : node.outputs()) {
-                outputs.emplace_back(GetValueId(value), value);
-            }
+            cache.Commit();
+        }
 
-            std::string dldt_device = g_dldt_device;
-            if (dldt_device.empty()) {
-                dldt_device = "CPU";
-            }
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        for (Value* value : node.inputs()) {
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            outputs.emplace_back(GetValueId(value), value);
+        }
 
-            std::vector<std::string> output_names;
-            for (Value* output : body.output_values()) {
-                CHECK(output->producer());
-                CHECK_EQ(1, output->producer()->outputs().size());
-                output_names.push_back(output->producer()->name());
-            }
+        std::string dldt_device = g_dldt_device;
+        if (dldt_device.empty()) {
+            dldt_device = "CPU";
+        }
 
-            EMIT(Dldt, outputs, inputs, dldt_model, dldt_device, output_names);
+        std::vector<std::string> output_names;
+        for (Value* output : body.output_values()) {
+            CHECK(output->producer());
+            CHECK_EQ(1, output->producer()->outputs().size());
+            output_names.push_back(output->producer()->name());
+        }
+
+        EMIT(Dldt, outputs, inputs, cache.GetFilename(), dldt_device, output_names);
+    }
+
+    void EmitFusionGroupSNPE(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
+        const Graph& body = *node.subgraph();
+
+        FileCache cache(CacheBasePath(node), ".dlc", {serialized_onnx});
+
+        if (!cache.IsReady() || !g_use_cached_model) {
+            const std::string onnx_path = DumpONNXToTmpFile(node, serialized_onnx);
+
+            // TODO(take-cheeze): Embed SNPE_ROOT
+            const char* snpe_dir = getenv("SNPE_ROOT");
+            CHECK(snpe_dir) << "SNPE_ROOT is not set properly";
+
+            // TODO(take-cheeze): Support quantization
+            const std::string cmdline =
+                    StrCat("PYTHONPATH=",
+                           snpe_dir,
+                           "/lib/python",
+                           " python2.7 ",
+                           snpe_dir,
+                           "/bin/x86_64-linux-clang/snpe-onnx-to-dlc"
+                           " --model_path ",
+                           onnx_path,
+                           " --output_path ",
+                           cache.GetTmpFilename());
+            CHECK_CMDLINE(cmdline);
+
+            cache.Commit();
+
+            if (g_dump_snpe_dlc_info) {
+                std::string cmdline =
+                        StrCat("PYTHONPATH=",
+                               snpe_dir,
+                               "/lib/python",
+                               " python2.7 ",
+                               snpe_dir,
+                               "/bin/x86_64-linux-clang/snpe-dlc-info"
+                               " --input_dlc ",
+                               cache.GetFilename());
+                if (!g_snpe_dlc_info_out_prefix.empty()) {
+                    cmdline += StrCat(" -s ", g_snpe_dlc_info_out_prefix, node.chainer_fusion_group(), ".txt");
+                }
+                CHECK_CMDLINE(cmdline);
+            }
+        }
+
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        for (Value* value : node.inputs()) {
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            outputs.emplace_back(GetValueId(value), value);
+        }
+
+        // TODO(take-cheeze): Support other devices
+        std::string snpe_device = "CPU";
+
+        std::vector<std::string> output_names, input_names;
+        for (Value* v : body.input_values()) {
+            input_names.push_back(v->name());
+        }
+        for (Value* output : body.output_values()) {
+            CHECK(output->producer());
+            CHECK_EQ(1, output->producer()->outputs().size());
+            output_names.push_back(output->producer()->name());
+        }
+
+        std::ifstream ifs(cache.GetFilename());
+        std::stringstream ss;
+        ss << ifs.rdbuf();
+
+        EMIT(SnpeDlc, outputs, inputs, input_names, ss.str(), snpe_device);
+    }
+
+#undef CHECK_CMDLINE
+
+    void EmitFusionGroupTVM(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
+        const Graph& body = *node.subgraph();
+
+        FileCache cache(CacheBasePath(node), ".dso", {serialized_onnx, std::to_string(node.chainer_fusion_group())});
+
+        const std::string func_name = StrCat("tvm_op_", node.chainer_fusion_group());
+        if (!cache.IsReady() || !g_use_cached_model) {
+            BuildTVMProgram(body.nodes(), body.input_values(), body.output_values(), cache.GetTmpFilename(), func_name);
+            cache.Commit();
+            if (g_compiler_log) {
+                CLOG() << "TVM output: " << cache.GetFilename() << std::endl;
+            }
+        }
+
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        for (Value* value : node.inputs()) {
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            outputs.emplace_back(GetValueId(value), value);
+        }
+        // TODO(hamaji): Handle multiple outputs.
+        CHECK_EQ(1, node.outputs().size());
+        std::vector<int64_t> shape;
+        for (int64_t dim : node.output(0)->type().dims()) {
+            shape.push_back(dim);
+        }
+        EMIT(TVM, outputs, inputs, outputs.size(), cache.GetFilename(), func_name, shape);
+    }
+
+    void EmitFusionGroupTensorRT(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        size_t batch_size = 0;
+        for (size_t i = 0; i < node.inputs().size(); ++i) {
+            if (i > 0 && (node.op_type() == Node::kConv || node.op_type() == Node::kConvTranspose)) {
+                continue;
+            }
+            Value* value = node.input(i);
+            CHECK(value->type().ndim());
+            if (batch_size) {
+                CHECK_EQ(batch_size, value->type().dims()[0]);
+            } else {
+                batch_size = value->type().dims()[0];
+            }
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            CHECK(value->type().ndim());
+            if (batch_size) {
+                CHECK_EQ(batch_size, value->type().dims()[0]);
+            } else {
+                batch_size = value->type().dims()[0];
+            }
+            outputs.emplace_back(GetValueId(value), value);
+        }
+
+        std::vector<int64_t> deconv_output_shapes;
+        auto encode_shape = [&deconv_output_shapes](const std::vector<int64_t>& dims, size_t start) {
+            CHECK_LT(start, dims.size());
+            CHECK_EQ(2, dims.size() - start);
+            for (size_t i = start; i < dims.size(); ++i) {
+                int64_t d = dims[i];
+                deconv_output_shapes.push_back(d);
+            }
+        };
+        for (Node* ct : node.subgraph()->GetTopologicallySortedNodes()) {
+            if (ct->op_type() != Node::kConvTranspose) {
+                continue;
+            }
+            encode_shape(ct->input(0)->type().dims(), 2);
+            encode_shape(ct->input(1)->type().dims(), 2);
+            if (ct->strides().empty()) {
+                encode_shape({1, 1}, 0);
+            } else {
+                encode_shape(ct->strides(), 0);
+            }
+            encode_shape(ct->output(0)->type().dims(), 2);
+        }
+
+        EMIT(TensorRT, outputs, inputs, serialized_onnx, batch_size, g_use_tensorrt_fp16, deconv_output_shapes);
+    }
+
+    void EmitFusionGroupNVRTC(const Node& node, ChxVMProgramProto* prog) {
+        const Graph& body = *node.subgraph();
+        std::string nvrtc;
+        BuildNvrtcProgram(body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &nvrtc);
+        if (g_compiler_log) {
+            CLOG() << "NVRTC program: " << nvrtc;
+        }
+
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        for (Value* value : node.inputs()) {
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            outputs.emplace_back(GetValueId(value), value);
+        }
+        EMIT(ElementWiseNvrtc, outputs, inputs, outputs.size(), nvrtc, node.chainer_fusion_group());
+    }
+
+    void EmitFusionGroup(const Node& node, ChxVMProgramProto* prog) {
+        const Graph& body = *node.subgraph();
+        int num_input_values = 0;
+        for (Value* value : body.input_values()) {
+            if (!value->initializer()) ++num_input_values;
+        }
+        CHECK_EQ(node.inputs().size(), num_input_values);
+        CHECK_EQ(node.outputs().size(), body.output_values().size());
+
+        if (g_compiler_log) {
+            CLOG() << "Fusion group (" << node.fusion_type() << ") " << GetFusionGroupSummary(node) << std::endl;
+        }
+
+        auto run_onnx_serialize = [](const Graph& body) {
+            std::string serialized;
+            {
+                onnx::ModelProto xmodel;
+                body.CheckSanity("fusion group sub-onnx check");
+                body.ToONNX(xmodel.mutable_graph());
+                xmodel.SerializeToString(&serialized);
+            }
+            return serialized;
+        };
+
+        if (g_use_ngraph && node.fusion_type() == "ngraph") {
+            EmitFusionGroupNGraph(node, run_onnx_serialize(body), prog);
+            return;
+        }
+
+        if (g_use_dldt && node.fusion_type() == "dldt") {
+            EmitFusionGroupDldt(node, run_onnx_serialize(body), prog);
+            return;
+        }
+
+        if (g_use_snpe && node.fusion_type() == "snpe") {
+            EmitFusionGroupSNPE(node, run_onnx_serialize(body), prog);
             return;
         }
 
         if (g_use_tvm && node.fusion_type() == "tvm") {
-            std::string dso_filename;
-            std::string func_name;
-            BuildTVMProgram(
-                    body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &dso_filename, &func_name);
-            if (g_compiler_log) {
-                // TODO(hamaji): Show more code.
-                CLOG() << "Fusion group (TVM) " << GetFusionGroupSummary(node) << " => " << dso_filename << std::endl;
-            }
+            EmitFusionGroupTVM(node, run_onnx_serialize(body), prog);
+            return;
+        }
 
-            std::vector<int> inputs;
-            std::vector<ChxVMValue> outputs;
-            for (Value* value : node.inputs()) {
-                inputs.push_back(GetValueId(value));
-            }
-            for (Value* value : node.outputs()) {
-                outputs.emplace_back(GetValueId(value), value);
-            }
-            // TODO(hamaji): Handle multiple outputs.
-            CHECK_EQ(1, node.outputs().size());
-            std::vector<int64_t> shape;
-            for (int64_t dim : node.output(0)->type().dims()) {
-                shape.push_back(dim);
-            }
-            EMIT(TVM, outputs, inputs, outputs.size(), dso_filename, func_name, shape);
+        if (g_use_tensorrt && node.fusion_type() == "tensorrt") {
+            EmitFusionGroupTensorRT(node, run_onnx_serialize(body), prog);
             return;
         }
 
         if (g_use_nvrtc && node.fusion_type() == "nvrtc") {
-            std::string nvrtc;
-            BuildNvrtcProgram(body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &nvrtc);
-            if (g_compiler_log) {
-                CLOG() << "Fusion group (NVRTC) " << GetFusionGroupSummary(node) << std::endl;
-                CLOG() << nvrtc;
-            }
-
-            std::vector<int> inputs;
-            std::vector<ChxVMValue> outputs;
-            for (Value* value : node.inputs()) {
-                inputs.push_back(GetValueId(value));
-            }
-            for (Value* value : node.outputs()) {
-                outputs.emplace_back(GetValueId(value), value);
-            }
-            EMIT(ElementWiseNvrtc, outputs, inputs, outputs.size(), nvrtc, node.chainer_fusion_group());
+            EmitFusionGroupNVRTC(node, prog);
             return;
         }
 
@@ -1204,7 +790,7 @@ private:
         // Prepare temporary sequences for scan outputs.
         std::vector<int> scan_out_ids;
         for (int i = 0; i < num_scans; ++i) {
-            int id = next_value_id_++;
+            int id = value_ids_.AssignNextId();
             EMIT(SequenceCreate, ChxVMValue(id), {});
             scan_out_ids.push_back(id);
         }
@@ -1212,14 +798,14 @@ private:
         int skip_loop_jmp = -1;
         int skip_loop_cond_id = -1;
         if (!max_trip_count->IsNull()) {
-            int zero_id = next_value_id_++;
-            skip_loop_cond_id = next_value_id_++;
+            int zero_id = value_ids_.AssignNextId();
+            skip_loop_cond_id = value_ids_.AssignNextId();
             EMIT(IntScalarConstant, ChxVMValue(zero_id), 0, Dtype::kInt64, true);
             EMIT(Greater, ChxVMValue(skip_loop_cond_id), GetValueId(max_trip_count), zero_id);
             FREE(zero_id);
         }
         if (!terminal_condition->IsNull()) {
-            int tmp_id = next_value_id_++;
+            int tmp_id = value_ids_.AssignNextId();
             if (skip_loop_cond_id >= 0) {
                 EMIT(Mul, ChxVMValue(tmp_id), skip_loop_cond_id, GetValueId(terminal_condition));
                 FREE(skip_loop_cond_id);
@@ -1236,9 +822,9 @@ private:
         int loop_begin = prog->instructions_size();
 
         EmitGraph(*body, prog, true /* in_loop */, body_output_values);
-        int one_id = next_value_id_++;
+        int one_id = value_ids_.AssignNextId();
         EMIT(IntScalarConstant, ChxVMValue(one_id), 1, Dtype::kInt64, true);
-        int tmp_id = next_value_id_++;
+        int tmp_id = value_ids_.AssignNextId();
         EMIT(Add, ChxVMValue(tmp_id), iter_id, one_id);
         FREE(one_id);
         for (const Value* value : body_input_values) {
@@ -1276,7 +862,7 @@ private:
             EMIT(Greater, ChxVMValue(cond_id), GetValueId(loop.input(0)), iter_id);
         } else if (!max_trip_count->IsNull()) {
             EMIT(Greater, ChxVMValue(tmp_id), GetValueId(loop.input(0)), iter_id);
-            int tmp2_id = next_value_id_++;
+            int tmp2_id = value_ids_.AssignNextId();
             EMIT(Mul, ChxVMValue(tmp2_id), cond_id, tmp_id);
             FREE(cond_id);
             MOVE(ChxVMValue(cond_id), tmp2_id);
@@ -1347,9 +933,7 @@ private:
         }
     }
 
-    int next_value_id_{1};
-    std::map<const Value*, int> value_ids_;
-    std::map<int, int> stack_ids_;
+    ValueIdManager value_ids_;
     std::set<const Node*> emitted_;
 };
 

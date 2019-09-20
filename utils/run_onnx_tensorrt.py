@@ -1,5 +1,4 @@
 import argparse
-import glob
 import logging
 import os
 import sys
@@ -27,65 +26,13 @@ def to_cpu(arrays):
     return out
 
 
-def load_test_data(data_dir, input_names, output_names):
-    inout_values = []
-    for kind, names in [('input', input_names), ('output', output_names)]:
-        names = list(names)
-        values = []
-        for pb in sorted(glob.glob(os.path.join(data_dir, '%s_*.pb' % kind))):
-            with open(pb, 'rb') as f:
-                tensor = onnx.TensorProto()
-                tensor.ParseFromString(f.read())
-            if tensor.name in names:
-                name = tensor.name
-                names.remove(name)
-            else:
-                name = names.pop(0)
-            values.append((name, onnx.numpy_helper.to_array(tensor)))
-        inout_values.append(values)
-    return tuple(inout_values)
-
-
-def compile(symbol, target, input_names, inputs, params, opt_level):
-    shape_dict = {}
-    dtype_dict = {}
-    for name, value in zip(input_names, inputs.values()):
-        shape_dict[name] = value.shape
-        dtype_dict[name] = value.dtype
-    for name, value in params.items():
-        shape_dict[name] = value.shape
-        dtype_dict[name] = value.dtype
-    with nnvm.compiler.build_config(opt_level=opt_level):
-        graph, lib, params = nnvm.compiler.build(symbol, target,
-                                                 shape=shape_dict,
-                                                 dtype=dtype_dict,
-                                                 params=params)
-    return graph, lib, params
-
-
-def onnx_input_output_names(onnx_filename):
-    onnx_model = onnx.load(onnx_filename)
-    initializer_names = set()
-    for initializer in onnx_model.graph.initializer:
-        initializer_names.add(initializer.name)
-
-    input_names = []
-    for input in onnx_model.graph.input:
-        if input.name not in initializer_names:
-            input_names.append(input.name)
-
-    output_names = []
-    for output in onnx_model.graph.output:
-        output_names.append(output.name)
-
-    return input_names, output_names
-
-
 def run(args):
-    onnx_filename = os.path.join(args.test_dir, 'model.onnx')
-    input_names, output_names = onnx_input_output_names(onnx_filename)
+    onnx_filename = os.path.join(args.test_dir, args.model_file)
+    input_names, output_names = run_onnx_util.onnx_input_output_names(
+        onnx_filename)
     test_data_dir = os.path.join(args.test_dir, 'test_data_set_0')
-    inputs, outputs = load_test_data(test_data_dir, input_names, output_names)
+    inputs, outputs = run_onnx_util.load_test_data(
+        test_data_dir, input_names, output_names)
 
     with open(onnx_filename, 'rb') as f:
         onnx_proto = f.read()
@@ -153,6 +100,7 @@ def get_args(args=None):
     parser.add_argument('--fp16_mode', action='store_true')
     parser.add_argument('--rtol', type=float, default=1e-3)
     parser.add_argument('--atol', type=float, default=1e-4)
+    parser.add_argument('--model_file', default='model.onnx')
     return parser.parse_args(args=args)
 
 

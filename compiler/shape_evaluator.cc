@@ -49,6 +49,9 @@ bool MaybeEvaluateShape(Node* node) {
     switch (node->op_type()) {
         // TODO(hamaji): Handle more ops.
         case Node::kOneHot: {
+            if (!node->input(1)->producer()) {
+                return false;
+            }
             if (node->input(1)->producer()->op_type() == Node::kConstant) {
                 DoEvaluateShape(node);
             }

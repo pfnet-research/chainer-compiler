@@ -131,34 +131,26 @@ class PickableSequentialChain(chainer.Chain):
             The returned layers are determined by :obj:`pick`.
 
         """
-        if self._pick is None:
-            pick = (self.layer_names[-1],)
-        else:
-            pick = self._pick
 
         # The biggest index among indices of the layers that are included
         # in pick.
         # last_index = max([self.layer_names.index(name) for name in pick])
+        assert self._pick, "pick cannot be None"
 
         last_index = len(self.layer_names)
-        layers = {}
+        layers = []
         h = x
 
         with flags.for_unroll():
             for name in self.layer_names[:last_index]:
                 h = self[name](h)
-                with flags.ignore_branch():
-                    if name in pick:
-                        layers[name] = h
+                if name in self._pick:
+                    layers.append(h)
 
-        with flags.ignore_branch():
-            if self._return_tuple:
-                layers = tuple(layers[name] for name in pick)
-            else:
-                layers = list(layers.values())[0]
-            return layers
+        if not self._return_tuple:
+            layers = layers[0]
 
-        return h
+        return layers
 
     def copy(self, *args, **kargs):
         copied = super(PickableSequentialChain, self).copy(*args, **kargs)

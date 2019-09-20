@@ -27,13 +27,14 @@ FLAGS = {
         'doc': 'Use NVRTC to execute fused operations.'
     },
 
+    'use_cached_model': {
+        'type': 'bool',
+        'doc': 'Use cached models(sometimes unsafe).'
+    },
+
     'use_tvm': {
         'type': 'bool',
         'doc': 'Use TVM to execute operations.'
-    },
-    'reuse_tvm_code': {
-        'type': 'bool',
-        'doc': 'Reuse existing TVM code.(Unsafe)'
     },
     'dump_autotvm_task_dir': {
         'type': 'std::string',
@@ -69,6 +70,28 @@ FLAGS = {
     'backend_name': {
         'type': 'std::string',
         'doc': 'The name of backend.'
+    },
+
+    'use_snpe': {
+        'type': 'bool',
+        'doc': 'Use SNPE to execute operations.'
+    },
+    'dump_snpe_dlc_info': {
+        'type': 'bool',
+        'doc': 'Dump result of snpe-dlc-info.'
+    },
+    'snpe_dlc_info_out_prefix': {
+        'type': 'std::string',
+        'doc': 'Output file of snpe-dlc-info.'
+    },
+
+    'use_tensorrt': {
+        'type': 'bool',
+        'doc': 'Use TensorRT to execute operations.'
+    },
+    'use_tensorrt_fp16': {
+        'type': 'bool',
+        'doc': 'Use fp16 with TensorRT.'
     },
 
     'trace_level': {
@@ -107,6 +130,15 @@ FLAGS = {
     'dump_subgraphs': {
         'type': 'bool',
         'doc': 'Dump the subgraph tree of the ONNX graph'
+    },
+
+    'quantize': {
+        'type': 'bool',
+        'doc': 'Quantize ONNX model'
+    },
+    'disable_per_channel_quantize': {
+        'type': 'bool',
+        'doc': 'Disables per channel quantization'
     },
 
     'computation_order': {
@@ -179,6 +211,7 @@ struct Flags {
 
 elif args.mode == 'compiler_flags.cc':
     f.write('''
+
 #include "tools/compiler_flags.h"
 
 #include <compiler/flags.h>
@@ -229,5 +262,33 @@ elif args.mode == 'chainer_compiler_core.pybind_args.inc':
         def_val = 'false' if info['type'] == 'bool' else '""' if info['type'] == 'std::string' else '0'
         res.append('"{}"_a = {}'.format(name, def_val))
     f.write(', '.join(res))
+elif args.mode == 'menoh_chainer_compiler.json_args.inc':
+    res = []
+    for name, info in sorted(FLAGS.items()):
+        if info['type'] == 'bool':
+            default = 'false'
+        elif info['type'] == 'int':
+            default = '0'
+        elif info['type'] == 'std::string':
+            default = '""'
+        res.append('chainer_compiler::g_{0} = value_or<{2}>(j, "{0}", {1});'.format(name, default, info['type']))
+    f.write('\n'.join(res))
+elif args.mode == 'menoh_chainer_compiler.args_json.inc':
+    res = []
+    for name, info in sorted(FLAGS.items()):
+        res.append('config["{0}"] = chainer_compiler::g_{0};'.format(name))
+    f.write('\n'.join(res))
+elif args.mode == 'menoh_example_default_config.json':
+    import json
+    config = {}
+    for name, info in sorted(FLAGS.items()):
+        if info['type'] == 'bool':
+            default = False
+        elif info['type'] == 'int':
+            default = 0
+        elif info['type'] == 'std::string':
+            default = ''
+        config[name] = default
+    f.write(json.dumps(config, indent=2, sort_keys=True))
 else:
     raise('Invalid mode: {}'.format(args.mode))

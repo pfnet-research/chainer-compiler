@@ -194,6 +194,22 @@ Value* Graph::AddNullValue() {
     return AddValue("", Value::Kind::kNull);
 }
 
+void Graph::ResetKind(Value* value) {
+    CHECK(!value->IsTemp()) << value->ToString();
+    if (value->IsInput()) {
+        auto found = std::find(input_values_.begin(), input_values_.end(), value);
+        CHECK(found != input_values_.end()) << value->ToString();
+        input_values_.erase(found);
+    }
+    if (value->IsOutput()) {
+        auto found = std::find(output_values_.begin(), output_values_.end(), value);
+        CHECK(found != output_values_.end()) << value->ToString();
+        output_values_.erase(found);
+    }
+    value->kind_ = Value::Kind::kTemp;
+    temp_values_.push_back(value);
+}
+
 Node* Graph::AddNode(
         Node::OpType op_type,
         const std::vector<Value*>& inputs,
@@ -201,6 +217,13 @@ Node* Graph::AddNode(
         const std::string& base,
         const std::string& domain) {
     Node* node = new Node(GenSym(base.empty() ? Node::OpTypeToString(op_type) : base), op_type, inputs, outputs, domain);
+    AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
+    return node;
+}
+
+Node* Graph::AddNode(
+        const onnx::NodeProto& base, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& name) {
+    Node* node = new Node(base, inputs, outputs, name);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     return node;
 }

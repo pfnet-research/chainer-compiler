@@ -12,6 +12,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_op.h>
@@ -100,7 +101,7 @@ ChxVMOptions::ChxVMOptions() {
     verbose_ops.resize(num_ops);
 }
 
-ChxVM::ChxVM(const ChxVMProgramProto& program) {
+ChxVM::ChxVM(const ChxVMProgramProto& program, bool should_init) {
     num_variables_ = 0;
     for (const ChxVMInstructionProto& inst : program.instructions()) {
         for (int output : inst.outputs()) {
@@ -121,15 +122,28 @@ ChxVM::ChxVM(const ChxVMProgramProto& program) {
         chainerx::Shape shape(type.shape().begin(), type.shape().end());
         input_descs_.emplace_back(new ChxVMInputDesc(name, dtype, shape));
     }
+
+    if (should_init) {
+        Init();
+    }
 }
 
 ChxVM::~ChxVM() {
+}
+
+void ChxVM::Init() {
+    for (const std::unique_ptr<ChxVMOp>& op : program_) {
+        op->InitImpl();
+    }
 }
 
 std::unique_ptr<ChxVMState> ChxVM::Prepare(const InOuts& program_inputs, const ChxVMOptions& options) {
     for (const std::unique_ptr<ChxVMInputDesc>& input : input_descs_) {
         auto found = program_inputs.find(input->name);
         CHECK(found != program_inputs.end()) << "Input '" << input->name << "' not found";
+        if (!options.check_types) {
+            continue;
+        }
         const ChxVMVar& var = *found->second;
         if (var.IsArray()) {
             const chainerx::Array& a = var.GetArray();
@@ -192,28 +206,31 @@ void ChxVM::Run(ChxVMState* state) {
             DumpOutput(state, op, options.dump_outputs_dir);
         }
 
-        if (options.dump_memory_usage) {
+        if (options.dump_memory_usage >= 1) {
             int64_t used_mbs = InMbs(state->GetTotalVariableSize());
             peak_used_mbs = std::max(used_mbs, peak_used_mbs);
-            std::string report = StrCat(" Memory usage=", used_mbs, "MB");
-            auto usage = GetMemoryUsageInBytes();
-            if (options.base_memory_usage >= 0 && usage.has_value()) {
-                int64_t total_mbs = InMbs(usage->first - options.base_memory_usage);
-                peak_total_mbs = std::max(total_mbs, peak_total_mbs);
-                report = StrCat(report, " allocated=", total_mbs, "MB");
-            }
-            if (options.dump_memory_usage) {
+
+            if (options.dump_memory_usage >= 2) {
+                std::string report = StrCat(" Memory usage=", used_mbs, "MB");
+                auto usage = GetMemoryUsageInBytes();
+                if (options.base_memory_usage >= 0 && usage.has_value()) {
+                    int64_t total_mbs = InMbs(usage->first - options.base_memory_usage);
+                    peak_total_mbs = std::max(total_mbs, peak_total_mbs);
+                    report = StrCat(report, " allocated=", total_mbs, "MB");
+                }
+                report = StrCat(report, " Chx hook monitor=>(total=", InMbs(GetTotalMemory()), "MB peak=", InMbs(GetPeakMemory()), "MB)");
                 std::cerr << report << std::endl;
             }
         }
     }
 
-    if (options.dump_memory_usage) {
+    if (options.dump_memory_usage >= 1) {
         state->ShowVariableStatus();
         std::string report = StrCat("Peak memory usage=", peak_used_mbs, "MB");
         if (options.base_memory_usage >= 0) {
             report = StrCat(report, " allocated=", peak_total_mbs, "MB");
         }
+        report = StrCat(report, " Peak monitored by Chx hook=", InMbs(GetPeakMemory()), "MB)");
         std::cerr << report << std::endl;
     }
 }

@@ -74,12 +74,15 @@ add_library(chainer_compiler_compiler
   dtype.cc
   dtype_inference.cc
   evaluator.cc
+  file_cache.cc
   ${CMAKE_CURRENT_BINARY_DIR}/flags.cc
   flops.cc
   fusion.cc
   fusion_dldt.cc
   fusion_elementwise.cc
   fusion_ngraph.cc
+  fusion_snpe.cc
+  fusion_tensorrt.cc
   fusion_tvm.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.cc
@@ -91,10 +94,12 @@ add_library(chainer_compiler_compiler
   memory_simulator.cc
   merge.cc
   model.cc
+  murmur_hash3.cc
   node.cc
   nvrtc_builder.cc
   onnx.cc
   passes.cc
+  quantize.cc
   scheduler.cc
   shape_evaluator.cc
   simplifier.cc
@@ -105,8 +110,10 @@ add_library(chainer_compiler_compiler
   type.cc
   util.cc
   value.cc
-  chxvm/emitter.cc
   chxvm/chxvm_value.cc
+  chxvm/emitter.cc
+  chxvm/simple_node_emitter.cc
+  chxvm/value_id_manager.cc
   )
 add_dependencies(
   chainer_compiler_compiler
@@ -115,36 +122,13 @@ add_dependencies(
   )
 set_hidden_(chainer_compiler_compiler)
 
-# Download and extract test data
-add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/mnist/model.onnx"
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
-  COMMAND
-  mkdir -p data && cd data &&
-  wget --continue https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz &&
-  tar -xvzf mnist.tar.gz
-  )
-add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
-  COMMAND
-  mkdir -p data && cd data &&
-  wget --continue https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz &&
-  tar -xvzf resnet50.tar.gz
-  )
-add_custom_target(
-  test_models
-  DEPENDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/../data/mnist/model.onnx"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
-  )
-
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(chainer_compiler_compiler_test
   code_emitter_test.cc
   custom_onnx_ops_test.cc
   dtype_inference_test.cc
   evaluator_test.cc
+  file_cache_test.cc
   flops_test.cc
   fusion_test.cc
   gradient_test.cc
@@ -160,26 +144,16 @@ add_executable(chainer_compiler_compiler_test
 add_dependencies(
   chainer_compiler_compiler_test
   runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h compiler_flags_h
-  gen_onnx_proto test_models
+  gen_onnx_proto
   )
 target_link_libraries(chainer_compiler_compiler_test
   chainer_compiler_compiler
   chainer_compiler_runtime
   chainer_compiler_common
   chainer_compiler_configs
-  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
-  onnx
-  onnx_proto
-  ${PROTOBUF_LIBRARY}
+  ${CHAINER_COMPILER_DEPENDENCY_LIBRARIES}
   gtest
   gtest_main
-  pthread
-  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
-  ${CHAINER_COMPILER_DLDT_LIBRARIES}
-  ${CHAINER_COMPILER_TVM_LIBRARIES}
-  ${CHAINER_COMPILER_CUDA_LIBRARIES}
-  absl::variant
-  absl::optional
   )
 
 add_test(

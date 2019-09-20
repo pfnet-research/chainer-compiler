@@ -39,6 +39,9 @@ public:
             const std::vector<Value*>& outputs,
             const std::string& domain = onnx::ONNX_DOMAIN);
 
+    // Creates a new operation node from base onnx::NodeProto
+    Node* MOp(const onnx::NodeProto& base, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+
     Value* Const(const chainerx::Array& ary, Value* value = nullptr);
 
     template <class T>
@@ -49,14 +52,14 @@ public:
         return Const(type, std::vector<T>{data}, value);
     }
 
-    Value* Param(const chainerx::Array& ary);
+    Value* Param(const chainerx::Array& ary, Value* base_value);
 
-    Value* Temp();
+    Value* Temp(const std::string& name_hint = "");
     Value* Temp(const Type& type);
 
     Value* Null();
 
-    std::string GenName();
+    std::string GenName(Value* value = nullptr, const std::string& hint = "");
 
 private:
     Graph* graph_;

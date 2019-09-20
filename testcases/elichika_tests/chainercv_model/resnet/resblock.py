@@ -56,6 +56,8 @@ class ResBlock(PickableSequentialChain):
                     residual_conv=False, add_seblock=add_seblock,
                     groups=groups)
                 setattr(self, name, bottleneck)
+            self._pick = (name,)
+            self._return_tuple = False
 
 
 class Bottleneck(chainer.Chain):
@@ -109,13 +111,18 @@ class Bottleneck(chainer.Chain):
             self.conv3 = Conv2DBNActiv(mid_channels, out_channels, 1, 1, 0,
                                        nobias=True, initialW=initialW,
                                        activ=None, bn_kwargs=bn_kwargs)
+            self._pick = ('conv3',)
             if add_seblock:
                 self.se = SEBlock(out_channels)
+                self._pick = ('se',)
             if residual_conv:
                 self.residual_conv = Conv2DBNActiv(
                     in_channels, out_channels, 1, stride, 0,
                     nobias=True, initialW=initialW,
                     activ=None, bn_kwargs=bn_kwargs)
+                self._pick = ('residual_conf',)
+            self._return_tuple = False
+
 
     def forward(self, x):
         h = self.conv1(x)

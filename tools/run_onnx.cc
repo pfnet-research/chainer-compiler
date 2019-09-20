@@ -1,9 +1,3 @@
-#include <dirent.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -12,8 +6,6 @@
 #include <queue>
 #include <set>
 #include <string>
-
-#include <compiler/onnx.h>
 
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
@@ -35,6 +27,7 @@
 #include <compiler/gradient_with_order.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
+#include <compiler/onnx.h>
 #include <compiler/passes.h>
 #include <compiler/tensor.h>
 #include <compiler/util.h>
@@ -47,173 +40,25 @@
 #include <runtime/meminfo.h>
 #include <tools/cmdline.h>
 #include <tools/compiler_flags.h>
+#include <tools/log.h>
+#include <tools/run_onnx_util.h>
 #include <tools/util.h>
 
 namespace chainer_compiler {
 namespace runtime {
 namespace {
 
-const char* GREEN = "\033[92m";
-const char* RED = "\033[91m";
-const char* RESET = "\033[0m";
-
-bool g_quiet;
-
-#define LOG() \
-    if (!g_quiet) std::cerr
-
-bool IsDir(const std::string& filename) {
-    struct stat st;
-    CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
-    return S_IFDIR == (st.st_mode & S_IFMT);
-}
-
-std::vector<std::string> ListDir(const std::string& dirname) {
-    DIR* dir = opendir(dirname.c_str());
-    CHECK(dir) << "Failed to open directory: " << dirname << ": " << strerror(errno);
-    std::vector<std::string> filenames;
-    struct dirent* ent;
-    while ((ent = readdir(dir)) != nullptr) {
-        filenames.push_back(dirname + "/" + ent->d_name);
-    }
-    closedir(dir);
-    std::sort(filenames.begin(), filenames.end());
-    return filenames;
-}
-
-chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
-    Tensor tensor(xtensor);
-    int64_t size = tensor.ElementSize() * tensor.NumElements();
-    std::shared_ptr<void> data(new char[size], std::default_delete<char[]>());
-    std::memcpy(data.get(), tensor.GetRawData(), size);
-    chainerx::Shape shape(tensor.dims());
-    chainerx::Dtype dtype;
-    switch (tensor.dtype()) {
-#define ASSIGN_DTYPE(n)             \
-    case Dtype::n:                  \
-        dtype = chainerx::Dtype::n; \
-        break
-        ASSIGN_DTYPE(kBool);
-        ASSIGN_DTYPE(kInt8);
-        ASSIGN_DTYPE(kInt16);
-        ASSIGN_DTYPE(kInt32);
-        ASSIGN_DTYPE(kInt64);
-        ASSIGN_DTYPE(kUInt8);
-        ASSIGN_DTYPE(kFloat16);
-        ASSIGN_DTYPE(kFloat32);
-        ASSIGN_DTYPE(kFloat64);
-        default:
-            CHECK(false) << "Unknown data type: " << static_cast<int>(tensor.dtype());
-    }
-    chainerx::Array array(
-            chainerx::FromData(shape, dtype, data, absl::nullopt /* strides */, 0 /* offset */, chainerx::GetNativeBackend().GetDevice(0)));
-    return array;
-}
-
-struct TestCase {
-    std::string name;
-    InOuts inputs;
-    InOuts outputs;
-};
-
-void ReadTestDir(
-        const std::string& test_path,
-        const std::vector<std::string>& input_names,
-        const std::vector<std::string>& output_names,
-        std::vector<std::unique_ptr<TestCase>>* test_cases) {
-    for (const std::string& data_set_dir : ListDir(test_path)) {
-        if (!HasPrefix(Basename(data_set_dir), "test_data_set_") || !IsDir(data_set_dir)) {
-            continue;
-        }
-        std::unique_ptr<TestCase> test_case(new TestCase);
-        test_case->name = data_set_dir;
-        size_t input_index = 0;
-        size_t output_index = 0;
-
-        std::vector<std::tuple<std::string, std::string, chainerx::Array>> all_tensors;
-        for (const std::string& tensor_pb : ListDir(data_set_dir)) {
-            if (!HasSuffix(tensor_pb, ".pb")) continue;
-            onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
-            chainerx::Array tensor(MakeArrayFromONNX(xtensor));
-            all_tensors.emplace_back(Basename(tensor_pb), xtensor.name(), tensor);
-        }
-
-        std::vector<std::tuple<std::string, std::string, ChxVMVar*>> all_vars;
-        for (size_t i = 0; i < all_tensors.size(); ++i) {
-            const std::string& filename = std::get<0>(all_tensors[i]);
-            const std::string& tensor_name = std::get<1>(all_tensors[i]);
-            size_t first_found = filename.find('_');
-            if (first_found == std::string::npos) continue;
-            size_t found = filename.find('_', first_found + 1);
-            if (found == std::string::npos) {
-                all_vars.emplace_back(filename, tensor_name, new ChxVMVar(std::get<2>(all_tensors[i])));
-                continue;
-            }
-
-            std::string prefix = filename.substr(0, found + 1);
-            auto seq = std::make_shared<ChxVMSequence>();
-            for (; i < all_tensors.size(); ++i) {
-                const std::string& filename = std::get<0>(all_tensors[i]);
-                if (HasPrefix(filename, prefix)) {
-                    CHECK_EQ(tensor_name, std::get<1>(all_tensors[i]));
-                    seq->emplace_back(std::get<2>(all_tensors[i]));
-                } else {
-                    --i;
-                    break;
-                }
-            }
-            all_vars.emplace_back(filename, tensor_name, new ChxVMVar(seq));
-        }
-
-        for (const auto& p : all_vars) {
-            const std::string& filename = std::get<0>(p);
-            std::string tensor_name = std::get<1>(p);
-            std::shared_ptr<ChxVMVar> var(std::get<2>(p));
-            if (HasPrefix(filename, "input_")) {
-                if (tensor_name.empty()) {
-                    CHECK_LT(input_index, input_names.size());
-                    tensor_name = input_names[input_index++];
-                }
-                CHECK(test_case->inputs.emplace(tensor_name, var).second) << "Duplicate input tensor: " << tensor_name;
-            } else if (HasPrefix(filename, "output_")) {
-                if (tensor_name.empty()) {
-                    CHECK_LT(output_index, output_names.size());
-                    tensor_name = output_names[output_index++];
-                }
-                CHECK(test_case->outputs.emplace(tensor_name, var).second) << "Duplicate output tensor:" << tensor_name;
-            } else if (HasPrefix(filename, "gradient_")) {
-                CHECK(!tensor_name.empty());
-                CHECK(test_case->outputs.emplace("grad_out@" + tensor_name, var).second) << "Duplicate gradient tensor:" << tensor_name;
-            }
-        }
-        test_cases->emplace_back(std::move(test_case));
-    }
-    CHECK(!test_cases->empty()) << "No test found in " << test_path;
-}
-
-chainerx::Shape ChainerXShapeFromONNX(const onnx::TensorShapeProto& xshape) {
-    chainerx::Shape shape;
-    for (const auto& dim : xshape.dim()) {
-        if (dim.has_dim_value()) {
-            shape.push_back(dim.dim_value());
-        } else {
-            LOG() << "Dimension " << dim.dim_param() << " was replaced by 1" << std::endl;
-            shape.push_back(1);
-        }
-    }
-    return shape;
-}
-
-void GenerateFixedInput(const onnx::ModelProto& xmodel, const std::set<std::string>& initializer_names, InOuts* inputs) {
-    for (const onnx::ValueInfoProto& input : xmodel.graph().input()) {
-        if (initializer_names.count(input.name())) continue;
-        CHECK(input.type().has_tensor_type()) << "Only tensor_type is supported: " << input.type().DebugString();
-        const onnx::TypeProto::Tensor& tensor_type = input.type().tensor_type();
-        chainerx::Dtype dtype = ChainerXTypeFromONNX(tensor_type.elem_type());
-        chainerx::Shape shape = ChainerXShapeFromONNX(tensor_type.shape());
+void GenerateFixedInput(const Model& model, const std::set<std::string>& initializer_names, InOuts* inputs) {
+    for (const Value* input : model.graph().input_values()) {
+        if (initializer_names.count(input->name())) continue;
+        CHECK_EQ(Type::Kind::kTensor, input->type().kind()) << "Only tensor_type is supported: " << input->type().DebugString();
+        const Type& type = input->type();
+        chainerx::Dtype dtype = type.dtype().chx();
+        chainerx::Shape shape{type.dims().begin(), type.dims().end()};
         chainerx::Array array = chainerx::Ones(shape, dtype, chainerx::GetNativeBackend().GetDevice(0));
-        CHECK(inputs->emplace(input.name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(array))).second) << "Duplicated input: " << input.name();
-        LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
+        CHECK(inputs->emplace(input->name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(array))).second)
+                << "Duplicated input: " << input->name();
+        LOG() << "Generated test input " << input->name() << " type=" << dtype << " shape=" << shape << std::endl;
     }
 }
 
@@ -246,8 +91,8 @@ ChxVMVar* StageVar(ChxVMVar* var) {
 
 class ModelRunner {
 public:
-    ModelRunner(const cmdline::parser& args, int64_t initial_used_bytes, Model* model)
-        : model_(model), args_(args), initial_used_bytes_(initial_used_bytes) {
+    ModelRunner(const cmdline::parser& args, int64_t initial_used_bytes, std::unique_ptr<Model> model)
+        : args_(args), initial_used_bytes_(initial_used_bytes) {
         if (args.exist("backprop_two_phase")) {
             Model backprop_model(*model, model->graph().name() + "_backprop");
             RunDefaultPassesBeforeGradient(model->mutable_graph());
@@ -267,18 +112,20 @@ public:
 
             LOG() << "Constructing model (forward)..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), false, skip_scheduling);
-            CompileModel(model, &chxvm_);
+            CompileModel(model.get(), &chxvm_);
             LOG() << "Constructing model (backward)..." << std::endl;
             RunDefaultPasses(backprop_model.mutable_graph(), false, skip_scheduling);
             CompileModel(&backprop_model, &chxvm_bp_, "bp");
             for (Value* value : backprop_model.graph().input_values()) {
                 backprop_ins_.push_back(value->name());
             }
+            flops_ += CalculateTotalFlops(backprop_model.graph(), &num_unknown_ops_);
         } else {
             LOG() << "Constructing model..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), args_.exist("backprop"));
-            CompileModel(model, &chxvm_);
+            CompileModel(model.get(), &chxvm_);
         }
+        flops_ += CalculateTotalFlops(model->graph(), &num_unknown_ops_);
 
         for (const std::string& op_name : SplitString(args_.get<std::string>("verbose_ops"), ",")) {
             ChxVMInstructionProto::Op op;
@@ -291,15 +138,21 @@ public:
         chxvm_opts_.check_nans = args_.exist("check_nans");
         chxvm_opts_.check_infs = args_.exist("check_infs");
         chxvm_opts_.catch_exception = !args_.exist("no_catch");
-        chxvm_opts_.dump_memory_usage = args_.exist("trace");
+        chxvm_opts_.dump_memory_usage = args_.exist("trace") ? 2 : 0;
         chxvm_opts_.base_memory_usage = initial_used_bytes_;
         chxvm_opts_.dump_outputs_dir = args_.get<std::string>("dump_outputs_dir");
         if (!args_.get<std::string>("chrome_tracing").empty()) {
             chxvm_opts_.chrome_tracing = new ChromeTracingEmitter();
         }
 
+        chxvm_->Init();
+        if (chxvm_bp_) {
+            chxvm_bp_->Init();
+        }
+
         params_ = LoadParams(model->graph());
         param_bytes_ = GetUsedMemory() - initial_used_bytes;
+        model.reset();
     }
 
     void CompileModel(Model* model, std::unique_ptr<ChxVM>* chxvm, const char* name = nullptr, bool gen_backprop = false) {
@@ -344,7 +197,7 @@ public:
             CHECK(chxvm_prog.SerializeToOstream(&ofs));
         }
 
-        chxvm->reset(new ChxVM(chxvm_prog));
+        chxvm->reset(new ChxVM(chxvm_prog, false /* should_init */));
     }
 
     ~ModelRunner() {
@@ -392,6 +245,10 @@ public:
         return params_;
     }
 
+    int64_t flops() const {
+        return num_unknown_ops_ ? 0 : flops_;
+    }
+
 private:
     int trace_level() const {
         return args_.exist("verbose") ? 2 : args_.exist("trace") ? 1 : 0;
@@ -406,7 +263,6 @@ private:
         }
     }
 
-    Model* model_;
     const cmdline::parser& args_;
     std::unique_ptr<ChxVM> chxvm_;
     ChxVMOptions chxvm_opts_;
@@ -416,114 +272,9 @@ private:
 
     std::unique_ptr<ChxVM> chxvm_bp_;
     std::vector<std::string> backprop_ins_;
+    int64_t flops_{0};
+    int num_unknown_ops_{0};
 };
-
-void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdline::parser& args, bool check_values, bool show_diff) {
-    LOG() << "Verifying the result..." << std::endl;
-    size_t ok_cnt = 0;
-    for (const auto& p : test_case.outputs) {
-        const std::string key = p.first;
-        ChxVMVar* expected = p.second.get();
-        auto found = outputs.find(key);
-        CHECK(found != outputs.end()) << "Output does not contain " << key;
-        ChxVMVar* actual = found->second.get();
-
-        auto array_str = [&args](const absl::optional<chainerx::Array>& a) {
-            int size = a->GetTotalSize();
-            if (size < 100 || args.exist("verbose")) return a->ToString();
-            return a->shape().ToString() + " [0,20]=" + a->Reshape({size}).At({chainerx::Slice{20}}).ToString();
-        };
-
-        auto var_str = [&args, array_str](ChxVMVar* v) {
-            switch (v->kind()) {
-                case ChxVMVar::Kind::kScalar:
-                case ChxVMVar::Kind::kShape:
-                case ChxVMVar::Kind::kArray:
-                    return array_str(v->GetArray());
-                case ChxVMVar::Kind::kSequence:
-                    return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
-                case ChxVMVar::Kind::kString:
-                case ChxVMVar::Kind::kOpaque:
-                case ChxVMVar::Kind::kNull:
-                    CHECK(false) << v->DebugString();
-            }
-            CHECK(false);
-        };
-
-        auto fail = [&](const std::string& type) {
-            LOG() << RED << "FAIL(" << type << "): " << key << RESET << "\nExpected: " << var_str(expected)
-                  << "\nActual: " << var_str(actual) << std::endl;
-        };
-
-        auto check_array = [&](const chainerx::Array& expected, const chainerx::Array& actual) {
-            if (expected.dtype() != actual.dtype()) {
-                fail("dtype");
-                return false;
-            }
-            if (expected.shape() != actual.shape()) {
-                fail("shape");
-                return false;
-            }
-            if (!check_values && !show_diff) return true;
-
-            int mismatch =
-                    MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"), args.exist("equal_nan"));
-            if (mismatch) {
-                fail("value");
-                int total_size = expected.GetTotalSize();
-                LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
-                      << "%)" << std::endl;
-                if (show_diff && !check_values) {
-                    return true;
-                }
-                return false;
-            }
-            return true;
-        };
-
-        if (!expected->IsArray() && !actual->IsArray() && expected->kind() != actual->kind()) {
-            fail("kind");
-            continue;
-        }
-
-        bool ok = false;
-        switch (expected->kind()) {
-            case ChxVMVar::Kind::kScalar:
-            case ChxVMVar::Kind::kShape:
-            case ChxVMVar::Kind::kArray:
-                ok = check_array(expected->GetArray(), actual->GetArray());
-                break;
-
-            case ChxVMVar::Kind::kSequence: {
-                const auto& expected_seq = *expected->GetSequence();
-                const auto& actual_seq = *actual->GetSequence();
-                if (expected_seq.size() != actual_seq.size()) {
-                    fail("seq_size");
-                    ok = false;
-                    break;
-                }
-
-                for (size_t i = 0; i < expected_seq.size(); ++i) {
-                    ok = check_array(expected_seq[i].GetArray(), actual_seq[i].GetArray());
-                    if (!ok) break;
-                }
-                break;
-            }
-
-            case ChxVMVar::Kind::kString:
-            case ChxVMVar::Kind::kOpaque:
-            case ChxVMVar::Kind::kNull:
-                CHECK(false) << expected->DebugString();
-        }
-
-        if (!ok) continue;
-
-        LOG() << "OK: " << key << std::endl;
-        ++ok_cnt;
-    }
-
-    if (check_values) CHECK_EQ(ok_cnt, test_case.outputs.size());
-}
 
 void RunMain(const std::vector<std::string>& argv) {
     cmdline::parser args;
@@ -562,11 +313,11 @@ void RunMain(const std::vector<std::string>& argv) {
     ApplyCompilerFlags(args);
     g_compiler_log |= args.exist("trace") || args.exist("verbose");
     g_backend_name = args.get<std::string>("backend");
+    g_quiet = args.exist("quiet");
 
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
 
-    g_quiet = args.exist("quiet");
     if (onnx_path.empty() && test_path.empty()) {
         if (args.rest().empty()) {
             std::cerr << args.usage() << std::endl;
@@ -598,8 +349,12 @@ void RunMain(const std::vector<std::string>& argv) {
         if (IsCudaDevice(device)) {
             g_use_cuda = true;
             g_meminfo_enabled = true;
+            if (args.exist("trace")) {
+                InitializeMemoryMonitoring(device);
+            }
         }
     }
+
     int64_t initial_used_bytes = GetUsedMemory();
 
     if (onnx_path.empty()) {
@@ -608,22 +363,25 @@ void RunMain(const std::vector<std::string>& argv) {
 
     LOG() << "Loading model..." << std::endl;
     RegisterCustomOnnxOperatorSetSchema();
-    onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
-    Model model(xmodel);
+    std::unique_ptr<Model> model;
+    {
+        onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
+        model.reset(new Model(xmodel));
+    }
 
     LOG() << "Loading data..." << std::endl;
 
     std::vector<std::string> input_names;
     std::vector<std::string> output_names;
     std::set<std::string> initializer_names;
-    for (const Value* input : model.graph().input_values()) {
+    for (const Value* input : model->graph().input_values()) {
         if (input->initializer()) {
             CHECK(initializer_names.insert(input->name()).second);
         } else {
             input_names.push_back(input->name());
         }
     }
-    for (const Value* output : model.graph().output_values()) {
+    for (const Value* output : model->graph().output_values()) {
         output_names.push_back(output->name());
     }
 
@@ -631,7 +389,7 @@ void RunMain(const std::vector<std::string>& argv) {
     if (test_path.empty()) {
         std::unique_ptr<TestCase> test_case(new TestCase());
         test_case->name = "generated data by chainerx::Ones";
-        GenerateFixedInput(xmodel, initializer_names, &test_case->inputs);
+        GenerateFixedInput(*model, initializer_names, &test_case->inputs);
         test_cases.emplace_back(std::move(test_case));
     } else {
         ReadTestDir(test_path, input_names, output_names, &test_cases);
@@ -651,7 +409,7 @@ void RunMain(const std::vector<std::string>& argv) {
         test_cases.swap(new_test_cases);
     }
 
-    ModelRunner model_runner(args, initial_used_bytes, &model);
+    ModelRunner model_runner(args, initial_used_bytes, std::move(model));
 
     if (args.exist("compile_only")) return;
 
@@ -714,16 +472,14 @@ void RunMain(const std::vector<std::string>& argv) {
     if (iterations > 1) {
         // The first iteration is for warm up.
         double average_elapsed = total_elapsed / (iterations - 1);
-        int num_unknown_ops = 0;
-        int64_t flops = CalculateTotalFlops(model.graph(), &num_unknown_ops);
-        if (num_unknown_ops) {
-            std::cerr << "Average elapsed: " << average_elapsed << " msec" << std::endl;
-            std::cerr << "Best elapsed: " << best_elapsed << " msec" << std::endl;
-        } else {
+        if (int64_t flops = model_runner.flops()) {
             double average_gflops_sec = flops / average_elapsed / 1000 / 1000;
             std::cerr << "Average elapsed: " << average_elapsed << " msec (" << average_gflops_sec << " GFLOPs/sec)" << std::endl;
             double best_gflops_sec = flops / best_elapsed / 1000 / 1000;
             std::cerr << "Best elapsed: " << best_elapsed << " msec (" << best_gflops_sec << " GFLOPs/sec)" << std::endl;
+        } else {
+            std::cerr << "Average elapsed: " << average_elapsed << " msec" << std::endl;
+            std::cerr << "Best elapsed: " << best_elapsed << " msec" << std::endl;
         }
     }
 

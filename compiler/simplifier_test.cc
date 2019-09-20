@@ -5,6 +5,7 @@
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/simplifier.h>
+#include <configs/backend_config.h>
 
 namespace chainer_compiler {
 namespace {
@@ -25,7 +26,8 @@ std::vector<Node::OpType> TestSimplify(
         GraphBuilder gb(&graph, "test", outputs[0]);
         gb.MOp(op_type, inputs, outputs);
     }
-    Simplify({name}, &graph, true /* gen_backprop */);
+    auto bc = BackendConfig::FromName("chxvm_test");
+    Simplify(*bc, {name}, &graph, true /* gen_backprop */);
 
     std::vector<Node::OpType> ops;
     for (Node* node : graph.GetLiveNodes()) {

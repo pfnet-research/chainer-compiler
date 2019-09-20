@@ -5,6 +5,7 @@
 
 #include <chainerx/array.h>
 #include <chainerx/routines/manipulation.h>
+#include <onnx/defs/schema.h>
 
 #include <common/log.h>
 #include <common/strutil.h>
@@ -19,7 +20,7 @@
 namespace chainer_compiler {
 namespace {
 
-typedef bool (*SimplifierFn)(Graph*, Node*);
+typedef std::function<bool(Graph*, Node*)> SimplifierFn;
 
 struct Simplifier {
     Simplifier(const char* n, SimplifierFn f) : name(n), fn(f) {
@@ -100,45 +101,40 @@ bool ReplaceChainerSoftmaxCrossEntropy(Graph* graph, Node* node) {
     return true;
 }
 
-// TODO(hamaji): Revive Scan.
-#if 0
-
 bool ReplaceScan(Graph* graph, Node* scan) {
-    // Scan(seq_lens?, states..., inputs...) -> (states.. outputs...)
+    // Scan(states..., inputs...) -> (states.. outputs...)
     //  body(states..., ins...) -> (states..., outs...)
     // Loop(max_trips, cond, states...) -> (states..., outputs...)
     //  body(iter, cond, states...) -> (cond, states..., outs...)
+
+    CHECK(scan->scan_input_axes().empty());
+    CHECK(scan->scan_input_directions().empty());
+    CHECK(scan->scan_output_axes().empty());
+    CHECK(scan->scan_output_directions().empty());
+    constexpr int input_axis = 0;
+    constexpr int output_axis = 0;
 
     Graph* body = scan->body().get();
     int num_scan_inputs = scan->num_scan_inputs();
     int num_states = body->input_values().size() - num_scan_inputs;
     int num_scan_outputs = body->output_values().size() - num_states;
-    int num_sequence_lens = scan->inputs().size() - num_states - num_scan_inputs;
+
     CHECK_LT(0, num_scan_inputs);
     CHECK_LT(0, num_scan_outputs);
-    CHECK_LE(0, num_sequence_lens);
-    CHECK_GE(1, num_sequence_lens);
-    CHECK_EQ(scan->outputs().size(), num_states + num_scan_outputs);
-#if 0
-    std::cerr << "SimplifyScan:"
-              << " num_scan_inputs=" << num_scan_inputs
-              << " num_states=" << num_states
-              << " num_scan_outputs=" << num_scan_outputs
-              << " sequence_lens=" << num_sequence_lens
-              << std::endl;
-#endif
+    CHECK_EQ(scan->inputs().size(), body->input_values().size());
+    CHECK_EQ(scan->outputs().size(), body->output_values().size());
 
-    Value* sequence_lens = nullptr;
-    if (num_sequence_lens) {
-        sequence_lens = scan->input(0);
-    }
+    CLOG() << "SimplifyScan:"
+           << " num_scan_inputs=" << num_scan_inputs << " num_states=" << num_states << " num_scan_outputs=" << num_scan_outputs
+           << std::endl;
+
     std::vector<Value*> scan_input_states;
     for (int i = 0; i < num_states; ++i) {
-        scan_input_states.push_back(scan->input(i + num_sequence_lens));
+        scan_input_states.push_back(scan->input(i));
     }
     std::vector<Value*> scan_inputs;
     for (int i = 0; i < num_scan_inputs; ++i) {
-        scan_inputs.push_back(scan->input(i + num_sequence_lens + num_states));
+        scan_inputs.push_back(scan->input(i + num_states));
     }
     std::vector<Value*> scan_output_states;
     for (int i = 0; i < num_states; ++i) {
@@ -153,84 +149,99 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         GraphBuilder gb(body, "SimplifyScanBody", body->output_values()[0]);
 
         Value* iter = new Value(gb.GenName(), Type(Dtype::kInt64, {}), Value::Kind::kInput);
-        Value* cond = new Value(gb.GenName(), Type(Dtype::kBool, {}), Value::Kind::kInput);
+        Value* cond_in = new Value(gb.GenName(), Type(Dtype::kBool, {}), Value::Kind::kInput);
+        Value* cond_out = new Value(gb.GenName(), Type(Dtype::kBool, {}), Value::Kind::kOutput);
+        gb.Op(Node::kIdentity, {cond_in}, cond_out);
 
-        std::vector<Value*>* mutable_inputs = body->mutable_input_values();
-        mutable_inputs->insert(mutable_inputs->begin(), cond);
-        mutable_inputs->insert(mutable_inputs->begin(), iter);
+        std::vector<Value*> new_loop_inputs = {iter, cond_in};
+        std::vector<Value*> new_loop_outputs = {cond_out};
 
-        std::vector<Value*>* mutable_outputs = body->mutable_output_values();
-        for (int i = 0; i < num_scan_inputs; ++i) {
-            Value* input = body->input_values()[2 + i + num_states];
-            // Pass slices of inputs to the original body.
-            const std::vector<Node*> users = input->users();
-            Value* input_t = gb.Op(Node::kGather, {input, iter});
-            input_t->producer()->set_axis(1);
-            for (Node* user : users) {
-                user->ReplaceInput(input, input_t);
-            }
-
-            // All inputs should be carried over to the next loop.
-            Value* input_c = new Value(gb.GenName(), input->type(), Value::Kind::kOutput);
-            gb.Op(Node::kIdentity, {input}, input_c);
-            mutable_outputs->insert(mutable_outputs->begin() + num_states + i, input_c);
+        for (size_t i = 0; i < num_states; ++i) {
+            CHECK_LT(i, body->input_values().size());
+            new_loop_inputs.push_back(body->input_values()[i]);
+            CHECK_LT(i, body->output_values().size());
+            new_loop_outputs.push_back(body->output_values()[i]);
         }
 
-        Value* one = gb.Const(Type(Dtype::kBool, {}), {1});
-        Value* one_c = new Value(gb.GenName(), one->type(), Value::Kind::kOutput);
-        mutable_outputs->insert(mutable_outputs->begin(), gb.Op(Node::kIdentity, {one}, {one_c}));
+        for (size_t i = 0; i < num_scan_inputs; ++i) {
+            size_t j = i + num_states;
+            CHECK_LT(j, body->input_values().size());
+            Value* orig_input = body->input_values()[j];
+            body->ResetKind(orig_input);
+
+            Value* input_in = new Value(gb.GenName(), Type(), Value::Kind::kInput);
+            Value* input_out = new Value(gb.GenName(), Type(), Value::Kind::kOutput);
+            gb.Op(Node::kChainerSequenceLookup, {input_in, iter}, orig_input);
+            gb.Op(Node::kIdentity, {input_in}, input_out);
+
+            new_loop_inputs.push_back(input_in);
+            new_loop_outputs.push_back(input_out);
+        }
+
+        for (size_t i = 0; i < num_scan_outputs; ++i) {
+            size_t j = i + num_states;
+            CHECK_LT(j, body->output_values().size());
+            Value* orig_output = body->output_values()[j];
+            body->ResetKind(orig_output);
+
+            Value* output_in = new Value(gb.GenName(), Type(), Value::Kind::kInput);
+            Value* output_out = new Value(gb.GenName(), Type(), Value::Kind::kOutput);
+            gb.Op(Node::kChainerSequenceAppend, {output_in, orig_output}, output_out);
+
+            new_loop_inputs.push_back(output_in);
+            new_loop_outputs.push_back(output_out);
+        }
+
+        *body->mutable_input_values() = new_loop_inputs;
+        *body->mutable_output_values() = new_loop_outputs;
     }
 
     {
         GraphBuilder gb(graph, "SimplifyScan", scan->output(0));
-        Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
-        Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
-        Value* one_vec = gb.Const(Type(Dtype::kInt64, {1}), {1});
-        // Calcuate the number of trips.
-        // TODO(hamaji): Better to check if all inputs have the same length.
-        std::vector<Value*> lengths;
-        if (sequence_lens) {
-            lengths.push_back(gb.Op(Node::kReduceMax, {sequence_lens}));
-        }
-        Value* batch_size = nullptr;
-        for (Value* input : scan_inputs) {
-            Value* shape = gb.Op(Node::kShape, {input});
-            Value* len = gb.Op(Node::kGather, {shape, one});
-            lengths.push_back(len);
-            if (!batch_size) {
-                batch_size = gb.Op(Node::kGather, {shape, zero});
-            }
-        }
-        Value* max_trips = gb.Op(Node::kMax, lengths);
 
-        std::vector<Value*> loop_inputs = {max_trips, one};
-        for (Value* value : scan_input_states) {
-            Value* shape = gb.Op(Node::kShape, {value});
-            Value* unsqueezed = gb.Op(Node::kUnsqueeze, {value});
-            unsqueezed->producer()->set_axes({0});
-            Value* bs = gb.Op(Node::kReshape, {batch_size, one_vec});
-            Value* new_shape = gb.Op(Node::kConcat, {bs, shape});
-            Value* expanded = gb.Op(Node::kExpand, {unsqueezed, new_shape});
-            loop_inputs.push_back(expanded);
+        std::vector<Value*> input_seqs;
+        for (Value* v : scan_inputs) {
+            Value* inputs = gb.Op(Node::kChainerSequenceSeparate, {v});
+            inputs->producer()->set_axis(input_axis);
+            input_seqs.push_back(inputs);
         }
-        for (Value* value : scan_inputs) loop_inputs.push_back(value);
+
+        std::vector<Value*> loop_inputs;
+        Value* max_trips = gb.Op(Node::kChainerSequenceSize, {input_seqs.front()});
+        loop_inputs.push_back(max_trips);
+        loop_inputs.push_back(gb.Null());
+
+        for (Value* v : scan_input_states) {
+            loop_inputs.push_back(v);
+        }
+        for (Value* v : input_seqs) {
+            loop_inputs.push_back(v);
+        }
+        for (Value* v : scan_outputs) {
+            (void)v;
+            loop_inputs.push_back(gb.Op(Node::kChainerSequenceCreate, {}));
+        }
 
         std::vector<Value*> loop_outputs;
-        for (Value* value : scan_output_states) loop_outputs.push_back(value);
-        // All inputs are appended as loop states.
-        for (int i = 0; i < num_scan_inputs; ++i) loop_outputs.push_back(gb.Temp());
-        std::vector<Value*> loop_scan_outputs;
-        for (Value* value : scan_outputs) loop_outputs.push_back(value);
+        for (Value* v : scan_output_states) {
+            loop_outputs.push_back(v);
+        }
+        for (Value* v : scan_inputs) {
+            (void)v;
+            loop_outputs.push_back(gb.Null());
+        }
+        for (Value* v : scan_outputs) {
+            Value* outputs = gb.Temp();
+            loop_outputs.push_back(outputs);
+            gb.Op(Node::kChainerSequenceStack, {outputs}, v)->producer()->set_axis(output_axis);
+        }
 
         Node* loop = gb.MOp(Node::kLoop, loop_inputs, loop_outputs);
         loop->set_body(scan->release_body());
-        loop->set_chainer_stack_axis(1);
     }
 
     return true;
 }
-
-#endif
 
 void ReplaceGlobalPool(Graph* graph, Node* node, Node::OpType new_op, const std::string& name) {
     CHECK_EQ(1, node->inputs().size()) << name;
@@ -254,7 +265,12 @@ bool ReplaceGlobalAveragePool(Graph* graph, Node* node) {
 bool ReplaceFlatten(Graph* graph, Node* node) {
     CHECK_EQ(1, node->inputs().size());
     const Type& type = node->input(0)->type();
-    CHECK(type.HasKnownShape()) << "The input shape of Flatten must be known";
+
+    // Fallback to dynamic reshape when input is unknown shape
+    if (!type.HasKnownShape()) {
+        return false;
+    }
+
     CHECK_LT(1, type.dims().size()) << "The input of Flatten must have at least 2 dimensions";
     GraphBuilder gb(graph, "SimplifyFlatten", node->output(0));
     int64_t d0 = 1;
@@ -351,7 +367,7 @@ bool ReplaceMaxPool(Graph* graph, Node* node) {
     Value* padded = PadForPool(&gb, node, -std::numeric_limits<double>::infinity());
     gb.Op(Node::kMaxPool, {padded}, node->output(0))
             ->producer()
-            ->set_chainer_cover_all(node->chainer_cover_all())
+            ->set_ceil_mode(node->ceil_mode())
             ->set_auto_pad(node->auto_pad())
             ->set_kernel_shape(node->kernel_shape())
             ->set_storage_order(node->storage_order())
@@ -464,6 +480,15 @@ bool ReplaceIdentity(Graph* graph, Node* node) {
         user->ReplaceInput(output, input);
     }
     return true;
+}
+
+bool ReplaceConcat(Graph* graph, Node* node) {
+    // Replace nop concat
+    if (node->inputs().size() == 1 && node->outputs().size() == 1) {
+        return ReplaceIdentity(graph, node);
+    }
+
+    return false;
 }
 
 bool ReplaceChainerSelectItem(Graph* graph, Node* node) {
@@ -653,9 +678,80 @@ bool ReplaceResizeForDldt(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceSequenceEmpty(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifySequenceEmpty", node->output(0));
+    gb.Op(Node::kChainerSequenceCreate, {}, node->output(0));
+    return true;
+}
+
+SimplifierFn FunctionExpander(const std::string& fn, const onnx::OpSchema* schema) {
+    return [fn, schema](Graph* graph, Node* fn_nd) {
+        std::unordered_map<std::string, Value*> value_table;
+        for (size_t i = 0; i < schema->inputs().size(); ++i) {
+            value_table.insert(std::make_pair(schema->inputs()[i].GetName(), fn_nd->input(i)));
+        }
+        for (size_t i = 0; i < schema->outputs().size(); ++i) {
+            value_table.insert({schema->outputs()[i].GetName(), fn_nd->output(i)});
+        }
+
+        GraphBuilder gb(graph, "Expand" + fn, fn_nd->output(0));
+        onnx::NodeProto onnx_fn_nd;
+        fn_nd->ToONNX(&onnx_fn_nd);
+
+        for (const onnx::NodeProto& src_nd : schema->GetFunction()->node()) {
+            // Map inputs/outputs
+            std::vector<Value*> in_vals, out_vals;
+            for (const std::string& i : src_nd.input()) {
+                Value*& v = value_table[i];
+                if (!v) {
+                    v = gb.Temp(i);
+                }
+                in_vals.push_back(v);
+            }
+            for (const std::string& o : src_nd.output()) {
+                Value*& v = value_table[o];
+                if (!v) {
+                    v = gb.Temp(o);
+                }
+                out_vals.push_back(v);
+            }
+
+            // Expand attribute references
+            std::unique_ptr<onnx::NodeProto> ref_extracted;
+            for (size_t attr_idx = 0; attr_idx < src_nd.attribute().size(); ++attr_idx) {
+                const onnx::AttributeProto& attr = src_nd.attribute(attr_idx);
+                if (!attr.has_ref_attr_name()) {
+                    continue;
+                }
+
+                if (!ref_extracted) {
+                    ref_extracted = std::make_unique<onnx::NodeProto>(src_nd);
+                }
+                const onnx::AttributeProto* ex_attr = nullptr;
+                for (const onnx::AttributeProto& func_attr : onnx_fn_nd.attribute()) {
+                    if (func_attr.name() == attr.ref_attr_name()) {
+                        ex_attr = &func_attr;
+                        break;
+                    }
+                }
+                auto default_attr_it = schema->attributes().find(attr.ref_attr_name());
+                if (default_attr_it != schema->attributes().end()) {
+                    ex_attr = &default_attr_it->second.default_value;
+                }
+                CHECK(ex_attr) << "attribute reference not found: " << attr.ref_attr_name();
+                *ref_extracted->mutable_attribute(attr_idx) = *ex_attr;
+            }
+
+            // Expand node to graph
+            gb.MOp(ref_extracted ? *ref_extracted : src_nd, in_vals, out_vals);
+        }
+        return true;
+    };
+}
+
 }  // namespace
 
-void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool gen_backprop) {
+void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_names, Graph* graph, bool gen_backprop) {
     std::set<std::string> all_simplifier_names;
     std::map<Node::OpType, Simplifier> simplifiers;
 
@@ -674,8 +770,7 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(ArgMin);
     REGISTER_SIMPLIFIER(LpNormalization);
     REGISTER_SIMPLIFIER(ChainerSoftmaxCrossEntropy);
-    // TODO(hamaji): Revive Scan.
-    // REGISTER_SIMPLIFIER(Scan);
+    REGISTER_SIMPLIFIER(Scan);
     REGISTER_SIMPLIFIER(GlobalMaxPool);
     REGISTER_SIMPLIFIER(GlobalAveragePool);
     REGISTER_SIMPLIFIER(Flatten);
@@ -699,13 +794,30 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(AveragePool);
     REGISTER_SIMPLIFIER(Split);
     REGISTER_SIMPLIFIER(QLinearMatMul);
+    REGISTER_SIMPLIFIER(SequenceEmpty);
+    REGISTER_SIMPLIFIER(Concat);
 
     register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
     register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);
 
     // Validate `simplifier_names`.
     for (const std::string& name : simplifier_names) {
+        if (name == "ExpandFunction") {
+            continue;
+        }
         CHECK_EQ(1, all_simplifier_names.count(name)) << name;
+    }
+
+    // Register function expander
+    if (simplifier_names.count("ExpandFunction")) {
+        for (const std::string& fn : bc.GetExpandingFunctions()) {
+            Node::OpType op_enum = Node::StringToOpType(fn);
+            const onnx::OpSchema* schema = onnx::OpSchemaRegistry::Schema(fn);
+            CHECK(schema) << "unregistered onnx function: " << fn;
+
+            auto simplifier = Simplifier("ExpandFunction", FunctionExpander(fn, schema));
+            CHECK(simplifiers.emplace(op_enum, simplifier).second);
+        }
     }
 
     bool replaced = true;

@@ -17,6 +17,15 @@ chainerx::Array SizeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     return MakeHostArray(chainerx::Dtype::kInt64, {}, &size);
 }
 
+chainerx::Array FlattenOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
+    int64_t d0 = 1;
+    int64_t d1 = 1;
+    for (size_t i = 0; i < input.shape().size(); ++i) {
+        (i < axis ? d0 : d1) *= input.shape()[i];
+    }
+    return input.Reshape({d0, d1});
+}
+
 chainerx::Array ReshapeOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Shape& shape) {
     chainerx::Shape s = shape;
     int from_total_size = data.GetTotalSize();
@@ -51,6 +60,7 @@ chainerx::Array SqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) 
 chainerx::Array UnsqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     chainerx::Shape shape = data.shape();
     for (int d : axes) {
+        d = d < 0 ? shape.size() + d : d;
         CHECK_LE(d, shape.size()) << "Unsqueezing axis out of bound: " << d;
         shape.insert(shape.begin() + d, 1);
     }
@@ -73,6 +83,7 @@ std::vector<chainerx::Array> ConcatGradOp::RunImpl(
 }
 
 std::vector<chainerx::Array> SplitOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
+    const int axis = ResolveAxis(input, this->axis);
     std::vector<int64_t> lens{split.begin(), split.end()};
     if (lens.empty()) {
         int64_t dim = input.shape()[axis];
@@ -98,12 +109,12 @@ chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     std::vector<chainerx::ArrayIndex> indices1, indices2;
     for (int i = 0; i < shape.size(); ++i) {
         new_shape[i] += pads[i] + pads[i + shape.size()];
-        auto len = shape[i] + std::min<int64_t>(0L, pads[i]) + std::min<int64_t>(0L, pads[i + shape.size()]);
+        auto len = shape[i] + std::min<int64_t>(0, pads[i]) + std::min<int64_t>(0, pads[i + shape.size()]);
 
-        const auto start1 = std::max<int64_t>(-pads[i], 0L);
-        const auto start2 = std::max<int64_t>(pads[i], 0L);
-        const auto end1 = std::min<int64_t>(shape[i] + pads[i + shape.size()], shape[i]);
-        const auto end2 = std::min<int64_t>(new_shape[i] - pads[i + shape.size()], new_shape[i]);
+        const auto start1 = std::max<int64_t>(-pads[i], 0);
+        const auto start2 = std::max<int64_t>(pads[i], 0);
+        const auto end1 = std::min(shape[i] + pads[i + shape.size()], shape[i]);
+        const auto end2 = std::min(new_shape[i] - pads[i + shape.size()], new_shape[i]);
 
         CHECK_EQ(end1 - start1, len) << "Shape mis-match: " << shape[i] << " " << pads[i] << " " << pads[i + shape.size()] << "      "
                                      << start1 << " " << end1 << " " << len;

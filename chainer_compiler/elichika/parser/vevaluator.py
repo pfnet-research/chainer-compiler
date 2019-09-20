@@ -187,7 +187,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
         call_func_ref = func_obj.try_get_and_store_obj('__call__', graph.root_graph)
         if call_func_ref is not None:
             func_value = call_func_ref.get_value()
-            ret = func_value.func.vcall(func_value.module, graph, func_obj, finput, lineprop)
+            ret = func_value.func.vcall(func_value.module, graph, func_obj, finput, context, lineprop)
             return ret
 
     
@@ -475,7 +475,7 @@ def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', grap
 
     new_value = veval_aug_assign.veval(binop, target_value, value_value, lineprop)
     node_aug_assign.set_outputs([new_value])
-    target.get_obj().revise(new_value)
+    utils.try_get_obj(target, 'aug_assign', lineprop).revise(new_value)
 
 def veval_ast_expr(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', context : 'functions.VEvalContext' = None):
     '''
@@ -520,7 +520,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             value_value.internal_keys[slice_value.encode()] = slice_
             ret = value_value.internal_values.get_attribute(slice_value.encode())
             return ret
-    elif isinstance(value_value, values.UserDefinedInstance):
+    elif isinstance(value_value, values.Instance):
         if isinstance(astc.nast.slice, gast.gast.Index):
             slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, context)
 
@@ -532,7 +532,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             getitem_func_value = getitem_func.get_obj().get_value()
             ret = getitem_func_value.func.vcall(getitem_func_value.module, graph, getitem_func_value.obj, finput, context, lineprop)
             return ret
-    else:
+    elif isinstance(value_value, (values.ListValue, values.TupleValue, values.TensorValue)):
         if isinstance(astc.nast.slice, gast.gast.Index):
             slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, context)
             slice_value = utils.try_get_value(slice_, 'subscript', lineprop)
@@ -550,18 +550,28 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
                 # ex. x[1]
                 node = nodes.NodeGetItem(value_value, [slice_value])
 
-            if isinstance(value_value, values.ListValue) and value_value.vtype != None:
-                ret_value = value_value.vtype(None)
-                ret_value.dtype = value_value.dtype
-            elif isinstance(value_value, values.TupleValue) and value_value.vtype != None:
-                ret_value = value_value.vtype(None)
-                ret_value.dtype = value_value.dtype
+            if isinstance(value_value, values.TensorValue):
+                ret_value = values.TensorValue()
             else:
-                ret_value = values.UnknownValue()
+                if value_value.vtype != None and issubclass(value_value.vtype, values.Instance):
+                    assert value_value.has_constant_value()
+                    assert slice_value.has_constant_value()
+                    return value_value.internal_value[slice_value.internal_value]
+                elif value_value.vtype != None:
+                    ret_value = value_value.vtype(None)
+                    ret_value.dtype = value_value.dtype
+                else:
+                    utils.print_warning("Unable to determine element type of {}. Using TensorValue as default.".format(value_value), lineprop)
+                    ret_value = values.TensorValue()
 
             node.set_outputs([ret_value])
             graph.add_node(node)
-            return values.Object(ret_value)
+            if isinstance(value, values.Attribute):
+                ret_attr = value.make_subscript_attribute(slice_, graph)
+                ret_attr.revise(values.Object(ret_value), update_parent=False)
+                return ret_attr
+            else:
+                return values.Object(ret_value)
 
         elif isinstance(astc.nast.slice, gast.gast.Slice):
 
@@ -600,6 +610,8 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             node.set_outputs([ret_value])
             graph.add_node(node)
             return values.Object(ret_value)
+    else:
+        utils.print_warning("Subscript not possible for type {}".format(type(value_value)))
 
     return None
 
@@ -912,9 +924,9 @@ def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph :
         if isinstance(astc.nast.ops[0], gast.LtE):
             default_value = left_value.internal_value <= right_value.internal_value
         if isinstance(astc.nast.ops[0], gast.In):
-            default_value = left_value.internal_value in right_value.internal_value
+            default_value = left_value.internal_value in map(lambda ref: ref.get_value().internal_value, right_value.internal_value)
         if isinstance(astc.nast.ops[0], gast.NotIn):
-            default_value = left_value.internal_value not in right_value.internal_value
+            default_value = left_value.internal_value not in map(lambda ref: ref.get_value().internal_value, right_value.internal_value)
 
     ret_value = values.BoolValue(default_value)
     ret_value.name = '@{}'.format(lineprop)

@@ -18,6 +18,8 @@ public:
     virtual const std::set<std::string>& GetSimplifyPreproc() const = 0;
     virtual const std::set<std::string>& GetSimplify() const = 0;
     virtual bool HasOp(const std::string& name) const = 0;
+    virtual const std::set<std::string>& GetMerge() const = 0;
+    virtual const std::set<std::string>& GetExpandingFunctions() const = 0;
 };
 
 }  // namespace chainer_compiler

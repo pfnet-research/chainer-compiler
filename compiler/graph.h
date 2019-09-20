@@ -63,12 +63,19 @@ public:
     Value* AddOutputValue(const std::string& name, const Type& type, int index = -1);
     Value* AddNullValue();
 
+    void ResetKind(Value* value);
+
     Node* AddNode(
             Node::OpType op_type,
             const std::vector<Value*>& inputs,
             const std::vector<Value*>& outputs,
             const std::string& base = "",
             const std::string& domain = onnx::ONNX_DOMAIN);
+    Node* AddNode(
+            const onnx::NodeProto& base,
+            const std::vector<Value*>& inputs,
+            const std::vector<Value*>& outputs,
+            const std::string& base_name = "");
 
     void DetachNode(Node* node);
 

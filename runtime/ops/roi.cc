@@ -96,17 +96,17 @@ absl::optional<std::tuple<double, int64_t, int64_t>> get_bounds(double p, int64_
 using ArrayIndices = chainerx::StackVector<int64_t, chainerx::kMaxNdim>;
 template <typename T>
 T& ContiguousArrayAt(chainerx::Array& a, const ArrayIndices& indices) {
-    assert(a.IsContiguous());
-    assert(a.shape().size() == indices.size());
-    assert(a.dtype() == chainerx::PrimitiveType<T>::kDtype);
+    CHECK(a.IsContiguous());
+    CHECK_EQ(a.shape().size(), indices.size());
+    CHECK(a.dtype() == chainerx::PrimitiveType<T>::kDtype);
     int64_t index = indices.back();
     int64_t stride = 1;
     for (int64_t i = indices.size() - 2; i >= 0; --i) {
         stride *= a.shape()[i + 1];
         index += indices[i] * stride;
     }
-    assert(index < a.GetTotalSize());
-    return *(static_cast<T*>(a.raw_data()) + index);
+    CHECK(index < a.GetTotalSize());
+    return *(static_cast<T*>(RawStartPtr(a)) + index);
 }
 
 template <typename T>
@@ -145,8 +145,8 @@ public:
         contiguous_bottom_roi_indices = chainerx::AsContiguous(bottom_roi_indices);
         contiguous_bottom_rois = chainerx::AsContiguous(bottom_rois);
         top_data = chainerx::Empty(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
-        bottom_ptr = static_cast<float*>(contiguous_bottom_data.raw_data());
-        top_ptr = static_cast<float*>(top_data.raw_data());
+        bottom_ptr = static_cast<float*>(RawStartPtr(contiguous_bottom_data));
+        top_ptr = static_cast<float*>(RawStartPtr(top_data));
     }
 
     chainerx::Array Run() {
@@ -189,7 +189,14 @@ private:
         std::vector<PixelPos> pixel_x(pooled_width * roi_bin_grid_w);
         std::vector<PixelPos> pixel_y(pooled_height * roi_bin_grid_h);
 
-        int64_t roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
+        int64_t roi_batch_ind;
+        if (contiguous_bottom_roi_indices.dtype() == chainerx::Dtype::kInt64) {
+            roi_batch_ind = ContiguousArrayAt<int64_t>(contiguous_bottom_roi_indices, {n});
+        } else if (contiguous_bottom_roi_indices.dtype() == chainerx::Dtype::kInt32) {
+            roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
+        } else {
+            CHECK(false) << "Unexpected dtype for roi bottom indices: " << contiguous_bottom_roi_indices.dtype();
+        }
         double roi_start_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 0}) * spatial_scale;
         double roi_start_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 1}) * spatial_scale;
         double roi_end_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 2}) * spatial_scale;
@@ -422,26 +429,22 @@ private:
 
 chainerx::Array ROIMaxPool2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
-    return ROIPool2D(x, rois, roi_indices, output_shape, spatial_scale, chainerx::AMax);
+    return ROIPool2D(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, chainerx::AMax).ToDevice(x.device());
 }
 
 chainerx::Array ROIAveragePool2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
-    return ROIPool2D(x, rois, roi_indices, output_shape, spatial_scale, chainerx::Mean);
+    return ROIPool2D(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, chainerx::Mean).ToDevice(x.device());
 }
 
 chainerx::Array ROIMaxAlign2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
-    return ROIAlign2D<ReduceByMax>(x, rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
+    return ROIAlign2D<ReduceByMax>(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, sampling_ratio).ToDevice(x.device());
 }
 
 chainerx::Array ROIAverageAlign2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
-    return ROIAlign2D<ReduceByAverage>(x, rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
+    return ROIAlign2D<ReduceByAverage>(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, sampling_ratio).ToDevice(x.device());
 }
 
 }  // namespace runtime

@@ -50,8 +50,10 @@ parser.add_argument('--failure_log', default='out/failed_tests.log',
                     help='The file where names of failed tests are stored')
 parser.add_argument('--fuse', action='store_true', help='Enable fusion')
 parser.add_argument('--ngraph', action='store_true', help='Enable nGraph')
+parser.add_argument('--snpe', action='store_true', help='Enable SNPE')
 parser.add_argument('--computation_order', default=None,
                     help='Force setting --computation_order flag')
+parser.add_argument('--cache', action='store_true', help='Enable model caching')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
 args = parser.parse_args()
@@ -64,6 +66,7 @@ RESET = '\033[0m'
 
 ONNX_TEST_DATA = 'third_party/onnx/onnx/backend/test/data'
 NODE_TEST = os.path.join(ONNX_TEST_DATA, 'node')
+SIMPLE_TEST = os.path.join(ONNX_TEST_DATA, 'simple')
 
 # ChainerX does not support 1D conv/pool.
 fail_1d_conv_pool = args.use_gpu_all
@@ -82,6 +85,21 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_div'),
     TestCase(NODE_TEST, 'test_div_bcast'),
     TestCase(NODE_TEST, 'test_div_example'),
+    TestCase(NODE_TEST, 'test_mod_broadcast'),
+    # TODO(hamaji): Support fmod.
+    # TestCase(NODE_TEST, 'test_mod_int64_fmod'),
+    # TestCase(NODE_TEST, 'test_mod_mixed_sign_float16'),
+    # TestCase(NODE_TEST, 'test_mod_mixed_sign_float32'),
+    # TestCase(NODE_TEST, 'test_mod_mixed_sign_float64'),
+    TestCase(NODE_TEST, 'test_mod_mixed_sign_int16'),
+    TestCase(NODE_TEST, 'test_mod_mixed_sign_int32'),
+    TestCase(NODE_TEST, 'test_mod_mixed_sign_int64'),
+    TestCase(NODE_TEST, 'test_mod_mixed_sign_int8'),
+    # TODO(hamaji): Unsupported dtypes.
+    # TestCase(NODE_TEST, 'test_mod_uint16'),
+    # TestCase(NODE_TEST, 'test_mod_uint32'),
+    # TestCase(NODE_TEST, 'test_mod_uint64'),
+    TestCase(NODE_TEST, 'test_mod_uint8'),
     TestCase(NODE_TEST, 'test_pow'),
     TestCase(NODE_TEST, 'test_pow_bcast_array'),
     TestCase(NODE_TEST, 'test_pow_bcast_scalar'),
@@ -181,6 +199,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_constantofshape_float_ones'),
     TestCase(NODE_TEST, 'test_constantofshape_int_zeros'),
     TestCase(NODE_TEST, 'test_onehot_with_axis'),
+    TestCase(NODE_TEST, 'test_onehot_with_negative_axis'),
     TestCase(NODE_TEST, 'test_onehot_without_axis'),
     TestCase(NODE_TEST, 'test_eyelike_populate_off_main_diagonal'),
     TestCase(NODE_TEST, 'test_eyelike_with_dtype'),
@@ -215,9 +234,11 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_constant_pad'),
     # TODO(hamaji): auto_pad is not supported.
     TestCase(NODE_TEST, 'test_maxpool_1d_default', fail=fail_1d_conv_pool),
+    TestCase(NODE_TEST, 'test_maxpool_2d_ceil'),
     TestCase(NODE_TEST, 'test_maxpool_2d_default'),
     TestCase(NODE_TEST, 'test_maxpool_2d_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_pads'),
+    TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_same_upper'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_strides'),
     TestCase(NODE_TEST, 'test_maxpool_2d_strides'),
     TestCase(NODE_TEST, 'test_maxpool_3d_default'),
@@ -235,10 +256,8 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_globalaveragepool'),
     TestCase(NODE_TEST, 'test_globalaveragepool_precomputed'),
     TestCase(NODE_TEST, 'test_upsample_nearest'),
-    TestCase(NODE_TEST, 'test_resize_upsample_nearest'),
-    # TestCase(NODE_TEST, 'test_resize_upsample_linear'),
-    # TestCase(NODE_TEST, 'test_resize_downsample_nearest'),
-    # TestCase(NODE_TEST, 'test_resize_downsample_linear'),
+    # TODO(take-cheeze): Other Resize-11 tests
+    TestCase(NODE_TEST, 'test_resize_upsample_scales_nearest'),
     # The second ROI values mismatch. Let the test pass with
     # ridiculously large tolerance.
     TestCase(NODE_TEST, 'test_roialign', rtol=0.5, atol=0.5),
@@ -258,7 +277,14 @@ TEST_CASES = [
     # TestCase(NODE_TEST, 'test_expand_dim_changed'),
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
     TestCase(NODE_TEST, 'test_squeeze'),
-    TestCase(NODE_TEST, 'test_unsqueeze'),
+    TestCase(NODE_TEST, 'test_squeeze_negative_axes'),
+    TestCase(NODE_TEST, 'test_unsqueeze_axis_0'),
+    TestCase(NODE_TEST, 'test_unsqueeze_axis_1'),
+    TestCase(NODE_TEST, 'test_unsqueeze_axis_2'),
+    TestCase(NODE_TEST, 'test_unsqueeze_axis_3'),
+    TestCase(NODE_TEST, 'test_unsqueeze_negative_axes'),
+    TestCase(NODE_TEST, 'test_unsqueeze_two_axes'),
+    TestCase(NODE_TEST, 'test_unsqueeze_three_axes'),
     TestCase(NODE_TEST, 'test_flatten_axis0'),
     TestCase(NODE_TEST, 'test_flatten_axis1'),
     TestCase(NODE_TEST, 'test_flatten_axis2'),
@@ -274,12 +300,29 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_slice_start_out_of_bounds'),
     TestCase(NODE_TEST, 'test_gather_0'),
     TestCase(NODE_TEST, 'test_gather_1'),
+    TestCase(NODE_TEST, 'test_gather_elements_0'),
+    TestCase(NODE_TEST, 'test_gather_elements_1'),
+    TestCase(NODE_TEST, 'test_gather_elements_negative_indices'),
+    TestCase(NODE_TEST, 'test_gathernd_example_int32'),
+    TestCase(NODE_TEST, 'test_gathernd_example_float32'),
+    TestCase(NODE_TEST, 'test_scatter_with_axis'),
+    TestCase(NODE_TEST, 'test_scatter_without_axis'),
+    TestCase(NODE_TEST, 'test_scatter_elements_with_axis'),
+    TestCase(NODE_TEST, 'test_scatter_elements_with_negative_indices'),
+    TestCase(NODE_TEST, 'test_scatter_elements_without_axis'),
+    TestCase(NODE_TEST, 'test_scatternd'),
     TestCase(NODE_TEST, 'test_concat_1d_axis_0'),
+    TestCase(NODE_TEST, 'test_concat_1d_axis_negative_1'),
     TestCase(NODE_TEST, 'test_concat_2d_axis_0'),
     TestCase(NODE_TEST, 'test_concat_2d_axis_1'),
+    TestCase(NODE_TEST, 'test_concat_2d_axis_negative_1'),
+    TestCase(NODE_TEST, 'test_concat_2d_axis_negative_2'),
     TestCase(NODE_TEST, 'test_concat_3d_axis_0'),
     TestCase(NODE_TEST, 'test_concat_3d_axis_1'),
     TestCase(NODE_TEST, 'test_concat_3d_axis_2'),
+    TestCase(NODE_TEST, 'test_concat_3d_axis_negative_1'),
+    TestCase(NODE_TEST, 'test_concat_3d_axis_negative_2'),
+    TestCase(NODE_TEST, 'test_concat_3d_axis_negative_3'),
     TestCase(NODE_TEST, 'test_split_equal_parts_1d'),
     TestCase(NODE_TEST, 'test_split_equal_parts_2d'),
     TestCase(NODE_TEST, 'test_split_equal_parts_default_axis'),
@@ -295,7 +338,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_transpose_all_permutations_5'),
     TestCase(NODE_TEST, 'test_transpose_default'),
 
-    TestCase(NODE_TEST, 'test_depthtospace'),
+    TestCase(NODE_TEST, 'test_depthtospace_crd_mode'),
+    TestCase(NODE_TEST, 'test_depthtospace_crd_mode_example'),
+    TestCase(NODE_TEST, 'test_depthtospace_dcr_mode'),
     TestCase(NODE_TEST, 'test_depthtospace_example'),
 
     TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
@@ -317,12 +362,14 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_softmax_default_axis'),
     TestCase(NODE_TEST, 'test_softmax_example'),
     TestCase(NODE_TEST, 'test_softmax_large_number'),
+    TestCase(NODE_TEST, 'test_softmax_negative_axis'),
     TestCase(NODE_TEST, 'test_logsoftmax_axis_0'),
     TestCase(NODE_TEST, 'test_logsoftmax_axis_1'),
     TestCase(NODE_TEST, 'test_logsoftmax_axis_2'),
     TestCase(NODE_TEST, 'test_logsoftmax_default_axis'),
     TestCase(NODE_TEST, 'test_logsoftmax_example_1'),
     TestCase(NODE_TEST, 'test_logsoftmax_large_number', rtol=5e-3),
+    TestCase(NODE_TEST, 'test_logsoftmax_negative_axis'),
     TestCase(NODE_TEST, 'test_softplus'),
     TestCase(NODE_TEST, 'test_softplus_example'),
     TestCase(NODE_TEST, 'test_softsign'),
@@ -368,50 +415,22 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_hardmax_example'),
     TestCase(NODE_TEST, 'test_hardmax_one_hot'),
 
-    TestCase(NODE_TEST, 'test_reduce_max_default_axes_keepdim_example'),
-    TestCase(NODE_TEST, 'test_reduce_max_default_axes_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_max_do_not_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_max_do_not_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_max_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_max_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_min_default_axes_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_min_default_axes_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_min_do_not_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_min_do_not_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_min_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_min_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_prod_default_axes_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_prod_default_axes_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_sum_default_axes_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_sum_default_axes_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_sum_do_not_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_sum_do_not_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_sum_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_sum_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_sum_square_default_axes_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_sum_square_default_axes_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_sum_square_do_not_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_sum_square_do_not_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_sum_square_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_sum_square_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_mean_default_axes_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_mean_default_axes_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_mean_do_not_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_mean_do_not_keepdims_random'),
-    TestCase(NODE_TEST, 'test_reduce_mean_keepdims_example'),
-    TestCase(NODE_TEST, 'test_reduce_mean_keepdims_random'),
     TestCase(NODE_TEST, 'test_reduce_l1_default_axes_keepdims_example'),
     TestCase(NODE_TEST, 'test_reduce_l1_default_axes_keepdims_random'),
     TestCase(NODE_TEST, 'test_reduce_l1_do_not_keepdims_example'),
     TestCase(NODE_TEST, 'test_reduce_l1_do_not_keepdims_random'),
     TestCase(NODE_TEST, 'test_reduce_l1_keep_dims_example'),
     TestCase(NODE_TEST, 'test_reduce_l1_keep_dims_random'),
+    TestCase(NODE_TEST, 'test_reduce_l1_negative_axes_keep_dims_example'),
+    TestCase(NODE_TEST, 'test_reduce_l1_negative_axes_keep_dims_random'),
     TestCase(NODE_TEST, 'test_reduce_l2_default_axes_keepdims_example'),
     TestCase(NODE_TEST, 'test_reduce_l2_default_axes_keepdims_random'),
     TestCase(NODE_TEST, 'test_reduce_l2_do_not_keepdims_example'),
     TestCase(NODE_TEST, 'test_reduce_l2_do_not_keepdims_random'),
     TestCase(NODE_TEST, 'test_reduce_l2_keep_dims_example'),
     TestCase(NODE_TEST, 'test_reduce_l2_keep_dims_random'),
+    TestCase(NODE_TEST, 'test_reduce_l2_negative_axes_keep_dims_example'),
+    TestCase(NODE_TEST, 'test_reduce_l2_negative_axes_keep_dims_random'),
     TestCase(NODE_TEST, 'test_reduce_log_sum'),
     TestCase(NODE_TEST, 'test_reduce_log_sum_asc_axes'),
     TestCase(NODE_TEST, 'test_reduce_log_sum_default'),
@@ -422,6 +441,51 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_reduce_log_sum_exp_do_not_keepdims_random'),
     TestCase(NODE_TEST, 'test_reduce_log_sum_exp_keepdims_example'),
     TestCase(NODE_TEST, 'test_reduce_log_sum_exp_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_log_sum_exp_negative_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_log_sum_exp_negative_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_log_sum_negative_axes'),
+    TestCase(NODE_TEST, 'test_reduce_max_default_axes_keepdim_example'),
+    TestCase(NODE_TEST, 'test_reduce_max_default_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_max_do_not_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_max_do_not_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_max_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_max_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_max_negative_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_max_negative_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_mean_default_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_mean_default_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_mean_do_not_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_mean_do_not_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_mean_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_mean_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_mean_negative_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_mean_negative_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_min_default_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_min_default_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_min_do_not_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_min_do_not_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_min_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_min_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_min_negative_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_min_negative_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_prod_default_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_prod_default_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_sum_default_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_sum_default_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_sum_do_not_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_sum_do_not_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_sum_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_sum_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_sum_negative_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_sum_negative_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_sum_square_default_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_sum_square_default_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_sum_square_do_not_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_sum_square_do_not_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_sum_square_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_sum_square_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_sum_square_negative_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_sum_square_negative_axes_keepdims_random'),
 
     TestCase(NODE_TEST, 'test_batchnorm_example'),
     TestCase(NODE_TEST, 'test_batchnorm_epsilon'),
@@ -437,6 +501,20 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_isinf_positive'),
 
     TestCase(NODE_TEST, 'test_where_example'),
+    TestCase(NODE_TEST, 'test_where_long_example'),
+    TestCase(NODE_TEST, 'test_nonzero_example'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_suppress_by_IOU'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_center_point_box_format'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_flipped_coordinates'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_identical_boxes'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_single_box'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_suppress_by_IOU_and_scores'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_two_batches'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_limit_output_size'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_two_classes'),
+    TestCase(NODE_TEST, 'test_top_k'),
+    TestCase(NODE_TEST, 'test_top_k_negative_axis'),
+    TestCase(NODE_TEST, 'test_top_k_smallest'),
     TestCase(NODE_TEST, 'test_quantizelinear'),
     TestCase(NODE_TEST, 'test_dequantizelinear'),
     TestCase(NODE_TEST, 'test_qlinearmatmul_2D'),
@@ -455,6 +533,29 @@ TEST_CASES = [
     # TestCase(NODE_TEST, 'test_bitshift_right_uint64'),
     # TestCase(NODE_TEST, 'test_bitshift_right_uint32'),
     # TestCase(NODE_TEST, 'test_bitshift_right_uint16'),
+
+    TestCase(NODE_TEST, 'test_scan9_sum'),
+
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_max_adjusted'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_min_adjusted'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_expanded'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_max_adjusted_expanded'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_min_adjusted_expanded'),
+    TestCase(NODE_TEST, 'test_mvn'),
+    TestCase(NODE_TEST, 'test_mvn_expanded'),
+
+    TestCase(SIMPLE_TEST, 'test_sign_model'),
+    TestCase(SIMPLE_TEST, 'test_single_relu_model'),
+    # TODO(hamaji): Come up with a good way to handle ONNX's shape
+    # inference for sequence types.
+    TestCase(SIMPLE_TEST, 'test_sequence_model1', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model2', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model3', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model4', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model5', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model6', skip_shape_inference=True),
+    TestCase(SIMPLE_TEST, 'test_sequence_model7', skip_shape_inference=True),
 ]
 
 TEST_CASES += [
@@ -502,7 +603,7 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_ELU'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Embedding'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Embedding_sparse'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_GLU', fail=True),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_GLU'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_GLU_dim'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_LeakyReLU'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_LeakyReLU_with_negval'),
@@ -619,7 +720,7 @@ for name, _, _, kwargs in gen_large_tests_oc.get_large_tests():
 
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
-TEST_CASES.append(TestCase('data', 'resnet50', want_gpu=True))
+TEST_CASES.append(TestCase('data', 'shufflenet', want_gpu=True))
 TEST_CASES.append(TestCase('data', 'mnist'))
 
 TEST_CASES.extend(ch2o_tests.get())
@@ -643,6 +744,10 @@ for test in TEST_CASES:
         new_test.name = test.name + '_two_phase'
         new_test.is_backprop_two_phase = True
         new_tests.append(new_test)
+
+    # TODO(hamaji): Temporarily disabled due to shape inference change in ONNX.
+    if test.name.startswith('backprop_test_oc_split_2'):
+        continue
 
     # computation_order is supported in limited test cases
     if test.name.startswith('backprop_test_oc'):
@@ -680,6 +785,25 @@ for test in TEST_CASES:
                 new_test.computation_order = 'custom_' + order_string
                 new_test.is_backprop_two_phase = two_phase
                 new_tests.append(new_test)
+
+    if test.name.startswith('backprop_test_oc_branched_conv'):
+        order_string = 'CF0,CF1,CF2,CF3,BF3,FFt2,BF1,CF2,BF2,BF0'
+        for two_phase in [False, True]:
+            new_test = copy.copy(test)
+            new_test.name = test.name + '_custom_computation_order_'\
+                + order_string
+            new_test.computation_order = 'custom_' + order_string
+            new_test.is_backprop_two_phase = two_phase
+            new_tests.append(new_test)
+
+    # run gpu test for the test cases of onnx_chainer
+    # NOTE: We don't add tests for float16 case because they fail with --fuse
+    # option. We may resolve this in future.
+    if test.name.startswith('backprop_test_oc') and\
+       not test.name.endswith('float16'):
+        new_test = copy.copy(test)
+        new_test.want_gpu = True
+        new_tests.append(new_test)
 
 for test in new_tests:
     TEST_CASES.append(test)
@@ -810,13 +934,25 @@ def main():
             args.build_dir = 'build'
 
     run_onnx = os.path.join(args.build_dir, 'tools/run_onnx')
+    run_onnx_menoh = os.path.join(args.build_dir, 'menoh/run_onnx_menoh')
 
     tested = []
     failed = []
     tests = []
     gpu_tests = []
     for test_case in TEST_CASES:
-        test_case.args = [run_onnx, '--test', test_case.test_dir]
+        runner = run_onnx_menoh
+        if (test_case.is_backprop or
+            test_case.is_backprop_two_phase or
+            test_case.equal_nan or
+            test_case.skip_shape_inference or
+            test_case.skip_runtime_type_check or
+            test_case.want_gpu or
+            test_case.computation_order or
+            not test_case.test_dir.startswith(NODE_TEST)):
+            runner = run_onnx
+
+        test_case.args = [runner, '--test', test_case.test_dir]
         test_case.args.append('--compiler_log')
         is_gpu = False
         if test_case.rtol is not None:
@@ -864,12 +1000,19 @@ def main():
             test_case.args.append('--fuse_operations')
             test_case.args.append('--use_ngraph')
 
+        if args.snpe:
+            test_case.args.append('--use_snpe')
+
+        if args.cache:
+            test_case.args.append('--use_cached_model')
+
         if is_gpu:
             gpu_tests.append(test_case)
         else:
             tests.append(test_case)
 
-    print('Testing %d tests with %s' % (len(tests + gpu_tests), run_onnx))
+    print('Testing %d tests with %s and %s' %
+          (len(tests + gpu_tests), run_onnx, run_onnx_menoh))
 
     for test in tests + gpu_tests:
         test.prepare()

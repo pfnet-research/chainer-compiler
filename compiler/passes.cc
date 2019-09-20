@@ -17,6 +17,7 @@
 #include <compiler/memory_simulator.h>
 #include <compiler/merge.h>
 #include <compiler/model.h>
+#include <compiler/quantize.h>
 #include <compiler/scheduler.h>
 #include <compiler/shape_evaluator.h>
 #include <compiler/simplifier.h>
@@ -108,14 +109,23 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
     dump_onnx(g_dump_after_inference, "after inference");
 
-    CanonicalizeSubGraphs(graph);
-
     if (!skip_scheduling) {
+        CanonicalizeSubGraphs(graph);
+
         Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
-            Simplify(bc.GetSimplifyPreproc(), graph, gen_backprop);
+            Simplify(bc, bc.GetSimplifyPreproc(), graph, gen_backprop);
         });
 
-        Recursively([gen_backprop](Graph* graph) { MergeOperations(graph, gen_backprop); }, graph);
+        CanonicalizeSubGraphs(graph);
+
+        if (g_quantize) {
+            QuantizationOptions q_opts;
+            q_opts.per_channel = !g_disable_per_channel_quantize;
+            Recursively([q_opts](Graph* graph) { Quantize(q_opts, graph); }, graph);
+        }
+
+        Recursively(
+                [gen_backprop, &backend_config](Graph* graph) { MergeOperations(backend_config->GetMerge(), graph, gen_backprop); }, graph);
 
         Recursively(PropagateConstants, graph);
 
@@ -128,7 +138,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
     if (gen_backprop) {
         Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
-            Simplify(bc.GetSimplify(), graph, gen_backprop);
+            Simplify(bc, bc.GetSimplify(), graph, gen_backprop);
         });
 
         if (g_computation_order.empty()) {
@@ -149,7 +159,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
     if (!skip_scheduling) {
         Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
-            Simplify(bc.GetSimplifyPreproc(), graph, gen_backprop);
+            Simplify(bc, bc.GetSimplifyPreproc(), graph, gen_backprop);
         });
 
         Recursively(PropagateConstants, graph);
@@ -170,7 +180,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
     if (!skip_scheduling) {
         Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
-            Simplify(bc.GetSimplify(), graph, gen_backprop);
+            Simplify(bc, bc.GetSimplify(), graph, gen_backprop);
         });
 
         Recursively(PropagateConstants, graph);
@@ -197,7 +207,7 @@ void RunDefaultPassesBeforeGradient(Graph* graph) {
     std::unique_ptr<BackendConfig> backend_config(BackendConfig::FromName(g_backend_name));
     graph->InferShapes();
     CanonicalizeSubGraphs(graph);
-    Recursively(*backend_config, graph, [](const BackendConfig& bc, Graph* graph) { Simplify(bc.GetSimplify(), graph, true); });
+    Recursively(*backend_config, graph, [](const BackendConfig& bc, Graph* graph) { Simplify(bc, bc.GetSimplify(), graph, true); });
     Recursively(PropagateConstants, graph);
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
     Recursively(*backend_config, graph, CheckAllOpsSupported);

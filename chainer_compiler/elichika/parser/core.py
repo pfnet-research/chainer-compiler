@@ -19,6 +19,9 @@ from chainer_compiler.elichika.parser import functions_dict
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser.graphs import Graph
 from chainer_compiler.elichika.parser import flags
+from chainer_compiler.elichika.parser import custom_functions
+from chainer_compiler.elichika.parser import functions_onnx
+
 import numpy as np
 import six
 
@@ -57,6 +60,15 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     values.instance_converters.append(instance_converter)
 
+    custom_functions_module = values.Object(values.ModuleValue(custom_functions))
+
+    # onnx
+    functions_onnx_module = values.Object(values.ModuleValue(functions_onnx))
+    def ret_same(funcArgs):
+        return functions.generate_value_with_same_type(funcArgs.keywords['x'].get_value())
+
+    values.function_converters[functions_onnx.onnx_abs] = values.FuncValue(functions_builtin.ChainerFunction(functions_onnx.onnx_abs, ret_value_func=ret_same), None, module=functions_onnx_module)
+
     # chainer
     c_variable = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
     values.function_converters[chainer.Variable] = c_variable
@@ -72,7 +84,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
         values.function_converters[func] = f
 
-    def ret_tuple():
+    def ret_tuple(funcArgs = None):
         ret = values.TupleValue()
         ret.vtype = values.TensorValue
         return ret
@@ -82,15 +94,22 @@ def convert_model(model: 'chainer.Chain', args=[]):
         if inspect.isfunction(f[1]):
             values.function_converters[f[1]] = values.FuncValue(functions.UnimplementedFunction(f[1]), None)
 
-    add_chainer_function(F.relu)
+    # activation
     add_chainer_function(F.elu)
     add_chainer_function(F.leaky_relu)
+    add_chainer_function(F.log_softmax)
+    add_chainer_function(F.relu)
+    add_chainer_function(F.selu)
+    add_chainer_function(F.sigmoid)
     add_chainer_function(F.softmax)
+    add_chainer_function(F.tanh)
+
     add_chainer_function(F.softmax_cross_entropy)
     add_chainer_function(F.pad_sequence)
     add_chainer_function(F.average_pooling_2d)
     add_chainer_function(F.unpooling_2d)
     add_chainer_function(F.reshape)
+    add_chainer_function(F.transpose)
     add_chainer_function(F.split_axis, ret_value_func=ret_tuple)
     add_chainer_function(F.hstack)
     add_chainer_function(F.vstack)
@@ -103,8 +122,6 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.matmul)
     add_chainer_function(F.max_pooling_2d)
     add_chainer_function(F.resize_images)
-    add_chainer_function(F.tanh)
-    add_chainer_function(F.sigmoid)
     add_chainer_function(F.broadcast_to)
     add_chainer_function(F.expand_dims)
     add_chainer_function(F.local_response_normalization)
@@ -113,7 +130,11 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.sum)
     add_chainer_function(F.maximum)
     add_chainer_function(F.minimum)
-    
+    add_chainer_function(F.max)
+    add_chainer_function(F.min)
+
+    values.function_converters[F.absolute] = values.FuncValue(functions.UserDefinedFunction(custom_functions.chainer_absolute), None, module=custom_functions_module)
+
     add_chainer_function(F.sin)
     add_chainer_function(F.sinh)
     add_chainer_function(F.sign)
@@ -126,9 +147,13 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.arctan)
     add_chainer_function(F.exp)
     add_chainer_function(F.log)
-    
+
+    add_chainer_function(F.clip)
+
     values.function_converters[F.argmax] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmax), None)
     values.function_converters[F.argmin] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmin), None)
+
+    values.function_converters[F.clipped_relu] = values.FuncValue(functions.UserDefinedFunction(custom_functions.chainer_clipped_relu), None, module=custom_functions_module)
 
     if int(chainer.__version__[0]) >= 6:
         add_chainer_function(F.roi_max_pooling_2d)
@@ -162,6 +187,15 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[np.minimum] = f_minimum
     values.function_converters[np.argmax] = f_argmax
     values.function_converters[np.argmin] = f_argmin
+
+    values.function_converters[np.clip] = values.FuncValue(functions.UserDefinedFunction(custom_functions.numpy_clip), None, module=custom_functions_module)
+    values.function_converters[np.absolute] = values.FuncValue(functions.UserDefinedFunction(custom_functions.numpy_absolute), None, module=custom_functions_module)
+
+    values.function_converters[custom_functions.check_attribute_value] = values.FuncValue(functions.CheckAttributeValueFunction(), None, module=custom_functions_module)
+
+    values.function_converters[custom_functions.check_attribute_scalar] = values.FuncValue(functions.CheckAttributeScalarFunction(), None, module=custom_functions_module)
+
+    values.builtin_function_converters['abs'] = values.FuncValue(functions.UserDefinedFunction(custom_functions.builtin_absolute), None, module=custom_functions_module)
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     values.builtin_function_converters['range'] = m_range

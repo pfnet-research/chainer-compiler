@@ -29,18 +29,7 @@ target_link_libraries(_chainer_compiler_core.so
   chainer_compiler_runtime
   chainer_compiler_common
   chainer_compiler_configs
-  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
-  onnx
-  onnx_proto
-  ${PROTOBUF_LIBRARY}
-  pthread
-  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
-  ${CHAINER_COMPILER_DLDT_LIBRARIES}
-  ${CHAINER_COMPILER_TVM_LIBRARIES}
-  ${CHAINER_COMPILER_CUDA_LIBRARIES}
-  absl::variant
-  absl::optional
-  )
+  ${CHAINER_COMPILER_DEPENDENCY_LIBRARIES})
 set_target_properties(_chainer_compiler_core.so
     PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"

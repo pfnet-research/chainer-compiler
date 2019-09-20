@@ -17,6 +17,7 @@ chainerx::Array ShapeToArray(const chainerx::Shape& s);
 chainerx::Array MakeArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src);
 
 chainerx::Array MakeScalarArray(float f);
+chainerx::Array MakeDtypeScalarArray(chainerx::Dtype dtype, chainerx::Scalar scalar);
 
 chainerx::Array MakeHostArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src);
 
@@ -43,6 +44,14 @@ bool IsFloat(chainerx::Dtype dtype);
 
 void BlitArray(const chainerx::Array& src, const chainerx::Array& dst);
 
+Int64StackVector CalculateAutoPad(
+        const std::string& auto_pad,
+        const chainerx::Array& x,
+        const Int64StackVector& kernel_shape,
+        const Int64StackVector& strides,
+        const Int64StackVector& in_pads);
+chainerx::Array ApplyAsymmetricPad(const chainerx::Array& x, Int64StackVector* pads, float value = 0.0, int64_t beg_dim = 2);
+
 chainerx::Array NumpyMatMul(const chainerx::Array& a, const chainerx::Array& b);
 
 chainerx::Array GroupedConv(
@@ -68,6 +77,12 @@ chainerx::Array GroupedConvGradWeight(
         const Int64StackVector& strides,
         const Int64StackVector& pads,
         int group);
+
+chainerx::Array SlowRound(const chainerx::Array& a);
+
+void* RawStartPtr(const chainerx::Array& a);
+
+int ResolveAxis(const chainerx::Array& x, int axis);
 
 }  // namespace runtime
 }  // namespace chainer_compiler

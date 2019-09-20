@@ -8,9 +8,12 @@ class ChxVMInstructionProto;
 
 }  // namespace runtime
 
+class Node;
 class Value;
 
 namespace chxvm {
+
+class ValueIdManager;
 
 class ChxVMValue {
 public:
@@ -22,6 +25,8 @@ public:
 
     ChxVMValue(int id, const Value* value) : id_(id), value_(value) {
     }
+
+    static ChxVMValue GetOutputValue(const Node& node, int i, const ValueIdManager& id_manager);
 
     int id() const {
         return id_;

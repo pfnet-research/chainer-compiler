@@ -54,20 +54,16 @@ public:
     template <typename T>
     T Get(int index) const {
         CHECK_EQ(dtype().SizeOf(), sizeof(T));
-        return static_cast<T*>(chx().raw_data())[index];
+        return static_cast<const T*>(GetRawData())[index];
     }
 
-    const void* GetRawData() const {
-        return chx().raw_data();
-    }
+    const void* GetRawData() const;
 
-    const chainerx::Array& chx() const {
-        return absl::get<0>(data_);
-    }
+    bool IsArray() const;
 
-    const std::vector<std::string>& str() const {
-        return absl::get<1>(data_);
-    }
+    const chainerx::Array& chx() const;
+
+    const std::vector<std::string>& str() const;
 
 private:
     // Must be a C-contiguous array.

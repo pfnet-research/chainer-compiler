@@ -79,8 +79,8 @@ chainerx::Array Upsample2D32bitForCPU(chainerx::Array x, const chainerx::Shape& 
     chainerx::Array y = chainerx::Empty(to_shape, x.dtype(), x.device());
     if (int_scales[2] == 2 && int_scales[3] == 2) {
         Upsample2D32bitForRawPtr<2>(
-                reinterpret_cast<float*>(y.raw_data()),
-                reinterpret_cast<float*>(x.raw_data()),
+                reinterpret_cast<float*>(RawStartPtr(y)),
+                reinterpret_cast<float*>(RawStartPtr(x)),
                 x.shape()[0],
                 x.shape()[1],
                 x.shape()[2],
@@ -89,8 +89,8 @@ chainerx::Array Upsample2D32bitForCPU(chainerx::Array x, const chainerx::Shape& 
                 -1);
     } else {
         Upsample2D32bitForRawPtr<0>(
-                reinterpret_cast<float*>(y.raw_data()),
-                reinterpret_cast<float*>(x.raw_data()),
+                reinterpret_cast<float*>(RawStartPtr(y)),
+                reinterpret_cast<float*>(RawStartPtr(x)),
                 x.shape()[0],
                 x.shape()[1],
                 x.shape()[2],
@@ -230,8 +230,8 @@ chainerx::Array ResizeGradOp::RunImpl(ChxVMState* st, const chainerx::Array& x, 
 namespace {
 
 void ResizeImagesFloat32ForCPU(const chainerx::Array& x, const chainerx::Array& y) {
-    const float* src = static_cast<float*>(x.raw_data());
-    float* dst = static_cast<float*>(y.raw_data());
+    const float* src = static_cast<float*>(RawStartPtr(x));
+    float* dst = static_cast<float*>(RawStartPtr(y));
 
     const int64_t sh = x.shape()[2];
     const int64_t sw = x.shape()[3];

@@ -10,7 +10,6 @@ from chainer.functions.activation.softmax import softmax
 from chainer.links.connection.convolution_2d import Convolution2D
 from chainer.links.connection.linear import Linear
 from chainer.functions.noise.dropout import dropout
-from chainer.functions.pooling.max_pooling_2d import max_pooling_2d
 from chainer.utils import argument
 
 
@@ -102,7 +101,7 @@ class VGGLayers(chainer.Chain):
 
 
 def _max_pooling_2d(x):
-    return max_pooling_2d(x, ksize=2)
+    return F.max_pooling_2d(x, ksize=2)
 
 
 class VGG16Layers(VGGLayers):
@@ -179,7 +178,7 @@ class VGG19Layers(VGGLayers):
 
 
 def get_chainer_model(chainer_chain, dtype, key):
-    batchsize = 4
+    batchsize = 3
     x = np.random.uniform(size=(batchsize, 3, 224, 224)).astype(dtype)
     t = np.random.randint(size=(batchsize,), low=0, high=1000).astype(np.int32)
     model = Wrapper(chainer_chain(pretrained_model=None), key)

@@ -40,7 +40,7 @@ def get_onnx_dtype(dtype):
 class BaseConverter(object):
     def __init__(self):
         self.expected_args = ()
-        
+
     def parse_args(self, onnx_graph, node):
         assert hasattr(self, 'expected_args'), 'BaseConverter subclass must have `expected_args`'
         parser =  oc.NodeParse()
@@ -53,59 +53,11 @@ class BaseConverter(object):
         raise NotImplementedError
 
 
-class ConverterRelu(BaseConverter):
-    def __init__(self):
-        self.expected_args = (
-            ('x', oc.ParseType.In),)
-
-    def __call__(self, onnx_graph, node):
-        parser = self.parse_args(onnx_graph, node)
-
-        onnx_graph.add_node(
-            'Relu',
-            [parser.get('x')],
-            node.outputs,
-            name=str(node.lineprop))
-
-
-class ConverterElu(BaseConverter):
-    def __init__(self):
-        self.expected_args = (
-            ('x', oc.ParseType.In),
-            ('alpha', oc.ParseType.Att))
-
-    def __call__(self, onnx_graph, node):
-        parser = self.parse_args(onnx_graph, node)
-
-        onnx_graph.add_node(
-            'Elu',
-            [parser.get('x')],
-            node.outputs,
-            name=str(node.lineprop),
-            alpha=parser.get('alpha'))
-
-
-class ConverterLeakyRelu(BaseConverter):
-    def __init__(self):
-        self.expected_args = (
-            ('x', oc.ParseType.In),
-            ('slope', oc.ParseType.Att))
-
-    def __call__(self, onnx_graph, node):
-        parser = self.parse_args(onnx_graph, node)
-
-        onnx_graph.add_node(
-            'LeakyRelu',
-            [parser.get('x')],
-            node.outputs,
-            name=str(node.lineprop),
-            alpha=parser.get('slope'))
-
-
 class ConverterChainerMathMisc(BaseConverter):
-    def __init__(self, operator):
+    def __init__(self, operator, arg_name = 'x'):
+        self.arg_name = arg_name
         self.expected_args = (
-            ('x', oc.ParseType.In),)
+            (self.arg_name, oc.ParseType.In),)
         self.operator = operator
 
     def __call__(self, onnx_graph, node):
@@ -113,21 +65,7 @@ class ConverterChainerMathMisc(BaseConverter):
 
         onnx_graph.add_node(
             self.operator,
-            [parser.get('x')],
-            node.outputs,
-            name=str(node.lineprop))
-
-class ConverterSigmoid(BaseConverter):
-    def __init__(self):
-        self.expected_args = (
-            ('x', oc.ParseType.In),)
-
-    def __call__(self, onnx_graph, node):
-        parser = self.parse_args(onnx_graph, node)
-
-        onnx_graph.add_node(
-            'Sigmoid',
-            [parser.get('x')],
+            [parser.get(self.arg_name)],
             node.outputs,
             name=str(node.lineprop))
 
@@ -277,6 +215,76 @@ class ConverterMinimum(ConverterChainerMinimum):
             ('subok', oc.ParseType.Att, True),
             )
 
+class ConverterMax(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('axis', oc.ParseType.Att),
+            ('keepdims', oc.ParseType.Att))
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+
+        kwargs = {}
+        axis = parser.get('axis')
+
+        if isinstance(axis, int):
+            kwargs['axes'] = [axis]
+        elif axis is not None:
+            kwargs['axes'] = list(axis)
+
+        onnx_graph.add_node(
+            "ReduceMax",
+            [parser.get('x')],
+            node.outputs,
+            str(node.lineprop),
+            keepdims=parser.get('keepdims'),
+            **kwargs)
+
+class ConverterMin(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('axis', oc.ParseType.Att),
+            ('keepdims', oc.ParseType.Att))
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+
+        kwargs = {}
+        axis = parser.get('axis')
+
+        if isinstance(axis, int):
+            kwargs['axes'] = [axis]
+        elif axis is not None:
+            kwargs['axes'] = list(axis)
+
+        onnx_graph.add_node(
+            "ReduceMin",
+            [parser.get('x')],
+            node.outputs,
+            str(node.lineprop),
+            keepdims=parser.get('keepdims'),
+            **kwargs)
+
+class ConverterClip(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('x_min', oc.ParseType.Att),
+            ('x_max', oc.ParseType.Att),)
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+
+        onnx_graph.add_node(
+            "Clip",
+            [parser.get('x')],
+            node.outputs,
+            str(node.lineprop),
+            min=parser.get('x_min'),
+            max=parser.get('x_max'))
+
 class ConverterSum(BaseConverter):
     def __init__(self):
         self.expected_args = (
@@ -330,25 +338,6 @@ class ConverterAverage(BaseConverter):
             str(node.lineprop),
             keepdims=parser.get('keepdims'),
             **kwargs)
-
-
-class ConverterSoftmax(BaseConverter):
-    def __init__(self):
-        self.expected_args = (
-            ('x', oc.ParseType.In),
-            ('axis', oc.ParseType.Att))
-
-    def __call__(self, onnx_graph, node):
-        parser = self.parse_args(onnx_graph, node)
-
-        onnx_graph.add_node(
-            'Softmax',
-            [parser.get('x')],
-            node.outputs,
-            name=str(node.lineprop),
-            axis=parser.get('axis'),
-            chainer_is_onnx_semantics=False)
-
 
 class ConverterPadSequence(BaseConverter):
     def __init__(self):
@@ -493,7 +482,7 @@ class ConverterMaxPooling2D(BaseConverter):
             [parser.get('x')],
             node.outputs,
             name=str(node.lineprop),
-            chainer_cover_all=parser.get('cover_all'),
+            ceil_mode=int(parser.get('cover_all')),
             **kwargs)
 
 
@@ -681,6 +670,23 @@ class ConverterReshape(BaseConverter):
             [parser.get('x'), parser.get('shape').create_tensor(node.lineprop)],
             node.outputs,
             name=str(node.lineprop))
+
+
+class ConverterTranspose(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('axes', oc.ParseType.Att))
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+
+        onnx_graph.add_node(
+            "Transpose",
+            [parser.get('x')],
+            node.outputs,
+            name=str(node.lineprop),
+            perm=parser.get('axes'))
 
 
 class ConverterSplitAxis(BaseConverter):

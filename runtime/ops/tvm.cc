@@ -75,7 +75,7 @@ void FillDLTensor(const chainerx::Array& array, DLTensor* tensor) {
     tensor->dtype = GetDLDataType(array);
     tensor->shape = const_cast<int64_t*>(array.shape().data());
     tensor->strides = nullptr;
-    tensor->byte_offset = 0;
+    tensor->byte_offset = array.offset();
 }
 
 tvm::runtime::PackedFunc LoadPackedFunc(const std::string& dso_filename, const std::string& func_name) {

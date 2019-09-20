@@ -48,7 +48,10 @@ public:
 
     bool catch_exception{true};
 
-    bool dump_memory_usage{false};
+    // dump_memory_usage=0: No dump
+    // dump_memory_usage=1: Dump peak memory usage only
+    // dump_memory_usage=2: Dump intermediate memory usage
+    int dump_memory_usage{0};
     int64_t base_memory_usage{-1};
 
     ChromeTracingEmitter* chrome_tracing{nullptr};
@@ -58,12 +61,14 @@ public:
     std::map<std::string, CustomOpFunc> custom_op_funcs;
 };
 
-class ChxVMInputDesc;
+struct ChxVMInputDesc;
 
 class ChxVM {
 public:
-    explicit ChxVM(const ChxVMProgramProto& program);
+    ChxVM(const ChxVMProgramProto& program, bool should_init = true);
     ~ChxVM();
+
+    void Init();
 
     std::unique_ptr<ChxVMState> Prepare(const InOuts& program_inputs, const ChxVMOptions& options);
     InOuts Run(const InOuts& program_inputs, const ChxVMOptions& options);

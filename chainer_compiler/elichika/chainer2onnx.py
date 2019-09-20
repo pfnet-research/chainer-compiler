@@ -16,6 +16,7 @@ from chainer_compiler.elichika.parser import functions
 from chainer_compiler.elichika.parser import functions_builtin
 from chainer_compiler.elichika.parser import functions_ndarray
 from chainer_compiler.elichika.parser import utils
+from chainer_compiler.elichika.parser import functions_onnx
 
 import numpy as np
 import collections
@@ -24,6 +25,7 @@ import inspect
 from chainer_compiler.elichika import onnx_converters as oc
 from chainer_compiler.elichika import links_builtin as lb
 from chainer_compiler.elichika import functions_builtin as fb
+from chainer_compiler.elichika import functions_chainer_activation as fca
 
 
 class ONNXModel:
@@ -54,10 +56,14 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_l_converter[L.NStepBiLSTM] = lb.convert_onnx_chainer_NStepBiLSTM
     oc.chainer_l_converter[L.EmbedID] = lb.convert_onnx_chainer_EmbedID
 
-    oc.f_converter[F.relu] = fb.ConverterRelu()
-    oc.f_converter[F.elu] = fb.ConverterElu()
-    oc.f_converter[F.leaky_relu] = fb.ConverterLeakyRelu()
-    oc.f_converter[F.softmax] = fb.ConverterSoftmax()
+    oc.f_converter[F.relu] = fca.ConverterRelu()
+    oc.f_converter[F.elu] = fca.ConverterElu()
+    oc.f_converter[F.leaky_relu] = fca.ConverterLeakyRelu()
+    oc.f_converter[F.log_softmax] = fca.ConverterLogSoftmax()
+    oc.f_converter[F.selu] = fca.ConverterSelu()
+    oc.f_converter[F.softmax] = fca.ConverterSoftmax()
+    oc.f_converter[F.sigmoid] = fca.ConverterSigmoid()
+
     oc.f_converter[F.pad_sequence] = fb.ConverterPadSequence()
     oc.f_converter[F.softmax_cross_entropy] = fb.ConverterSoftmaxCrossEntropy()
     oc.f_converter[F.average_pooling_2d] = fb.ConverterAveragePool2D()
@@ -77,7 +83,6 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.f_converter[F.concat] = fb.ConverterConcat()
     oc.f_converter[F.max_pooling_2d] = fb.ConverterMaxPooling2D()
     oc.f_converter[F.resize_images] = fb.ConverterResizeImages()
-    oc.f_converter[F.sigmoid] = fb.ConverterSigmoid()
     oc.f_converter[F.broadcast_to] = fb.ConverterBroadcastTo()
     oc.f_converter[F.expand_dims] = fb.ConverterExpandDims()
     oc.f_converter[F.local_response_normalization] = fb.ConverterResponseNormalization()
@@ -87,6 +92,9 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.f_converter[F.minimum] = fb.ConverterChainerMinimum()
     oc.f_converter[F.argmax] = fb.ConverterChainerArgMax()
     oc.f_converter[F.argmin] = fb.ConverterChainerArgMin()
+    oc.f_converter[F.max] = fb.ConverterMax()
+    oc.f_converter[F.min] = fb.ConverterMin()
+    oc.f_converter[F.transpose] = fb.ConverterTranspose()
 
     oc.f_converter[F.sin] = fb.ConverterChainerMathMisc('Sin')
     oc.f_converter[F.sinh] = fb.ConverterChainerMathMisc('Sinh')
@@ -100,11 +108,16 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.f_converter[F.arctan] = fb.ConverterChainerMathMisc('Atan')
     oc.f_converter[F.exp] = fb.ConverterChainerMathMisc('Exp')
     oc.f_converter[F.log] = fb.ConverterChainerMathMisc('Log')
+    #oc.f_converter[F.absolute] = fb.ConverterChainerMathMisc('Abs', arg_name='self')
+
+    oc.f_converter[functions_onnx.onnx_abs] = fb.ConverterChainerMathMisc('Abs', arg_name='x')
 
     oc.f_converter[functions_ndarray.dummy_maximum] = fb.ConverterMaximum()
     oc.f_converter[functions_ndarray.dummy_minimum] = fb.ConverterMinimum()
     oc.f_converter[functions_ndarray.dummy_argmax] = fb.ConverterArgMax()
     oc.f_converter[functions_ndarray.dummy_argmin] = fb.ConverterArgMin()
+
+    oc.f_converter[F.clip] = fb.ConverterClip()
 
     if int(chainer.__version__[0]) >= 6:
         oc.f_converter[F.roi_max_pooling_2d] = fb.ConverterRoiMaxPooling2D()

@@ -110,7 +110,23 @@ void FuseNGraphOperations(Graph* graph) {
             Node::kReshape,
     };
 
-    auto is_fusable = [&fusable_ops](const Node& node) {
+    const std::set<Node::OpType> negative_axes_ops = {
+            Node::kReduceL1,
+            Node::kReduceL2,
+            Node::kReduceLogSum,
+            Node::kReduceLogSumExp,
+            Node::kReduceMax,
+            Node::kReduceMean,
+            Node::kReduceMin,
+            // Not supported yet.
+            // Node::kReduceProd,
+            Node::kReduceSum,
+            Node::kReduceSumSquare,
+            Node::kSqueeze,
+            Node::kUnsqueeze,
+    };
+
+    auto is_fusable = [&fusable_ops, &negative_axes_ops](const Node& node) {
         if (!fusable_ops.count(node.op_type())) {
             return false;
         }
@@ -127,7 +143,7 @@ void FuseNGraphOperations(Graph* graph) {
                 return false;
             }
         } else if (node.op_type() == Node::kMaxPool) {
-            if (node.chainer_cover_all()) {
+            if (node.ceil_mode()) {
                 return false;
             }
         } else if (
@@ -163,6 +179,18 @@ void FuseNGraphOperations(Graph* graph) {
             // nGraph does not know Chainer's Softmax.
             if (!node.chainer_is_onnx_semantics()) {
                 return false;
+            }
+        } else if (node.op_type() == Node::kClip) {
+            // nGraph does not support Clip-11.
+            if (node.inputs().size() > 1) {
+                return false;
+            }
+        } else if (negative_axes_ops.count(node.op_type())) {
+            // nGraph does not support negative axes in opset11.
+            for (int axis : node.axes()) {
+                if (axis < 0) {
+                    return false;
+                }
             }
         }
 

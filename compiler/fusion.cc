@@ -213,22 +213,28 @@ void FuseAllConnectedNodes(
     }
 }
 
-void FuseOperations(Graph* graph) {
+void FuseOperations(Graph* graph, bool is_subgraph) {
     // Fuse ops in subgraphs first to avoid infinite loop.
     for (const Node* node : graph->nodes()) {
         for (Graph* subgraph : node->GetSubGraphs()) {
-            FuseOperations(subgraph);
+            FuseOperations(subgraph, true);
         }
     }
 
-    if (g_use_dldt) {
+    if (g_use_dldt && !is_subgraph) {
         FuseDldtOperations(graph);
     }
-    if (g_use_ngraph) {
+    if (g_use_ngraph && !is_subgraph) {
         FuseNGraphOperations(graph);
     }
-    if (g_use_tvm) {
+    if (g_use_tvm && !is_subgraph) {
         FuseTVMOperations(graph);
+    }
+    if (g_use_snpe && !is_subgraph) {
+        FuseSNPEOperations(graph);
+    }
+    if (g_use_tensorrt && !is_subgraph) {
+        FuseTensorRTOperations(graph);
     }
     if (g_fuse_operations) {
         FuseElementwiseOperations(graph);

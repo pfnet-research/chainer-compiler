@@ -252,6 +252,21 @@ class NodeGetItem(Node):
         return 'GetItem({})'.format(self.lineprop)
 
 
+class NodeSetItem(Node):
+    def __init__(self, target: "values.Value", indexes, revision: "values.Value", line=-1):
+        super().__init__(line)
+        self.target = target
+        self.indexes = indexes
+        self.revision = revision
+
+        self.append_inputs(target)
+        self.append_inputs(revision)
+        self.extend_inputs(indexes)
+
+    def __str__(self):
+        return 'SetItem({})'.format(self.lineprop)
+
+
 class NodeSlice(Node):
     def __init__(self, target: "values.Value", indices, slice_specs, line=-1):
         super().__init__(line)

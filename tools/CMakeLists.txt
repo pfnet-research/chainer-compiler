@@ -18,6 +18,8 @@ add_custom_command(
 
 add_library(chainer_compiler_tools
   "${CMAKE_CURRENT_BINARY_DIR}/compiler_flags.cc"
+  log.cc
+  run_onnx_util.cc
   util.cc
   )
 add_dependencies(
@@ -28,25 +30,13 @@ set_hidden_(chainer_compiler_tools)
 
 add_executable(dump dump.cc)
 target_link_libraries(dump
-  onnx_proto
   chainer_compiler_tools
   chainer_compiler_compiler
   chainer_compiler_configs
   chainer_compiler_runtime
   chainer_compiler_common
-  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
-  onnx
-  onnx_proto
-  ${PROTOBUF_LIBRARY}
-  pthread
-  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
-  ${CHAINER_COMPILER_DLDT_LIBRARIES}
-  ${CHAINER_COMPILER_TVM_LIBRARIES}
-  ${CHAINER_COMPILER_CUDA_LIBRARIES}
-  ${OpenCV_LIBS}
-  absl::variant
-  absl::optional
-  )
+  ${CHAINER_COMPILER_DEPENDENCY_LIBRARIES})
+
 set_target_properties(dump PROPERTIES OUTPUT_NAME "dump")
 
 add_library(run_onnx_lib
@@ -66,17 +56,8 @@ target_link_libraries(run_onnx
   chainer_compiler_configs
   chainer_compiler_runtime
   chainer_compiler_common
-  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
-  onnx
-  onnx_proto
-  ${PROTOBUF_LIBRARY}
-  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
-  ${CHAINER_COMPILER_DLDT_LIBRARIES}
-  ${CHAINER_COMPILER_TVM_LIBRARIES}
-  ${CHAINER_COMPILER_CUDA_LIBRARIES}
-  absl::variant
-  absl::optional
-  )
+  ${CHAINER_COMPILER_DEPENDENCY_LIBRARIES})
+
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")
 
 if(${CHAINER_COMPILER_ENABLE_OPENCV})
@@ -102,19 +83,8 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
     chainer_compiler_runtime
     chainer_compiler_common
     feeder
-    ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
-    onnx
-    onnx_proto
-    ${PROTOBUF_LIBRARY}
-    pthread
-    ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
-    ${CHAINER_COMPILER_DLDT_LIBRARIES}
-    ${CHAINER_COMPILER_TVM_LIBRARIES}
-    ${CHAINER_COMPILER_CUDA_LIBRARIES}
-    ${OpenCV_LIBS}
-    absl::variant
-    absl::optional
-    )
+    ${CHAINER_COMPILER_DEPENDENCY_LIBRARIES})
+
   set_target_properties(train_imagenet PROPERTIES OUTPUT_NAME "train_imagenet")
 endif()
 
@@ -132,18 +102,8 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
     chainer_compiler_configs
     chainer_compiler_runtime
     chainer_compiler_common
-    ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
-    onnx
-    onnx_proto
-    ${PROTOBUF_LIBRARY}
-    pthread
-    ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
-    ${CHAINER_COMPILER_DLDT_LIBRARIES}
-    ${CHAINER_COMPILER_TVM_LIBRARIES}
-    ${CHAINER_COMPILER_CUDA_LIBRARIES}
-    absl::variant
-    absl::optional
-    )
+    ${CHAINER_COMPILER_DEPENDENCY_LIBRARIES})
+
   set_target_properties(run_onnx_core.so
     PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
@@ -162,19 +122,8 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
       chainer_compiler_runtime
       chainer_compiler_common
       feeder
-      ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
-      onnx
-      onnx_proto
-      ${PROTOBUF_LIBRARY}
-      pthread
-      ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
-      ${CHAINER_COMPILER_DLDT_LIBRARIES}
-      ${CHAINER_COMPILER_TVM_LIBRARIES}
-      ${CHAINER_COMPILER_CUDA_LIBRARIES}
-      ${OpenCV_LIBS}
-      absl::variant
-      absl::optional
-      )
+      ${CHAINER_COMPILER_DEPENDENCY_LIBRARIES})
+
     set_target_properties(train_imagenet_core.so
       PROPERTIES
       PREFIX "${PYTHON_MODULE_PREFIX}"

@@ -63,10 +63,12 @@ add_library(chainer_compiler_runtime
   ops/roi.cc
   ops/rnn.cc
   ops/sequence.cc
+  ops/snpe_dlc.cc
   ops/something.cc
   ops/sorting.cc
   ops/space_depth.cc
   ops/statistics.cc
+  ops/tensorrt.cc
   ops/tvm.cc
   )
 add_dependencies(
@@ -84,18 +86,9 @@ target_link_libraries(chainer_compiler_runtime_test
   chainer_compiler_runtime
   chainer_compiler_compiler
   chainer_compiler_common
-  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
-  onnx_proto
-  ${PROTOBUF_LIBRARY}
+  ${CHAINER_COMPILER_DEPENDENCY_LIBRARIES}
   gtest
   gtest_main
-  pthread
-  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
-  ${CHAINER_COMPILER_DLDT_LIBRARIES}
-  ${CHAINER_COMPILER_TVM_RUNTIME_LIBRARIES}
-  ${CHAINER_COMPILER_CUDA_LIBRARIES}
-  absl::variant
-  absl::optional
   )
 
 add_test(

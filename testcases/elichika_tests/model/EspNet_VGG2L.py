@@ -101,7 +101,7 @@ def main():
     cdim = 3
     hdim = 7
     batch_size = 3
-    sequence_length = 4
+    sequence_length = 27
     num_vocabs = 10
 
     labels, ilens = sequence_utils.gen_random_sequence(
