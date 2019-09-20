@@ -127,6 +127,7 @@ def call_binop(op, node, tyl, tyr):
     if isinstance(ty_ret, TyTensor) and \
             isinstance(tyl, TyTensor) and is_incomplete_shape(tyl.shape) or \
             isinstance(tyr, TyTensor) and is_incomplete_shape(tyr.shape):
+        # TODO(momohatt): shape broadcasting rule
         # TODO(momohatt): shape expr collision
         ty_ret.shape = (ShapeElem(None),) * ty_ret.ndim
     return ty_ret
@@ -259,13 +260,13 @@ class TypeChecker():
         return self.nodetype
 
 
-    def infer_function_vargs(self, node, args: List[object], type_hints={}):
+    def infer_function_value_args(self, node, args, type_hints={}):
         # args: argument value
         ty_args = [type_of_value(arg) for arg in args]
         return self.infer_function(node, ty_args, type_hints)
 
 
-    def infer_function(self, node, ty_args: List['TyObj'], type_hints={}):
+    def infer_function(self, node, ty_args, type_hints={}):
         # TODO(momohatt): varargs
         assert isinstance(node, gast.FunctionDef)
         if node.args.vararg is None:
@@ -390,7 +391,7 @@ class TypeChecker():
 
 
     # ================================ stmt ====================================
-    def infer_stmt(self, node) -> 'TyObj':
+    def infer_stmt(self, node):
         if self.is_debug:
             debug(gast.dump(node))
 
@@ -566,7 +567,7 @@ class TypeChecker():
 
 
     # ================================= expr ===================================
-    def infer_expr(self, node) -> 'TyObj':
+    def infer_expr(self, node):
         if node in self.nodetype.keys():
             return self.nodetype[node]
 
@@ -888,7 +889,7 @@ class TypeChecker():
 
 
     # ================================= slice ==================================
-    def infer_slice(self, node, ty_key_expected=TyInt()) -> 'NoneType':
+    def infer_slice(self, node, ty_key_expected=TyInt()):
         if isinstance(node, gast.Slice):
             # Slice(expr? lower, expr? upper, expr? step)
             if node.lower:

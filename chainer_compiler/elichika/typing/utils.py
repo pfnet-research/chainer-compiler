@@ -138,7 +138,17 @@ def add_dict(dest, src):
     for k, v in src.items():
         dest[k] = v
 
+
 def find(seq, pred):
     for elt in seq:
         if pred(elt):
             return elt
+
+
+def set_attr_if_None(obj1, obj2, attr_name):
+    if hasattr(obj1, attr_name) and getattr(obj1, attr_name) is None:
+        setattr(obj1, attr_name, getattr(obj2, attr_name))
+        return
+    if hasattr(obj2, attr_name) and getattr(obj2, attr_name) is None:
+        setattr(obj2, attr_name, getattr(obj1, attr_name))
+        return

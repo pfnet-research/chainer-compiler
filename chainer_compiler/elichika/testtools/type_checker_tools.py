@@ -44,7 +44,7 @@ def generate_node2type(tree, args, is_debug=False, module=None, type_hints={}):
     tc = TypeChecker(is_debug=is_debug, module=module)
     func_body = tree.body[0]  # XXX: only checks first function
     try:
-        node2type = tc.infer_function_vargs(func_body, args, type_hints=type_hints)
+        node2type = tc.infer_function_value_args(func_body, args, type_hints=type_hints)
         return node2type, tc.subroutine_node
     except Exception as e:
         tc.dump_stack()

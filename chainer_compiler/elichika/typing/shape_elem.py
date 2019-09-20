@@ -1,6 +1,8 @@
 from   chainer.utils import type_check
 import math
 
+from   chainer_compiler.elichika.typing import utils
+
 unaryops = {
         '-'    : (6, lambda x: -x),
         'ceil' : (6, math.ceil),
@@ -200,3 +202,13 @@ def unwrap_shape(shape_seq):
 
 def is_incomplete_shape(shape_seq):
     return any([not s.has_value() for s in shape_seq])
+
+
+def unify_shape(shape1, shape2):
+    for e1, e2 in zip(shape1, shape2):
+        if e1.value and e2.value:
+            if e1.value != e2.value:
+                e1.value = e2.value = None
+
+        # TODO: which expr should we use?
+        utils.set_attr_if_None(e1, e2, 'value')

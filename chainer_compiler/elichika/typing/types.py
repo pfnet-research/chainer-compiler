@@ -7,7 +7,7 @@ import chainer.links as L
 import numpy as np
 
 from   chainer_compiler.elichika.typing import utils
-from   chainer_compiler.elichika.typing.shape_elem import ShapeElem, wrap_shape, unwrap_shape
+from   chainer_compiler.elichika.typing.shape_elem import ShapeElem, wrap_shape, unwrap_shape, unify_shape
 
 def print_warning(msg):
     print("\x1b[33m[WARNING] " + msg + "\x1b[39m")
@@ -431,7 +431,7 @@ def all_same(l):
     return all([e == l[0] for e in l])
 
 
-def type_of_value(value) -> 'TyObj':
+def type_of_value(value):
     if value is None:
         return TyNone()
     if isinstance(value, bool):
@@ -606,15 +606,6 @@ class UnifyError(Exception):
         self.msg = "UnifyError: {} and {} are not unifiable".format(ty1, ty2)
 
 
-def set_attr_if_None(obj1, obj2, attr_name):
-    if hasattr(obj1, attr_name) and getattr(obj1, attr_name) is None:
-        setattr(obj1, attr_name, getattr(obj2, attr_name))
-        return
-    if hasattr(obj2, attr_name) and getattr(obj2, attr_name) is None:
-        setattr(obj2, attr_name, getattr(obj1, attr_name))
-        return
-
-
 def occur(var, ty):
     if isinstance(ty, TyVar):
         if var is ty:
@@ -721,17 +712,12 @@ def unify(ty1, ty2, inspect_shape=True):
         return
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
-        set_attr_if_None(ty1, ty2, 'kind')
+        utils.set_attr_if_None(ty1, ty2, 'kind')
 
         if ty1.dtype == ty2.dtype and ty1.ndim == ty2.ndim:
             if not inspect_shape:
                 return
-            for s1, s2 in zip(ty1.shape, ty2.shape):
-                try:
-                    unify_shapeElem(s1, s2)
-                except Exception:
-                    # XXX: contradicting shape will result in None
-                    s1.value = s2.value = None
+            unify_shape(ty1.shape, ty2.shape)
             return
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyNum):
@@ -743,7 +729,7 @@ def unify(ty1, ty2, inspect_shape=True):
             return
 
     if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
-        set_attr_if_None(ty1.dtype, ty2.dtype, 't')
+        utils.set_attr_if_None(ty1.dtype, ty2.dtype, 't')
         return
 
     if isinstance(ty1, TyUserDefinedClass) and \
@@ -755,12 +741,3 @@ def unify(ty1, ty2, inspect_shape=True):
             raise UnifyError(ty1, ty2)
 
     raise UnifyError(ty1, ty2)
-
-
-def unify_shapeElem(e1, e2):
-    if e1.value and e2.value:
-        if e1.value != e2.value:
-            e1.value = e2.value = None
-
-    # TODO: which expr should we use?
-    set_attr_if_None(e1, e2, 'value')
