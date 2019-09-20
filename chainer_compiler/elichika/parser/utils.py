@@ -4,7 +4,6 @@ from chainer_compiler.elichika.parser import config
 from chainer_compiler.elichika.parser import values
 import inspect
 import re
-import gast
 
 current_id = 0
 
