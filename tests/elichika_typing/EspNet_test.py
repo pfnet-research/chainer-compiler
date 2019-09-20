@@ -1,5 +1,6 @@
 import numpy as np
 import pprint
+import pytest
 import unittest
 
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
