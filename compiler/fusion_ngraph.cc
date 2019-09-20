@@ -190,6 +190,9 @@ void FuseNGraphOperations(Graph* graph) {
             }
         } else if (negative_axes_ops.count(node.op_type())) {
             // nGraph does not support negative axes in opset11.
+            if (node.axis() < 0) {
+                return false;
+            }
             for (int axis : node.axes()) {
                 if (axis < 0) {
                     return false;
