@@ -314,6 +314,8 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[298]), "int")	# Num 1 (line 10)
 
 
+    # TODO(hamaji): Run this test on CI.
+    @pytest.mark.skip
     def test_AttLoc(self):
         model, forward_args = gen_AttLoc_model()
         id2type = generate_id2type_from_forward(model, forward_args)

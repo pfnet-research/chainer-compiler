@@ -1,5 +1,6 @@
 import ast, gast
 import pprint
+import pytest
 import unittest
 
 import chainer
@@ -651,6 +652,8 @@ class TestInline(unittest.TestCase):
         self.assertEqual(str(id2type[22]), "int")	# Num (line 2)
 
 
+    # TODO(hamaji): Run this test on CI.
+    @pytest.mark.skip
     def test_calling_user_defined_callable_nested(self):
         class B():
             def f(self):
