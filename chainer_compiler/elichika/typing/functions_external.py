@@ -82,37 +82,39 @@ def infer_return_type(inference_logic, args, is_fake_shape, is_fake_dtype):
     return ty_result
 
 
-def make_infer(func, fallback_shapes, fallback_dtypes):  # 丸投げ
-    def infer(ty_args, ty_kwargs):
-        ty_args_tensor = [t for t in ty_args if isinstance(t, TyTensor)]
-
-        shapes = [s if t.shape is None else t.shape
-                for t, s in zip(ty_args_tensor, fallback_shapes)]
-        dtypes = [dt if t.dtype is None else t.dtype
-                for t, dt in zip(ty_args_tensor, fallback_dtypes)]
-        is_dummy_shape = any([t.shape is None for t in ty_args_tensor])
-        is_dummy_dtype = any([t.dtype is None for t in ty_args_tensor])
-
-        # XXX: tensor arguments always come before non-tensor arguments
-        dummy_args = [np.zeros(s, t) for s, t in zip(shapes, dtypes)] + \
-                [generate_dummy_value(t) for t in ty_args if not isinstance(t, TyTensor)]
-        dummy_kwargs = {k : generate_dummy_value(t) for (k, t) in ty_kwargs.items()}
-        dummy_result = func(*dummy_args, **dummy_kwargs)
-        ty_result = type_of_value(dummy_result)
-        if isinstance(ty_result, TyTensor):
-            if is_dummy_shape:
-                ty_result.shape = None
-            if is_dummy_dtype:
-                ty_result.dtype = None
-        return ty_result
-
-    return infer
-
-
 class ty_NumpyArray():
     def __call__(self, ty_args, ty_kwargs):
-        infer = make_infer(np.array, (), ())
-        return infer(ty_args, ty_kwargs)
+        x_type, = ty_args
+        default_dtype = self.get_element_dtype(x_type)
+        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', default_dtype)
+        assert not lacks_dtype, "numpy.array: dtype couldn't inferred"
+
+        return TyNdarray(dtype,
+                shape=self.calculate_shape(x_type))
+
+    def calculate_shape(self, x_type):
+        if not isinstance(x_type, TySequence):
+            return ()
+        if not x_type.is_fixed_len:
+            return (None,)
+
+        x_tys = x_type.get_tys()
+
+        if isinstance(x_tys[0], TySequence):
+            list_lengths = [t.size() if t.is_fixed_len else None for t in x_tys]
+            list_lengths_nonnull = [l for l in list_lengths if l is not None]
+
+            # for example, we will not accept np.array([[1,2,3], [4,5]])
+            assert all_same(list_lengths_nonnull), \
+                    "numpy.array: incompatible list length"
+
+        return (len(x_tys),) + self.calculate_shape(x_tys[0])
+
+    def get_element_dtype(self, ty):
+        # get element dtype of nested TySequence
+        if isinstance(ty, TySequence):
+            return self.get_element_dtype(ty.get())
+        return tyobj2dtype(ty)
 
 
 class ty_NumpyOnes():
