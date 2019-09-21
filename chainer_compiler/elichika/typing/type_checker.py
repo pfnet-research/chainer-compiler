@@ -1,13 +1,9 @@
 import ast
 import inspect
 import gast
-import os
 import sys
-import traceback
 import types
 import typing
-from   typing import List
-from   pprint import pprint
 
 from   chainer_compiler.elichika.parser.utils import clip_head
 from   chainer_compiler.elichika.typing.functions_external import ext_func_ty, ext_callable_ty
@@ -289,6 +285,7 @@ class TypeChecker():
 
         # apply type hints
         for n, t in self.type_hints.items():
+            # TODO(momohatt): use term-match instead of unify?
             unify(self.tyenv[n], t)
             if isinstance(t, TyTensor):
                 for i in range(self.tyenv[n].ndim):
@@ -479,7 +476,7 @@ class TypeChecker():
             self.attribute_tyenv[(ty_obj.instance, target.attr)] = ty_val
             return
 
-        if type(target) in [gast.Tuple, gast.List]:
+        if isinstance(target, (gast.Tuple, gast.List)):
             if isinstance(target, gast.Tuple):
                 ty_target = TyTuple([self.generate_fresh_TyVar(e) for e in target.elts])
             else:
@@ -776,6 +773,7 @@ class TypeChecker():
             return list_attr_ty[node.attr](ty_obj)
 
         if isinstance(ty_obj, TyTensor):
+            # TODO: compare by numpy objects, not names
             if node.attr == 'shape':
                 if ty_obj.shape is None:
                     return TyTuple(TyInt())
