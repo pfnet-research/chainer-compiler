@@ -1,4 +1,13 @@
 #!/usr/bin/python3
+#
+# Expected workflow:
+#
+# $ # Do whatever you want for chainer_compiler/elichika/typing
+# $ git commit -a -m 'A wonderful change'
+# $ ./scripts/rebase_elichika_type_tests.py
+# $ git diff  # Review the changes for test expectations
+# $ git commit -a -m 'Test update for the great change'
+#
 
 import importlib
 import os
