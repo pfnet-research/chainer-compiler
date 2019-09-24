@@ -160,6 +160,7 @@ class TestEspNet(unittest.TestCase):
         model, forward_args = gen_AttDot_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for AttDot ===
         self.assertEqual(str(id2type[1]), "class AttDot -> [ndarray(dtype=float32, shape=(4, 3)), ndarray(dtype=float32, shape=(3, 3)), ndarray(dtype=float32, shape=(3, 3))] -> NoneType -> NoneType -> (Variable(dtype=float32, shape=(3, 3)), Variable(dtype=float32, shape=(3, 4)))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[11]), "NoneType")	# Expr
         self.assertEqual(str(id2type[12]), "string")	# Str "..." (line 8)
@@ -313,6 +314,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[295]), "(int,)")	# Tuple (-1) (line 10)
         self.assertEqual(str(id2type[296]), "int")	# UnaryOp -1 (line 10)
         self.assertEqual(str(id2type[298]), "int")	# Num 1 (line 10)
+        # === END ASSERTIONS for AttDot ===
 
 
     # TODO(hamaji): Run this test on CI.
@@ -321,6 +323,7 @@ class TestEspNet(unittest.TestCase):
         model, forward_args = gen_AttLoc_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for AttLoc ===
         self.assertEqual(str(id2type[1]), "class AttLoc -> [ndarray(dtype=float32, shape=(4, 3)), ndarray(dtype=float32, shape=(2, 3)), ndarray(dtype=float32, shape=(2, 3))] -> NoneType -> NoneType -> (a60, a51)")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[11]), "NoneType")	# Expr
         self.assertEqual(str(id2type[12]), "string")	# Str "..." (line 9)
@@ -539,6 +542,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[415]), "a40 (from line 49) -> a41")	# Name linear (line 9)
         self.assertEqual(str(id2type[417]), "a40 (from line 49)")	# Name x (line 9)
         self.assertEqual(str(id2type[420]), "int")	# Num 2 (line 9)
+        # === END ASSERTIONS for AttLoc ===
 
 
     # TODO(hamaji): Run this test on CI.
@@ -547,6 +551,7 @@ class TestEspNet(unittest.TestCase):
         model, forward_args = gen_StatelessLSTM_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for StatelessLSTM ===
         self.assertEqual(str(id2type[1]), "class StatelessLSTM -> ndarray(dtype=float32, shape=(3, 4)) -> ndarray(dtype=float32, shape=(3, 4)) -> ndarray(dtype=float32, shape=(3, 7)) -> (Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[11]), "NoneType")	# Expr
         self.assertEqual(str(id2type[12]), "string")	# Str "..." (line 14)
@@ -694,12 +699,14 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[273]), "Variable(dtype=float32, shape=(3, 4))")	# Subscript r[3] (line 4)
         self.assertEqual(str(id2type[274]), "(Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# Name r (line 4)
         self.assertEqual(str(id2type[277]), "int")	# Num 3 (line 4)
+        # === END ASSERTIONS for StatelessLSTM ===
 
 
     def test_VGG2L(self):
         model, forward_args = gen_VGG2L_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for VGG2L ===
         self.assertEqual(str(id2type[1]), "class VGG2L -> [ndarray(dtype=float32, shape=(4, 5)), ndarray(dtype=float32, shape=(2, 5)), ndarray(dtype=float32, shape=(2, 5))] -> ndarray(dtype=int64, shape=(3,)) -> (Variable(dtype=float32, shape=(None, 256)) list, ndarray(dtype=int64, shape=(3,)))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[9]), "NoneType")	# Expr
         self.assertEqual(str(id2type[10]), "string")	# Str "..." (line 7)
@@ -863,12 +870,14 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[295]), "(Variable(dtype=float32, shape=(None, 256)) list, ndarray(dtype=int64, shape=(3,)))")	# Tuple (xs, ilens) (line 41)
         self.assertEqual(str(id2type[296]), "Variable(dtype=float32, shape=(None, 256)) list")	# Name xs (line 41)
         self.assertEqual(str(id2type[298]), "ndarray(dtype=int64, shape=(3,))")	# Name ilens (line 41)
+        # === END ASSERTIONS for VGG2L ===
 
 
     def test_BLSTM(self):
         model, forward_args = gen_BLSTM_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for BLSTM ===
         self.assertEqual(str(id2type[1]), "class BLSTM -> [ndarray(dtype=float32, shape=(4, 5)), ndarray(dtype=float32, shape=(2, 5)), ndarray(dtype=float32, shape=(2, 5))] -> ndarray(dtype=int64, shape=(3,)) -> ((Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7))), ndarray(dtype=int64, shape=(3,)))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[9]), "NoneType")	# Expr
         self.assertEqual(str(id2type[10]), "string")	# Str "..." (line 7)
@@ -942,6 +951,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[140]), "((Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7))), ndarray(dtype=int64, shape=(3,)))")	# Tuple (xs, ilens) (line 24)
         self.assertEqual(str(id2type[141]), "(Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7)))")	# Name xs (line 24)
         self.assertEqual(str(id2type[143]), "ndarray(dtype=int64, shape=(3,))")	# Name ilens (line 24)
+        # === END ASSERTIONS for BLSTM ===
 
 
 def main():

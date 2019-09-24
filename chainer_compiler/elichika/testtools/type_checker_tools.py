@@ -87,6 +87,20 @@ def generate_assertion(type_table_name, id2type, id2node, ofile=None):
             ofile.write(output + '\n')
 
 
+def generate_type_inference_results(model, forward_args, is_debug=True):
+    code = utils.clip_head(inspect.getsource(model.forward))
+    node = gast.ast_to_gast(ast.parse(code))
+    # node = Canonicalizer().visit(node)
+    module = sys.modules[model.forward.__module__]
+    node2type, subroutine_node = generate_node2type(
+        node, (model,) + forward_args, is_debug=is_debug, module=module,
+        type_hints=typing.get_type_hints(model.forward))
+    node2id = generate_node2id(node, subroutine_node)
+    id2type = generate_id2type(node2type, node2id)
+    id2node = generate_id2node(node2id)
+    return id2type, id2node
+
+
 def reset_state():
     np.random.seed(42)
     types.var_counter = 0
@@ -132,16 +146,7 @@ if __name__ == '__main__':
     if args.e:
         model.forward(*forward_args)
     else:
-        code = utils.clip_head(inspect.getsource(model.forward))
-        node = gast.ast_to_gast(ast.parse(code))
-        # node = Canonicalizer().visit(node)
-        module = sys.modules[model.forward.__module__]
-        node2type, subroutine_node = generate_node2type(
-                node, (model,) + forward_args, is_debug=True, module=module,
-                type_hints=typing.get_type_hints(model.forward))
-        node2id = generate_node2id(node, subroutine_node)
-        id2type = generate_id2type(node2type, node2id)
-        id2node = generate_id2node(node2id)
+        id2type, id2node = generate_type_inference_results(model, forward_args)
 
         if args.o:
             ofile = open(args.o, 'w')
