@@ -597,6 +597,7 @@ def copy_ty(ty):
 def tyobj2dtype(ty):
     if isinstance(ty, TyNum):
         return np.dtype(str(NumKind(ty.kind)))
+    assert False
 
 
 # ==============================================================================
