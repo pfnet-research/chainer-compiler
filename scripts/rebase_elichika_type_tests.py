@@ -25,7 +25,7 @@ from chainer_compiler.elichika.testtools import type_checker_tools
 def rebase_testcase(filename, model_name, gen_model_fn):
     model, forward_args = gen_model_fn()
     id2type, id2node = type_checker_tools.generate_type_inference_results(
-        model, forward_args)
+        model, forward_args, is_debug=False)
     sio = six.StringIO()
     type_checker_tools.generate_assertion("id2type", id2type, id2node, sio)
 
