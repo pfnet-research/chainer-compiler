@@ -43,6 +43,7 @@ class TestMLP(unittest.TestCase):
         model, forward_args = gen_MLP_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for MLP ===
         self.assertEqual(str(id2type[1]), "class MLP -> ndarray(dtype=float32, shape=(100, 3)) -> ndarray(dtype=int64, shape=(100,)) -> Variable(dtype=float32, shape=())")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[9]), "NoneType")	# Assign
         self.assertEqual(str(id2type[10]), "Variable(dtype=float32, shape=(100, 8))")	# Name h1 (line 2)
@@ -74,6 +75,7 @@ class TestMLP(unittest.TestCase):
         self.assertEqual(str(id2type[59]), "ndarray(dtype=int64, shape=(100,))")	# Name t (line 5)
         self.assertEqual(str(id2type[61]), "Variable(dtype=float32, shape=())")	# Return
         self.assertEqual(str(id2type[62]), "Variable(dtype=float32, shape=())")	# Name loss (line 6)
+        # === END ASSERTIONS for MLP ===
 
 
 # class TestResNet50(unittest.TestCase):
