@@ -3,5 +3,8 @@
         "MergePadConv": false,
         "MergeTransposeGemm": false,
         "MergeMatMulAdd": false
+    },
+    "simplify": {
+        "ReplaceConstant": true
     }
 }
