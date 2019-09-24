@@ -59,13 +59,30 @@ void FuseSNPEOperations(Graph* graph) {
         }
 
         switch (node.op_type()) {
+            case Node::kMul:
+            case Node::kAdd:
+                if (!node.input(1)->initializer()) {
+                    return false;
+                }
+                break;
             case Node::kConv:
                 if (!node.input(1)->initializer() || node.auto_pad() == "NOTSET") {
+                    return false;
+                }
+                if (node.inputs().size() == 3 && !node.input(2)->initializer()) {
+                    return false;
+                }
+                break;
+            case Node::kMatMul:
+                if (!node.input(1)->initializer()) {
                     return false;
                 }
                 break;
             case Node::kConvTranspose:
                 if (!node.input(1)->initializer()) {
+                    return false;
+                }
+                if (node.inputs().size() == 3 && !node.input(2)->initializer()) {
                     return false;
                 }
                 break;
