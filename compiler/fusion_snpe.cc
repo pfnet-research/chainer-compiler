@@ -39,7 +39,7 @@ void FuseSNPEOperations(Graph* graph) {
             Node::kConstant,
             Node::kFlatten,
             Node::kGather,
-            // Node::kPad,
+            Node::kPad,
             Node::kReshape,
             Node::kShape,
             Node::kSlice,
