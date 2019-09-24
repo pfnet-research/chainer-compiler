@@ -541,6 +541,8 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[420]), "int")	# Num 2 (line 9)
 
 
+    # TODO(hamaji): Run this test on CI.
+    @pytest.mark.skip
     def test_StatelessLSTM(self):
         model, forward_args = gen_StatelessLSTM_model()
         id2type = generate_id2type_from_forward(model, forward_args)
