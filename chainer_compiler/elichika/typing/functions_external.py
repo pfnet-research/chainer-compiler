@@ -64,24 +64,6 @@ def remove_dims(shape, dims_to_remove):
     return tuple([shape[i] for i in range(len(shape)) if i not in dims_to_remove])
 
 
-def infer_return_type(inference_logic, args, is_fake_shape, is_fake_dtype):
-    ty_result = inference_logic(*args)
-
-    if isinstance(ty_result, TyTensor):
-        if is_fake_shape: ty_result.shape = None
-        if is_fake_dtype: ty_result.dtype = None
-    elif isinstance(ty_result, TySequence):
-        assert ty_result.is_fixed_len
-        if is_fake_shape:
-            for t in ty_result.get_tys():
-                t.shape = None
-        if is_fake_dtype:
-            for  t in ty_result.get_tys():
-                t.dtype = None
-
-    return ty_result
-
-
 class ty_NumpyArray():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args

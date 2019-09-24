@@ -100,8 +100,8 @@ if __name__ == '__main__':
     import chainer.functions as F
     import chainer.links as L
 
-    from tests.elichika_typing.EspNet import *
-    from tests.elichika_typing.Models import *
+    from tests.elichika_typing.EspNet_test import *
+    from tests.elichika_typing.Models_test import *
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-e", help="Execute the script", action="store_true")
