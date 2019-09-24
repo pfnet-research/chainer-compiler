@@ -349,14 +349,14 @@ def TyChainerVariable(dtype, ndim=None, shape=None):
 
 # ------------------------ TypeChecker internal types --------------------------
 
-counter = 0
+var_counter = 0
 
 class TyVar(TyObj):
     def __init__(self, lineno=None):
-        global counter
+        global var_counter
         super().__init__()
-        self.i = counter
-        counter += 1
+        self.i = var_counter
+        var_counter += 1
         self.ty = None
         self.is_set = False
         self.lineno = lineno
