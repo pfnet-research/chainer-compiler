@@ -196,7 +196,16 @@ chainerx::Array FixedBatchNormalizationOp::RunImpl(
     for (int i = 0; i < x.shape().size(); ++i) {
         if (i != 1) axes.push_back(i);
     }
-    return chainerx::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
+    if (x.ndim() < 4) {
+        // A workaround for <4D tensors with cuDNN.
+        chainerx::Shape shape = x.shape();
+        while (shape.size() < 4) {
+            shape.push_back(1);
+        }
+        return chainerx::FixedBatchNorm(x.Reshape(shape), s, bias, mean, var, epsilon, axes).Reshape(x.shape());
+    } else {
+        return chainerx::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
+    }
 }
 
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationGradOp::RunImpl(
