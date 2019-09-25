@@ -66,8 +66,13 @@ void FuseSNPEOperations(Graph* graph) {
                     return false;
                 }
                 break;
+            case Node::kMaxPool:
+                if (node.auto_pad() != "NOTSET") {
+                    return false;
+                }
+                break;
             case Node::kConv:
-                if (!node.input(1)->initializer() || node.auto_pad() == "NOTSET") {
+                if (!node.input(1)->initializer() || node.auto_pad() != "NOTSET") {
                     return false;
                 }
                 if (node.inputs().size() == 3 && !node.input(2)->initializer()) {
