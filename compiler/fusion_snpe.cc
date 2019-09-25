@@ -71,6 +71,11 @@ void FuseSNPEOperations(Graph* graph) {
                     return false;
                 }
                 break;
+            case Node::kRNN:
+                if (!node.input(1)->initializer()) {
+                    return false;
+                }
+                break;
             case Node::kConv:
                 if (!node.input(1)->initializer() || node.auto_pad() != "NOTSET") {
                     return false;
