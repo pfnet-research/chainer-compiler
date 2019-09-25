@@ -31,7 +31,8 @@ void FuseSNPEOperations(Graph* graph) {
             Node::kSigmoid,
             Node::kSoftmax,
             Node::kSum,
-            Node::kTanh,
+            // TODO(take-cheeze): Attribute bug in snpe-onnx-to-dlc
+            // Node::kTanh,
             // TODO(take-cheeze): Removed in latest ONNX spec
             // Node::kScaledTanh,
             Node::kClip,
