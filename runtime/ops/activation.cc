@@ -45,13 +45,7 @@ chainerx::Array SeluOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
 }
 
 chainerx::Array LeakyReluOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
-    // TODO(hamaji): Use ChainerX's after
-    // https://github.com/chainer/chainer/pull/7816
-    // return chainerx::LeakyRelu(x, alpha);
-    chainerx::Dtype dtype = chainerx::internal::GetMathResultDtype(x.dtype());
-    const chainerx::Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    chainerx::Array zero = Zeros({}, x_cast.dtype(), x_cast.device());
-    return chainerx::Where(x_cast >= zero, x_cast, alpha * x_cast);
+    return chainerx::LeakyRelu(x, alpha);
 }
 
 chainerx::Array EluOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
