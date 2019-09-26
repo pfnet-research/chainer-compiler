@@ -230,6 +230,27 @@ void ExpGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kMul, 0, {gc->y(0), gc->gy(0)});
 }
 
+void PowGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* gy = gc->gy(0);
+    Value* y = gc->y(0);
+    Value* x0 = gc->x(0);
+    Value* x1 = gc->x(1);
+    Value* one = gb.Const(Type(GetFloatDtype(gc->NoRetainX(0)), {}), {1.0});
+    Value* tmp;
+
+    // gx1 = x1 * (x0 ** (x1 - one)) * gy
+    tmp = gb.Op(Node::kSub, {x1, one});
+    tmp = gb.Op(Node::kPow, {x0, tmp});
+    tmp = gb.Op(Node::kMul, {x1, tmp});
+    gc->GradOp(Node::kMul, 0, {tmp, gy});
+
+    // gx2 = log(x0) * y * gy
+    tmp = gb.Op(Node::kLog, {x0});
+    tmp = gb.Op(Node::kMul, {tmp, y});
+    gc->GradOp(Node::kMul, 1, {tmp, gy});
+}
+
 void SigmoidGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* gy = gc->gy(0);
@@ -1073,6 +1094,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kDiv, &DivGradFn);
         register_grad_fn(Node::kNeg, &NegGradFn);
         register_grad_fn(Node::kExp, &ExpGradFn);
+        register_grad_fn(Node::kPow, &PowGradFn);
         register_grad_fn(Node::kSigmoid, &SigmoidGradFn);
         register_grad_fn(Node::kRelu, &ReluGradFn);
         register_grad_fn(Node::kSqrt, &SqrtGradFn);
