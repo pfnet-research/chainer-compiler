@@ -3,7 +3,6 @@ import chainer.functions as F
 import chainer.links as L
 import sys
 import numpy as np
-
 import collections
 
 import ast
@@ -338,7 +337,10 @@ class FieldAttributeCollection():
 
     def pop_history(self):
         for att, input in self.inputs.items():
-            input[0].revise(input[1])
+            if isinstance(input[0], SubscriptObject):
+                input[0].revise(input[1], update_parent=False)
+            else:
+                input[0].revise(input[1])
         self.inputs.clear()
 
     def get_inputs(self) -> 'List[FieldInput]':
@@ -541,7 +543,7 @@ class Object():
     def get_value(self) -> 'Value':
         return self.value
 
-    def revise(self, value):
+    def revise(self, value, update_parent=False):
         self.value = value
     
     def make_subscript_object(self, subscript: 'Object', graph: 'Graph'):

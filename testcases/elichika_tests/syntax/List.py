@@ -17,6 +17,14 @@ class ListSubscript(chainer.Chain):
         test_list[2] += 2
         return test_list
 
+
+class IfListSubscriptAssign(chainer.Chain):
+    def forward(self):
+        test_list = [0, 1, 2]
+        if True:
+            test_list = test_list[1]
+        return test_list
+
 class ArraySubscript(chainer.Chain):
     def forward(self):
         test_list = np.array([0, 1, 2])
@@ -91,6 +99,7 @@ def main():
 
     # TODO(rchouras): Fix following tests. First two are used very commonly.
     testtools.generate_testcase(ListSubscript, [], subname='list_subscript')
+    testtools.generate_testcase(IfListSubscriptAssign, [], subname='if_list_subscript_assign')
     testtools.generate_testcase(ArraySubscript, [], subname='array_subscript')
     x, y = (np.arange(2 * 3 * 4 * 5).reshape((2, 3, 4, 5)) for _ in range(2))
     testtools.generate_testcase(ArraySubscriptFancy, [x, y],

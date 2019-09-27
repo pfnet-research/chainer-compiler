@@ -431,7 +431,10 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
                 assert(False)
 
             if obj is not None:
-                obj.revise(output_value)
+                if isinstance(obj, values.SubscriptObject):
+                    obj.revise(output_value, update_parent=False)
+                else:
+                    obj.revise(output_value)
                 field.get_attribute(name).revise(obj)
             elif field.get_attribute(name).has_obj():
                 field.get_attribute(name).get_obj().revise(output_value)
@@ -1216,7 +1219,10 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
             if 'output_obj' in v:
                 obj = v['output_obj']
-                obj.revise(output_value)
+                if isinstance(obj, values.SubscriptObject):
+                    obj.revise(output_value, update_parent=False)
+                else:
+                    obj.revise(output_value)
                 field.get_attribute(name).revise(obj)
             elif field.get_attribute(name).has_obj():
                 field.get_attribute(name).get_obj().revise(output_value)
