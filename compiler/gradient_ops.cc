@@ -264,6 +264,19 @@ void ReluGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kChainerReluGrad, 0, {gc->y(0), gc->gy(0)});
 }
 
+void EluGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* y = gc->y(0);
+    Value* gy = gc->gy(0);
+    Value* zero = gb.Const(Type(GetFloatDtype(y), {}), {0.0});
+    Value* cond = gb.Op(Node::kGreater, {gc->x(0), zero});
+    Value* alpha = gb.Const(Type(GetFloatDtype(y), {}), {gc->node()->alpha()});
+
+    Value* tmp = gb.Op(Node::kAdd, {y, alpha});
+    tmp = gb.Op(Node::kMul, {tmp, gy});
+    gc->GradOp(Node::kWhere, 0, {cond, gy, tmp});
+}
+
 void SqrtGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* t0 = gb.Op(Node::kAdd, {gc->y(0), gc->y(0)});
@@ -1097,6 +1110,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kPow, &PowGradFn);
         register_grad_fn(Node::kSigmoid, &SigmoidGradFn);
         register_grad_fn(Node::kRelu, &ReluGradFn);
+        register_grad_fn(Node::kElu, &EluGradFn);
         register_grad_fn(Node::kSqrt, &SqrtGradFn);
         register_grad_fn(Node::kTanh, &TanhGradFn);
 
