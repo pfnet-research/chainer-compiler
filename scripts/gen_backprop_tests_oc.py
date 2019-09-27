@@ -73,6 +73,7 @@ def get_backprop_tests():
     # test('pow', lambda m: m.a ** m.b, a=[3, 5], b=[7, 2])
     test('sigmoid', lambda m: F.sigmoid(m.a), a=[-4, 3, 5])
     test('relu', lambda m: F.relu(m.a), a=[-3, 3, 5])
+    test('elu', lambda m: F.elu(m.a), a=[-3, 3, 5])
     test('reduce_sum', lambda m: F.sum(m.a, axis=0), a=[3, 5, 7])
 
     test('mulconst', lambda m: m.a * 1.23, a=[3, 5])
