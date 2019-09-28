@@ -18,8 +18,12 @@ def get():
                 'prelu' in name or
                 'tile' in name or
                 'resizeimages' in name)
+        equal_nan = ('powvarvar' in name or
+                     'arcsin' in name or
+                     'arccos' in name)
         tests.append(TestCase(name=name,
                               test_dir=test_dir,
+                              equal_nan=equal_nan,
                               fail=fail))
 
     return tests
