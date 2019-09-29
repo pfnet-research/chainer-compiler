@@ -234,7 +234,7 @@ class FunctionArgCollection():
         self.args_list.append(fa)
         self.args[fa.name] = fa
 
-    def analyze_args(self, func):
+    def analyze_args(self, func, module_function=False):
         sig = inspect.signature(func)
         # TODO: replace with https://docs.python.org/3.4/library/inspect.html#inspect.getfullargspec
         argspec = inspect.getargspec(func)  # TODO: Doesn't support keyword only args.
@@ -246,7 +246,7 @@ class FunctionArgCollection():
                 continue
             parameter_count += 1
 
-        isSelfRemoved = parameter_count != len(argspec[0])
+        isSelfRemoved = not module_function and parameter_count != len(argspec[0])
 
         if isSelfRemoved:
             self.add_arg(argspec[0][0], None)

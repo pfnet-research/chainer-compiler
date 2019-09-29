@@ -126,7 +126,7 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
             assert(False)   # not supported
         
         for i in range(len(targets)):
-            assert(value_obj.get_value().get_constant_value() is not None)
+            assert(value_obj.get_value().get_constant_value() is not None), "Not supported yet. In {}".format(lineprop)
 
             node_assign = nodes.NodeAssign(targets[i], value_obj.get_value().get_constant_value()[i], astc.lineno)
             targets[i].revise(utils.try_get_obj(value_obj.get_value().get_constant_value()[i],'assign', lineprop))
@@ -1357,10 +1357,6 @@ def veval_ast_arguments(astc : 'AstContext', local_field : 'values.Field', graph
 
 def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', context : 'functions.VEvalContext' = None):
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
-    # print("astc.nast at {}->".format(lineprop), astc.nast)
-    # if not isinstance(astc.nast, list):
-    #     print("astc.nast._fields at {}->".format(lineprop), astc.nast._fields)
-    # print("@@@@@@@@@@@@@@@@@@@@@@@")
     if context is None:
         context = functions.VEvalContext()
 

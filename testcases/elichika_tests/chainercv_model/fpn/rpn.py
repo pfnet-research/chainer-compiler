@@ -13,6 +13,7 @@ from testcases.elichika_tests.chainercv_model.fpn.misc import choice
 from testcases.elichika_tests.chainercv_model.fpn.misc import exp_clip
 from testcases.elichika_tests.chainercv_model.fpn.misc import smooth_l1
 import testcases.elichika_tests.chainercv_model.utils as utils
+from chainer_compiler.elichika.parser import flags
 
 
 class RPN(chainer.Chain):
@@ -24,7 +25,7 @@ class RPN(chainer.Chain):
     """
 
     _anchor_size = 32
-    _anchor_ratios = (0.5, 1, 2)
+    _anchor_ratios = np.array([0.5, 1, 2])
     _nms_thresh = 0.7
     _train_nms_limit_pre = 2000
     _train_nms_limit_post = 2000
@@ -91,25 +92,30 @@ class RPN(chainer.Chain):
 
         """
         anchors = []
-        l = 0
-        for item in sizes:
-            H = item[0]
-            W = item[1]
-            grid = np.meshgrid(
-                np.arange(W), np.arange(H), self._anchor_ratios)
-            v = grid[0]
-            u = grid[1]
-            ar = grid[2]
+        for l in range(len(sizes)):
+            H = sizes
+            W = sizes[l][1]
+            return H
+            # mesh = np.meshgrid(range(W), range(H), self._anchor_ratios)
+            v = np.zeros((W, H, len(self._anchor_ratios)), dtype='f')
+            u = np.zeros((W, H, len(self._anchor_ratios)), dtype='f')
+            ar = np.zeros((W, H, len(self._anchor_ratios)), dtype='f')
+            for i in range(W):
+                for j in range(H):
+                    for k in range(len(self._anchor_ratios)):
+                        v[i][j][k] = i
+                        u[i][j][k] = j
+                        ar[i][j][k] = self._anchor_ratios[k]
+
             w = np.round(1 / np.sqrt(ar) / self._scales[l])
             h = np.round(w * ar)
-            anchor = np.stack((u, v, h, w)).reshape((4, -1)).transpose()
-            anchor[:, :2] = (anchor[:, :2] + 0.5) / self._scales[l]
-            anchor[:, 2:] *= (self._anchor_size * 2**l) * self._scales[l]
-            # yxhw -> tlbr
-            anchor[:, :2] -= anchor[:, 2:] / 2
-            anchor[:, 2:] += anchor[:, :2]
+            anchor = np.transpose(np.stack(np.reshape((u, v, h, w), (4, -1))), (1, 0))
+            # anchor[:, :2] = (anchor[:, :2] + 0.5) / self._scales[l]
+            # anchor[:, 2:] *= ((2**l) * self._anchor_size) * self._scales[l]
+            # # yxhw -> tlbr
+            # anchor[:, :2] -= anchor[:, 2:] / 2
+            # anchor[:, 2:] += anchor[:, :2]
             anchors.append(self.xp.array(anchor, dtype=np.float32))
-            l += 1
 
         return anchors
 

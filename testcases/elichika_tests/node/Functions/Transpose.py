@@ -12,7 +12,10 @@ class A(chainer.Chain):
         y1 = F.transpose(x, (0, 2, 1))
         y2 = F.transpose(x, (1, 0, 2))
         y3 = F.transpose(x, (2, 1, 0))
-        return (y1, y2, y3)
+        y4 = x.transpose((0, 2, 1))
+        y5 = np.transpose(x, (1, 0, 2))
+        y6 = x.transpose((2, 1, 0))
+        return (y1, y2, y3, y4, y5, y6)
 
 
 # ======================================

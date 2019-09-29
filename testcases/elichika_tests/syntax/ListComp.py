@@ -30,6 +30,15 @@ class A(chainer.Chain):
         y5 = [3 for x in xs]
         return y1, y2, y3, y4, y5
 
+class B(chainer.Chain):
+
+    def __init__(self):
+        super(B, self).__init__()
+
+    def forward(self, xs):
+        y = [x.shape for x in xs]
+        return y[0]
+
 # ======================================
 
 
@@ -49,6 +58,7 @@ def main():
     qs = np.array([1, 2, 3, 4, 5])
     p = np.int64(5)
     testtools.generate_testcase(model, [v, ps, p, qs], subname='A')
+    # testtools.generate_testcase(B(), [v], subname='listcomp_bug')
 
 if __name__ == '__main__':
     main()

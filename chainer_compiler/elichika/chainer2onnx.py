@@ -108,6 +108,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.f_converter[F.arctan] = fb.ConverterChainerMathMisc('Atan')
     oc.f_converter[F.exp] = fb.ConverterChainerMathMisc('Exp')
     oc.f_converter[F.log] = fb.ConverterChainerMathMisc('Log')
+    oc.f_converter[F.sqrt] = fb.ConverterChainerMathMisc('Sqrt')
     #oc.f_converter[F.absolute] = fb.ConverterChainerMathMisc('Abs', arg_name='self')
 
     oc.f_converter[functions_onnx.onnx_abs] = fb.ConverterChainerMathMisc('Abs', arg_name='x')
@@ -116,6 +117,11 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.f_converter[functions_ndarray.dummy_minimum] = fb.ConverterMinimum()
     oc.f_converter[functions_ndarray.dummy_argmax] = fb.ConverterArgMax()
     oc.f_converter[functions_ndarray.dummy_argmin] = fb.ConverterArgMin()
+    oc.f_converter[functions_ndarray.dummy_round] = fb.ConverterRound()
+    oc.f_converter[functions_ndarray.dummy_sqrt] = fb.ConverterSqrt()
+    oc.f_converter[functions_ndarray.dummy_stack] = fb.ConverterStack()
+    oc.f_converter[functions_ndarray.dummy_reshape] = fb.ConverterReshape()
+    oc.f_converter[functions_ndarray.dummy_transpose] = fb.ConverterTranspose()
 
     oc.f_converter[F.clip] = fb.ConverterClip()
 

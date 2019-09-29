@@ -3,30 +3,34 @@
 import chainer
 import chainer.functions as F
 from chainer_compiler.elichika import testtools
-
+import numpy as np
 
 class Stack(chainer.Chain):
     def forward(self, x, y):
         y1 = F.stack((x, y))
-        return y1
+        y2 = np.stack([x, y])
+        return y1, y2
 
 
 class StackAxis0(chainer.Chain):
     def forward(self, x, y):
         y1 = F.stack((x, y), axis=0)
-        return y1
+        y2 = np.stack([x, y], axis=0)
+        return y1, y2
 
 
 class StackAxis1(chainer.Chain):
     def forward(self, x, y):
         y1 = F.stack((x, y), axis=1)
-        return y1
+        y2 = np.stack([x, y], axis=1)
+        return y1, y2
 
 
 class StackAxis2(chainer.Chain):
     def forward(self, x, y):
         y1 = F.stack((x, y), axis=2)
-        return y1
+        y2 = np.stack([x, y], axis=2)
+        return y1, y2
 
 
 # ======================================

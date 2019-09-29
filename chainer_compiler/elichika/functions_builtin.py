@@ -115,6 +115,35 @@ def convert_argminmax(onnx_graph, node, parser, tensor, operator, dtype):
             str(node.lineprop),
             to=get_onnx_dtype(dtype))
 
+class ConverterRound(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('decimals', oc.ParseType.In)
+            )
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+        onnx_graph.add_node(
+            "Round",
+            [parser.get('x')],#, parser.get('decimals')],
+            node.outputs,
+            str(node.lineprop))
+
+class ConverterSqrt(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            )
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+        onnx_graph.add_node(
+            "Sqrt",
+            [parser.get('x')],
+            node.outputs,
+            str(node.lineprop))
+
 class ConverterChainerArgMax(BaseConverter):
     def __init__(self):
         self.expected_args = (
