@@ -110,11 +110,11 @@ class FasterRCNN(chainer.Chain):
     def forward(self, x):
         assert(not chainer.config.train)
         hs = self.extractor(x)
-        rpn_locs, rpn_confs = self.rpn(hs)
-        anchors = self.rpn.anchors(h.shape[2:] for h in hs)
-        rois, roi_indices = self.rpn.decode(
-            rpn_locs, rpn_confs, anchors, x.shape)
-        return hs, rois, roi_indices
+        # rpn_locs, rpn_confs = self.rpn(hs)
+        anchors = self.rpn.anchors([h.shape[2:] for h in hs])
+        # rois, roi_indices = self.rpn.decode(
+        #     rpn_locs, rpn_confs, anchors, x.shape)
+        return hs, anchors#, rois, roi_indices
 
     def predict(self, imgs):
         """Conduct inference on the given images.

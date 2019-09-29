@@ -1403,6 +1403,12 @@ class ONNXGenerator:
                             str(node.lineprop))
 
                         onnx_graph.nodes.append(onnx_node)
+                    elif isinstance(node_.value, values.TensorValue):
+                        onnx_node = oh.make_node(
+                            "ChainerSequenceSeparate",
+                            [value2onnx_parameter[node.inputs[0]].onnx_name],
+                            [value2onnx_parameter[node.outputs[0]].onnx_name],
+                            str(node.lineprop))
                     else:
                         raise utils.UnimplementedError(
                             '{} is not converted into List'.format(type(node_.value)), node_.lineprop)

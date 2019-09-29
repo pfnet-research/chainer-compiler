@@ -91,18 +91,25 @@ class RPN(chainer.Chain):
 
         """
         anchors = []
-        for l, (H, W) in enumerate(sizes):
-            v, u, ar = np.meshgrid(
+        l = 0
+        for item in sizes:
+            H = item[0]
+            W = item[1]
+            grid = np.meshgrid(
                 np.arange(W), np.arange(H), self._anchor_ratios)
+            v = grid[0]
+            u = grid[1]
+            ar = grid[2]
             w = np.round(1 / np.sqrt(ar) / self._scales[l])
             h = np.round(w * ar)
             anchor = np.stack((u, v, h, w)).reshape((4, -1)).transpose()
             anchor[:, :2] = (anchor[:, :2] + 0.5) / self._scales[l]
-            anchor[:, 2:] *= (self._anchor_size << l) * self._scales[l]
+            anchor[:, 2:] *= (self._anchor_size * 2**l) * self._scales[l]
             # yxhw -> tlbr
             anchor[:, :2] -= anchor[:, 2:] / 2
             anchor[:, 2:] += anchor[:, :2]
             anchors.append(self.xp.array(anchor, dtype=np.float32))
+            l += 1
 
         return anchors
 
@@ -148,7 +155,7 @@ class RPN(chainer.Chain):
                 loc_l = locs[l].array[i]
                 conf_l = confs[l].array[i]
 
-                roi_l = anchors[l].copy()
+                roi_l = anchors[l]#.copy()
                 # tlbr -> yxhw
                 roi_l[:, 2:] -= roi_l[:, :2]
                 roi_l[:, :2] += roi_l[:, 2:] / 2

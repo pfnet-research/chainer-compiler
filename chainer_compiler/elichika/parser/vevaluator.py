@@ -617,7 +617,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             ret_obj.revise(ret_value, update_parent=False)
             return ret_obj
     else:
-        utils.print_warning("Subscript not possible for type {}".format(type(value_value)))
+        utils.print_warning("Subscript not possible for type {}".format(type(value_value)), lineprop)
 
     return None
 
@@ -1356,6 +1356,11 @@ def veval_ast_arguments(astc : 'AstContext', local_field : 'values.Field', graph
     return ret
 
 def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', context : 'functions.VEvalContext' = None):
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
+    # print("astc.nast at {}->".format(lineprop), astc.nast)
+    # if not isinstance(astc.nast, list):
+    #     print("astc.nast._fields at {}->".format(lineprop), astc.nast._fields)
+    # print("@@@@@@@@@@@@@@@@@@@@@@@")
     if context is None:
         context = functions.VEvalContext()
 
@@ -1473,4 +1478,4 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
 
     else:
         if config.show_warnings:
-            print('Unknown ast is found : {} in L.{}'.format(type(astc.nast),astc.lineno))
+            print('Unknown ast is found : {} in {}'.format(type(astc.nast),lineprop))
