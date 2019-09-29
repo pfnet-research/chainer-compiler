@@ -6,6 +6,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include <google/protobuf/io/coded_stream.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
 #include <chainerx/routines/creation.h>
@@ -203,15 +206,31 @@ void menoh_delete_model_data(menoh_model_data_handle model_data) {
     delete model_data;
 }
 
+namespace {
+
+onnx::ModelProto load_model_proto(const uint8_t* onnx_data, int64_t size) {
+    onnx::ModelProto proto;
+    ::google::protobuf::io::ArrayInputStream ais(onnx_data, size);
+    ::google::protobuf::io::CodedInputStream cis(&ais);
+    cis.SetTotalBytesLimit(std::numeric_limits<int>::max(), std::numeric_limits<int>::max());
+    CHECK(proto.ParseFromCodedStream(&cis)) << "failed to parse from memory";
+    return proto;
+}
+
+}  // namespace
+
+menoh_error_code menoh_make_model_data_from_onnx_data_on_memory(const uint8_t* onnx_data, int64_t size, menoh_model_data_handle* dst_handle) {
+    return check_error([&]() {
+            *dst_handle =
+                    std::make_unique<menoh_model_data>(menoh_model_data{load_model_proto(onnx_data, size).graph()}).release();
+        return menoh_error_code_success;
+    });
+}
+
 menoh_error_code menoh_make_model_data_from_onnx(const char* onnx_filename, menoh_model_data_handle* dst_handle) {
     return check_error([&]() {
-        chainerx::Context ctx;
-        chainerx::ContextScope ctx_scope(ctx);
-        {
-            chainerx::NoBackpropModeScope scope;
-            *dst_handle =
-                    std::make_unique<menoh_model_data>(menoh_model_data{LoadLargeProto<onnx::ModelProto>(onnx_filename).graph()}).release();
-        }
+        *dst_handle =
+                std::make_unique<menoh_model_data>(menoh_model_data{LoadLargeProto<onnx::ModelProto>(onnx_filename).graph()}).release();
         return menoh_error_code_success;
     });
 }
@@ -573,6 +592,7 @@ menoh_error_code menoh_model_builder_attach_external_buffer(menoh_model_builder_
 struct menoh_model {
     std::unordered_map<std::string, menoh_impl::array_profile> variable_profiles;
     std::unique_ptr<chainerx::Context> context;
+    chainerx::Device* device;
     chainer_compiler::runtime::InOuts inputs;
     chainer_compiler::runtime::InOuts outputs;
     std::unique_ptr<chainer_compiler::runtime::ChxVM> chxvm;
@@ -611,6 +631,14 @@ menoh_error_code menoh_build_model(
 
         auto ctx = std::make_unique<chainerx::Context>();
         chainerx::ContextScope context_scope(*ctx);
+        const std::string device_spec = value_or(j, "device", std::string(""));
+        chainerx::Device* device = nullptr;
+        if (device_spec.empty()) {
+            device = &chainerx::GetDefaultDevice();
+        } else {
+            device = &ctx->GetDevice(device_spec);
+        }
+        chainerx::DeviceScope device_scope(*device);
 
         auto xgraph = *(builder->xgraph);
 
@@ -668,6 +696,7 @@ menoh_error_code menoh_build_model(
             variable_profiles.insert(builder->output_profile_table.begin(), builder->output_profile_table.end());
             *dst_model_handle = std::make_unique<menoh_model>(menoh_model{std::move(variable_profiles),
                                                                           std::move(ctx),
+                                                                          device,
                                                                           std::move(inputs),
                                                                           {},
                                                                           std::move(chxvm),
@@ -763,26 +792,29 @@ menoh_error_code menoh_model_get_variable_dims(
 
 menoh_error_code menoh_model_run(menoh_model_handle model) {
     return check_error([&]() {
-        chainerx::Context* default_context_backup = nullptr;
-        try {
-            // can throw ContextError when default context and global default context are nullptr
-            default_context_backup = &chainerx::GetDefaultContext();
-        } catch (chainerx::ContextError const&) {
-            // ignore error
-        }
-        chainerx::SetDefaultContext(model->context.get());
-        chainerx::ContextScope(*(model->context));
+        chainerx::ContextScope context_scope(*model->context);
+        chainerx::DeviceScope device_scope(*model->device);
         {
             chainerx::NoBackpropModeScope scope;
-            auto outputs = model->chxvm->Run(model->inputs, model->chxvm_options);
+            chainer_compiler::runtime::InOuts inputs(model->inputs);
+            for (auto& p : inputs) {
+                if (model->device != &p.second->GetArray().device()) {
+                    p.second = std::make_shared<chainer_compiler::runtime::ChxVMVar>(p.second->GetArray().ToDevice(*model->device));
+                }
+            }
+
+            auto outputs = model->chxvm->Run(inputs, model->chxvm_options);
             model->outputs.clear();
             for (auto p : outputs) {
                 CHECK(p.second->IsArray()) << "menoh does not support non-array outputs";
-                chainerx::Array const& array = chainerx::AsContiguous(p.second->GetArray());
+                chainerx::Array array = p.second->GetArray();
+                if (!chainer_compiler::runtime::IsNativeDevice(model->device)) {
+                    array = array.ToNative();
+                }
+                array = chainerx::AsContiguous(array);
                 CHECK(model->outputs.emplace(p.first, std::make_shared<chainer_compiler::runtime::ChxVMVar>(array)).second);
             }
         }
-        chainerx::SetDefaultContext(default_context_backup);
         return menoh_error_code_success;
     });
 }

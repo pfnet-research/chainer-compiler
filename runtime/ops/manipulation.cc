@@ -18,6 +18,7 @@ chainerx::Array SizeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
 }
 
 chainerx::Array FlattenOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
+    const int axis = ResolveAxis(input, this->axis);
     int64_t d0 = 1;
     int64_t d1 = 1;
     for (size_t i = 0; i < input.shape().size(); ++i) {
@@ -60,6 +61,7 @@ chainerx::Array SqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) 
 chainerx::Array UnsqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     chainerx::Shape shape = data.shape();
     for (int d : axes) {
+        d = d < 0 ? shape.size() + d : d;
         CHECK_LE(d, shape.size()) << "Unsqueezing axis out of bound: " << d;
         shape.insert(shape.begin() + d, 1);
     }

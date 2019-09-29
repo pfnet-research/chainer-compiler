@@ -119,11 +119,13 @@ public:
             for (Value* value : backprop_model.graph().input_values()) {
                 backprop_ins_.push_back(value->name());
             }
+            flops_ += CalculateTotalFlops(backprop_model.graph(), &num_unknown_ops_);
         } else {
             LOG() << "Constructing model..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), args_.exist("backprop"));
             CompileModel(model.get(), &chxvm_);
         }
+        flops_ += CalculateTotalFlops(model->graph(), &num_unknown_ops_);
 
         for (const std::string& op_name : SplitString(args_.get<std::string>("verbose_ops"), ",")) {
             ChxVMInstructionProto::Op op;
@@ -243,6 +245,10 @@ public:
         return params_;
     }
 
+    int64_t flops() const {
+        return num_unknown_ops_ ? 0 : flops_;
+    }
+
 private:
     int trace_level() const {
         return args_.exist("verbose") ? 2 : args_.exist("trace") ? 1 : 0;
@@ -266,6 +272,8 @@ private:
 
     std::unique_ptr<ChxVM> chxvm_bp_;
     std::vector<std::string> backprop_ins_;
+    int64_t flops_{0};
+    int num_unknown_ops_{0};
 };
 
 void RunMain(const std::vector<std::string>& argv) {
@@ -401,8 +409,6 @@ void RunMain(const std::vector<std::string>& argv) {
         test_cases.swap(new_test_cases);
     }
 
-    int num_unknown_ops = 0;
-    int64_t flops = CalculateTotalFlops(model->graph(), &num_unknown_ops);
     ModelRunner model_runner(args, initial_used_bytes, std::move(model));
 
     if (args.exist("compile_only")) return;
@@ -466,14 +472,14 @@ void RunMain(const std::vector<std::string>& argv) {
     if (iterations > 1) {
         // The first iteration is for warm up.
         double average_elapsed = total_elapsed / (iterations - 1);
-        if (num_unknown_ops) {
-            std::cerr << "Average elapsed: " << average_elapsed << " msec" << std::endl;
-            std::cerr << "Best elapsed: " << best_elapsed << " msec" << std::endl;
-        } else {
+        if (int64_t flops = model_runner.flops()) {
             double average_gflops_sec = flops / average_elapsed / 1000 / 1000;
             std::cerr << "Average elapsed: " << average_elapsed << " msec (" << average_gflops_sec << " GFLOPs/sec)" << std::endl;
             double best_gflops_sec = flops / best_elapsed / 1000 / 1000;
             std::cerr << "Best elapsed: " << best_elapsed << " msec (" << best_gflops_sec << " GFLOPs/sec)" << std::endl;
+        } else {
+            std::cerr << "Average elapsed: " << average_elapsed << " msec" << std::endl;
+            std::cerr << "Best elapsed: " << best_elapsed << " msec" << std::endl;
         }
     }
 
