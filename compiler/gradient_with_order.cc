@@ -9,8 +9,6 @@
 #include <iostream>
 #include <string>
 
-#include <chainerx/testing/array.h>
-
 #include <common/iterator.h>
 #include <common/log.h>
 #include <common/strutil.h>

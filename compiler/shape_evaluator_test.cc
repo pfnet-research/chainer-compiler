@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <chainerx/testing/array.h>
 #include <chainerx/testing/context_session.h>
 
 #include <compiler/graph.h>
