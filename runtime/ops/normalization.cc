@@ -5,6 +5,7 @@
 #include <chainerx/routines/statistics.h>
 
 #include <common/log.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/chxvm_state.h>
 #include <runtime/gen_chxvm_ops.h>
 
@@ -136,6 +137,9 @@ PreprocessBatchNormResult PreprocessBatchNorm(
 
 // A workaround for <4D tensors with cuDNN.
 chainerx::Shape UnsqueezedForBN(const chainerx::Array& x) {
+    if (!IsCudaDevice(&x.device())) {
+        return x.shape();
+    }
     chainerx::Shape shape = x.shape();
     while (shape.size() < 4) {
         shape.push_back(1);
