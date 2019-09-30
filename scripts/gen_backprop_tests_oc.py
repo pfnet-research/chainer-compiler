@@ -177,6 +177,12 @@ def get_backprop_tests():
          g=aranges(5),
          b=aranges(5),
          r=aranges(2, 5, 3, 3) % 7)
+    test('batch_normalization_2d',
+         lambda m: F.batch_normalization(m.x, m.g, m.b) * m.r,
+         x=aranges(2, 5),
+         g=aranges(5),
+         b=aranges(5),
+         r=aranges(2, 5) % 7)
 
     test('pad',
          lambda m: F.pad(m.x, 2, 'constant'),
