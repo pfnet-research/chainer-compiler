@@ -172,7 +172,16 @@ std::tuple<chainerx::Array, ChxVMOpaque*, chainerx::Array, chainerx::Array, chai
     chainerx::Array out;
     chainerx::Shape shape = UnsqueezedForBN(x);
     std::tie(out, state) = x.device().backend().CallKernel<chainerx::BatchNormKernel>(
-            x.Reshape(shape), gamma_reshaped, beta_reshaped, result.mean, result.var, epsilon, decay, result.sorted_axis, true, absl::nullopt);
+            x.Reshape(shape),
+            gamma_reshaped,
+            beta_reshaped,
+            result.mean,
+            result.var,
+            epsilon,
+            decay,
+            result.sorted_axis,
+            true,
+            absl::nullopt);
     out = out.Reshape(x.shape());
     ChxVMOpaque* ctx = new BatchNormBackwardContext(state, x, gamma_reshaped, s.shape(), bias.shape(), epsilon, result.sorted_axis);
     if (st->options().dump_memory_usage >= 1) {
@@ -212,7 +221,7 @@ chainerx::Array FixedBatchNormalizationOp::RunImpl(
 }
 
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationGradOp::RunImpl(
-    ChxVMState* st, const chainerx::Array& gy, const ChxVMOpaque& ctx) {
+        ChxVMState* st, const chainerx::Array& gy, const ChxVMOpaque& ctx) {
     auto& context = dynamic_cast<const BatchNormBackwardContext&>(ctx);
     chainerx::Shape shape = UnsqueezedForBN(context.x());
     chainerx::Array gx, ggamma, gbeta;
