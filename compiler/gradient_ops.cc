@@ -233,7 +233,7 @@ void ExpGradFn(GradientOpContext* gc) {
 void SigmoidGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* gy = gc->gy(0);
-    Value* one = gb.Const(Type(GetFloatDtype(gc->NoRetainX(0)), {}), {1.0});
+    Value* one = gb.ScalarConst(1.0f, GetFloatDtype(gc->NoRetainX(0)));
     Value* t0 = gb.Op(Node::kMul, {gy, gc->y(0)});
     Value* t1 = gb.Op(Node::kSub, {one, gc->y(0)});
     gc->GradOp(Node::kMul, 0, {t0, t1});
@@ -251,7 +251,7 @@ void SqrtGradFn(GradientOpContext* gc) {
 
 void TanhGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* one = gb.Const(Type(GetFloatDtype(gc->NoRetainX(0)), {}), {1.0});
+    Value* one = gb.ScalarConst(1.0f, GetFloatDtype(gc->NoRetainX(0)));
     Value* gy = gc->gy(0);
     Value* t0 = gb.Op(Node::kMul, {gc->y(0), gc->y(0)});
     Value* t1 = gb.Op(Node::kSub, {one, t0});
@@ -346,7 +346,7 @@ void ReduceMeanGradFn(GradientOpContext* gc) {
     // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = gc->gy(0);
     Value* shape = gb.Op(Node::kShape, {gc->x(0)});
-    Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
+    Value* zero = gb.ScalarConst<int64_t>(0);
     zero->producer()->set_chainer_host(true);
     Value* batch_size_int = gb.Op(Node::kGather, {shape, zero});
     Value* batch_size = gb.Op(Node::kCast, {batch_size_int});
@@ -653,7 +653,7 @@ void OutputIterationCount(Graph* graph, Node* loop) {
 
     {
         GraphBuilder gb(graph, "LoopGradIterCnt", loop->output(0));
-        Value* input_iter = gb.Const(Type(Dtype::kInt64, {}), {0});
+        Value* input_iter = gb.ScalarConst<int64_t>(0);
         loop->AddInput(input_iter);
         Value* output_iter = graph->AddValue(gb.GenName());
         loop->AddOutput(output_iter, num_states);
@@ -662,7 +662,7 @@ void OutputIterationCount(Graph* graph, Node* loop) {
     {
         Graph* body = loop->body().get();
         GraphBuilder gb(body, "LoopGradIterCntBody", loop->output(0));
-        Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
+        Value* one = gb.ScalarConst<int64_t>(1);
         Value* input_cnt = body->AddInputValue(gb.GenName(), Type(Dtype::kInt64, {}));
         Value* output_cnt = body->AddOutputValue(gb.GenName(), Type(Dtype::kInt64, {}));
         gb.Op(Node::kAdd, {input_cnt, one}, {output_cnt});
@@ -737,7 +737,7 @@ void LoopGradFn(GradientOpContext* gc) {
         GenerateGradientNodes(body, grad_graph.get(), input_values, ys, &retained);
 
         Value* output_cond = grad_graph->AddOutputValue(gb.GenName(), Type(Dtype::kBool, {}));
-        gb.Const(Type(Dtype::kBool, {}), {1}, output_cond);
+        gb.ScalarConst(true, output_cond);
 
         for (int i = 0; i < num_states; ++i) {
             Value* x = body->input_values()[i + 2];
@@ -948,7 +948,7 @@ void SequenceCreateGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
     for (int64_t i = 0; i < node->inputs().size(); ++i) {
         GraphBuilder gb{gc->builder(i)};
-        Value* index = gb.Const(Type(Dtype::kInt64, {}), {i});
+        Value* index = gb.ScalarConst(i);
         gc->GradOp(Node::kChainerSequenceLookup, i, {gy, index});
     }
 }
@@ -967,13 +967,13 @@ void SequenceExtendGradFn(GradientOpContext* gc) {
     Value* gy = gc->gy(0);
     {
         GraphBuilder gb{gc->builder(0)};
-        Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
+        Value* zero = gb.ScalarConst<int64_t>(0);
         Value* len = gb.Op(Node::kChainerGenericLen, {gc->x(0)});
         gc->GradOp(Node::kChainerSequenceGetSlice, 0, {gy, zero, len});
     }
     {
         GraphBuilder gb{gc->builder(1)};
-        Value* minus_one = gb.Const(Type(Dtype::kInt64, {}), {-1});
+        Value* minus_one = gb.ScalarConst<int64_t>(-1);
         Value* len = gb.Op(Node::kChainerGenericLen, {gc->x(0)});
         gc->GradOp(Node::kChainerSequenceGetSlice, 1, {gy, len, minus_one});
     }

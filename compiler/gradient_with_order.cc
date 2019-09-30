@@ -9,6 +9,8 @@
 #include <iostream>
 #include <string>
 
+#include <chainerx/testing/array.h>
+
 #include <common/iterator.h>
 #include <common/log.h>
 #include <common/strutil.h>
@@ -24,13 +26,16 @@ namespace chainer_compiler {
 
 namespace {
 
+using chainerx::testing::array_detail::ArrayBuilder;
+
 // TODO(mkusumoto): Re-organize dup code.
 void SetInitialGradients(Graph* graph) {
     CHECK_EQ(1UL, graph->output_values().size());
     for (Value* value : graph->output_values()) {
         GraphBuilder gb(graph, "GradIn", value);
         std::vector<float> data(value->type().NumElements(), 1.0);
-        Value* grad = gb.Const(value->type(), data);
+        Value* grad =
+                gb.Const(ArrayBuilder({static_cast<int64_t>(data.size())}).WithData(data).Build().AsType(value->type().dtype().chx()));
         CHECK(value->grad() == nullptr);
         value->set_grad(grad);
     }

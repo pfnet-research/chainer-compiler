@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <chainerx/testing/array.h>
 #include <chainerx/testing/context_session.h>
 
 #include <common/log.h>
@@ -11,14 +12,16 @@
 namespace chainer_compiler {
 namespace {
 
+using chainerx::testing::array_detail::ArrayBuilder;
+
 TEST(EvaluatorTest, Eval) {
     chainerx::testing::ContextSession sess;
 
     Value dummy_for_test("test");
     Graph graph("test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);
-    Value* a = gb.Const(Type(Dtype::kInt32, {2}), {3, 10});
-    Value* b = gb.Const(Type(Dtype::kInt32, {2}), {7, 32});
+    Value* a = gb.Const(ArrayBuilder({2}).WithData<int32_t>({3, 10}).Build());
+    Value* b = gb.Const(ArrayBuilder({2}).WithData<int32_t>({7, 32}).Build());
     Value* r = gb.Op(Node::kAdd, {a, b});
 
     const std::vector<Node*> nodes = {a->producer(), b->producer(), r->producer()};
@@ -40,8 +43,8 @@ TEST(EvaluatorTest, EvalWithFeeds) {
     Value dummy_for_test("test");
     Graph graph("test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);
-    Value* a = gb.Const(Type(Dtype::kInt32, {2}), {0, 0});
-    Value* b = gb.Const(Type(Dtype::kInt32, {2}), {0, 0});
+    Value* a = gb.Const(ArrayBuilder({2}).WithData<int32_t>({0, 0}).Build());
+    Value* b = gb.Const(ArrayBuilder({2}).WithData<int32_t>({0, 0}).Build());
     Value* r = gb.Op(Node::kAdd, {a, b});
 
     const std::vector<Node*> nodes = {r->producer()};
