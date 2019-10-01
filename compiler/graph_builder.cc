@@ -87,28 +87,10 @@ Node* GraphBuilder::MOp(const onnx::NodeProto& base, const std::vector<Value*>& 
 
 Value* GraphBuilder::Const(const chainerx::Array& ary, Value* value) {
     Value* v = value ? Op(Node::kConstant, {}, {value}) : Op(Node::kConstant, {});
-    v->producer()->set_tensor_value(new Tensor(v->name(), ary));
+    v->producer()->set_tensor_value(new Tensor(v->name(), ary.ToNative()));
     v->set_type(new Type(Dtype(ary.dtype()), std::vector<int64_t>(ary.shape().begin(), ary.shape().end())));
     return v;
 }
-
-template <typename T>
-Value* GraphBuilder::Const(const Type& type, const std::vector<T>& data, Value* value) {
-    Value* v;
-    if (value == nullptr) {
-        v = Op(Node::kConstant, {});
-    } else {
-        v = Op(Node::kConstant, {}, {value});
-    }
-    v->producer()->set_tensor_value(new Tensor(v->name(), type.dtype(), type.dims(), data));
-    v->set_type(new Type(type));
-    return v;
-}
-
-template Value* GraphBuilder::Const(const Type& type, const std::vector<double>& data, Value* value);
-template Value* GraphBuilder::Const(const Type& type, const std::vector<float>& data, Value* value);
-template Value* GraphBuilder::Const(const Type& type, const std::vector<int>& data, Value* value);
-template Value* GraphBuilder::Const(const Type& type, const std::vector<int64_t>& data, Value* value);
 
 Value* GraphBuilder::Param(const chainerx::Array& ary, Value* base_value) {
     const std::string& name = GenName(base_value);

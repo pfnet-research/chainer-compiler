@@ -11,14 +11,16 @@
 namespace chainer_compiler {
 namespace {
 
+using chainerx::testing::array_detail::ArrayBuilder;
+
 TEST(EvaluatorTest, Eval) {
     chainerx::testing::ContextSession sess;
 
     Value dummy_for_test("test");
     Graph graph("test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);
-    Value* a = gb.Const(Type(Dtype::kInt32, {2}), {3, 10});
-    Value* b = gb.Const(Type(Dtype::kInt32, {2}), {7, 32});
+    Value* a = gb.Const(ArrayBuilder({2}).WithData<int32_t>({3, 10}).Build());
+    Value* b = gb.Const(ArrayBuilder({2}).WithData<int32_t>({7, 32}).Build());
     Value* r = gb.Op(Node::kAdd, {a, b});
 
     const std::vector<Node*> nodes = {a->producer(), b->producer(), r->producer()};
@@ -40,14 +42,14 @@ TEST(EvaluatorTest, EvalWithFeeds) {
     Value dummy_for_test("test");
     Graph graph("test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);
-    Value* a = gb.Const(Type(Dtype::kInt32, {2}), {0, 0});
-    Value* b = gb.Const(Type(Dtype::kInt32, {2}), {0, 0});
+    Value* a = gb.Const(ArrayBuilder({2}).WithData<int32_t>({0, 0}).Build());
+    Value* b = gb.Const(ArrayBuilder({2}).WithData<int32_t>({0, 0}).Build());
     Value* r = gb.Op(Node::kAdd, {a, b});
 
     const std::vector<Node*> nodes = {r->producer()};
     std::vector<std::pair<Value*, Tensor*>> feeds;
-    feeds.emplace_back(a, new Tensor("a", Dtype::kInt32, {2}, {3, 10}));
-    feeds.emplace_back(b, new Tensor("b", Dtype::kInt32, {2}, {7, 32}));
+    feeds.emplace_back(a, new Tensor("a", ArrayBuilder({2}).WithData<int32_t>({3, 10}).Build()));
+    feeds.emplace_back(b, new Tensor("b", ArrayBuilder({2}).WithData<int32_t>({7, 32}).Build()));
     std::vector<std::unique_ptr<EvaluatedValue>> outputs;
     Eval(nodes, feeds, {r}, &outputs);
     ASSERT_EQ(1UL, outputs.size());

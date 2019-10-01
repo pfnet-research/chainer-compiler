@@ -20,6 +20,8 @@
 namespace chainer_compiler {
 namespace {
 
+using chainerx::testing::array_detail::ArrayBuilder;
+
 typedef std::function<bool(Graph*, Node*)> SimplifierFn;
 
 struct Simplifier {
@@ -49,7 +51,7 @@ bool ReplaceMean(Graph* graph, Node* node) {
     CHECK_EQ(1UL, node->outputs().size());
     GraphBuilder gb(graph, "SimplifyMean", node->output(0));
     Value* v = gb.Op(Node::kSum, node->inputs());
-    Value* divisor = gb.Const(Type(node->output(0)->type().dtype(), {}), {static_cast<int64_t>(node->inputs().size())});
+    Value* divisor = gb.ScalarConst<int64_t>(node->inputs().size(), node->output(0)->type().dtype());
     gb.Op(Node::kDiv, {v, divisor}, node->output(0));
     return true;
 }
@@ -80,7 +82,7 @@ bool ReplaceLpNormalization(Graph* graph, Node* node) {
     Value* n2 = gb.Op(Node::kReduceSum, {x2});
     n2->producer()->set_axes({node->axis()})->set_keepdims(true);
     Value* n = gb.Op(Node::kSqrt, {n2});
-    Value* eps = gb.Const(Type(node->output(0)->type().dtype(), {}), {1e-5});
+    Value* eps = gb.ScalarConst(1e-5, node->output(0)->type().dtype());
     Value* norm = gb.Op(Node::kAdd, {n, eps});
     gb.Op(Node::kDiv, {x, norm}, node->output(0));
     return true;
@@ -296,7 +298,7 @@ bool ReplaceFlatten(Graph* graph, Node* node) {
     for (size_t i = 0; i < type.dims().size(); ++i) {
         (i < node->axis() ? d0 : d1) *= type.dims()[i];
     }
-    Value* shape = gb.Const(Type(Dtype::kInt64, {2}), {d0, d1});
+    Value* shape = gb.Const(ArrayBuilder({2}).WithData<int64_t>({d0, d1}).Build());
     gb.Op(Node::kReshape, {node->input(0), shape}, node->output(0));
     return true;
 }
@@ -347,7 +349,7 @@ bool ReplaceChainerReduceSumTo(Graph* graph, Node* node) {
 bool ReplaceSoftsign(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySoftsign", node->output(0));
     Value* v0 = gb.Op(Node::kAbs, node->inputs());
-    Value* one = gb.Const(Type(node->input(0)->type().dtype(), {}), {1});
+    Value* one = gb.ScalarConst(1, node->input(0)->type().dtype());
     Value* v1 = gb.Op(Node::kAdd, {v0, one});
     gb.Op(Node::kDiv, {node->input(0), v1}, node->output(0));
     return true;
@@ -485,7 +487,7 @@ bool ReplaceShape(Graph* graph, Node* node) {
     }
 
     GraphBuilder gb(graph, "SimplifyShape", node->output(0));
-    Value* shape = gb.Const(Type(Dtype::kInt64, {static_cast<int64_t>(typ.dims().size())}), typ.dims());
+    Value* shape = gb.Const(ArrayBuilder({static_cast<int64_t>(typ.dims().size())}).WithData<int64_t>(typ.dims()).Build());
     gb.Op(Node::kIdentity, {shape}, node->output(0));
     return true;
 }
@@ -509,12 +511,14 @@ bool ReplaceConcat(Graph* graph, Node* node) {
     return false;
 }
 
+using chainerx::testing::array_detail::ArrayBuilder;
+
 bool ReplaceChainerSelectItem(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySelectItem", node->output(0));
     Value* x = node->input(0);
-    Value* values = gb.Const(Type(x->type().dtype(), {2}), {0.0, 1.0});
+    Value* values = gb.Const(ArrayBuilder({2}).WithData<double>({0.0, 1.0}).Build().AsType(x->type().dtype().chx()));
     Value* shape = gb.Op(Node::kShape, {x});
-    Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
+    Value* one = gb.ScalarConst(1, Dtype::kInt64);
     Value* num_classes = gb.Op(Node::kGather, {shape, one});
     num_classes = gb.Op(Node::kUnsqueeze, {num_classes});
     num_classes->producer()->set_axes({0});
@@ -537,7 +541,7 @@ bool ReplaceChainerLinear(Graph* graph, Node* node) {
     Value* batch_size = nullptr;
     std::vector<Value*> dims;
     for (int i = 0; i < node->n_batch_axes(); ++i) {
-        Value* axis = gb.Const(Type(Dtype::kInt64, {}), {i});
+        Value* axis = gb.ScalarConst(i, Dtype::kInt64);
         Value* dim = gb.Op(Node::kGather, {x_shape, axis});
         dim = gb.Op(Node::kUnsqueeze, {dim});
         dim->producer()->set_axes({0});
@@ -549,7 +553,7 @@ bool ReplaceChainerLinear(Graph* graph, Node* node) {
         }
     }
     CHECK(batch_size) << node->DebugString();
-    Value* neg_one = gb.Const(Type(Dtype::kInt64, {1}), {-1});
+    Value* neg_one = gb.Const(ArrayBuilder({1}).WithData<int64_t>({-1}).Build());
     Value* mat_shape = gb.Op(Node::kConcat, {batch_size, neg_one});
     mat_shape->producer()->set_axis(0);
     x = gb.Op(Node::kReshape, {x, mat_shape});
@@ -578,9 +582,9 @@ bool ReplaceChainerLinear(Graph* graph, Node* node) {
 
 bool ReplaceImageScaler(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyImageScaler", node->output(0));
-    Value* scale = gb.Const(Type(Dtype::kFloat32, {}), {node->scale()});
+    Value* scale = gb.ScalarConst(node->scale(), Dtype::kFloat32);
     Value* scaled = gb.Op(Node::kMul, {node->input(0), scale});
-    Value* biases = gb.Const(Type(Dtype::kFloat32, {static_cast<int64_t>(node->bias_list().size())}), node->bias_list());
+    Value* biases = gb.Const(ArrayBuilder({static_cast<int64_t>(node->bias_list().size())}).WithData<float>(node->bias_list()).Build());
     biases = gb.Op(Node::kUnsqueeze, {biases});
     biases->producer()->set_axes({0, 2, 3});
     gb.Op(Node::kAdd, {scaled, biases}, node->output(0));
