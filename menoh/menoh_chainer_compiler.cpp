@@ -592,6 +592,7 @@ menoh_error_code menoh_model_builder_attach_external_buffer(menoh_model_builder_
 struct menoh_model {
     std::unordered_map<std::string, menoh_impl::array_profile> variable_profiles;
     std::unique_ptr<chainerx::Context> context;
+    chainerx::Device* device;
     chainer_compiler::runtime::InOuts inputs;
     chainer_compiler::runtime::InOuts outputs;
     std::unique_ptr<chainer_compiler::runtime::ChxVM> chxvm;
@@ -631,10 +632,13 @@ menoh_error_code menoh_build_model(
         auto ctx = std::make_unique<chainerx::Context>();
         chainerx::ContextScope context_scope(*ctx);
         const std::string device_spec = value_or(j, "device", std::string(""));
-        if (!device_spec.empty()) {
-            chainerx::Device* device = &ctx->GetDevice(device_spec);
-            chainerx::SetDefaultDevice(device);
+        chainerx::Device* device = nullptr;
+        if (device_spec.empty()) {
+            device = &chainerx::GetDefaultDevice();
+        } else {
+            device = &ctx->GetDevice(device_spec);
         }
+        chainerx::DeviceScope device_scope(*device);
 
         auto xgraph = *(builder->xgraph);
 
@@ -692,6 +696,7 @@ menoh_error_code menoh_build_model(
             variable_profiles.insert(builder->output_profile_table.begin(), builder->output_profile_table.end());
             *dst_model_handle = std::make_unique<menoh_model>(menoh_model{std::move(variable_profiles),
                                                                           std::move(ctx),
+                                                                          device,
                                                                           std::move(inputs),
                                                                           {},
                                                                           std::move(chxvm),
@@ -787,22 +792,14 @@ menoh_error_code menoh_model_get_variable_dims(
 
 menoh_error_code menoh_model_run(menoh_model_handle model) {
     return check_error([&]() {
-        chainerx::Context* default_context_backup = nullptr;
-        try {
-            // can throw ContextError when default context and global default context are nullptr
-            default_context_backup = &chainerx::GetDefaultContext();
-        } catch (chainerx::ContextError const&) {
-            // ignore error
-        }
-        chainerx::SetDefaultContext(model->context.get());
-        chainerx::ContextScope(*(model->context));
-        chainerx::Device& device = chainerx::GetDefaultDevice();
+        chainerx::ContextScope context_scope(*model->context);
+        chainerx::DeviceScope device_scope(*model->device);
         {
             chainerx::NoBackpropModeScope scope;
             chainer_compiler::runtime::InOuts inputs(model->inputs);
             for (auto& p : inputs) {
-                if (&device != &p.second->GetArray().device()) {
-                    p.second = std::make_shared<chainer_compiler::runtime::ChxVMVar>(p.second->GetArray().ToDevice(device));
+                if (model->device != &p.second->GetArray().device()) {
+                    p.second = std::make_shared<chainer_compiler::runtime::ChxVMVar>(p.second->GetArray().ToDevice(*model->device));
                 }
             }
 
@@ -810,11 +807,14 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
             model->outputs.clear();
             for (auto p : outputs) {
                 CHECK(p.second->IsArray()) << "menoh does not support non-array outputs";
-                chainerx::Array const& array = chainerx::AsContiguous(p.second->GetArray());
+                chainerx::Array array = p.second->GetArray();
+                if (!chainer_compiler::runtime::IsNativeDevice(model->device)) {
+                    array = array.ToNative();
+                }
+                array = chainerx::AsContiguous(array);
                 CHECK(model->outputs.emplace(p.first, std::make_shared<chainer_compiler::runtime::ChxVMVar>(array)).second);
             }
         }
-        chainerx::SetDefaultContext(default_context_backup);
         return menoh_error_code_success;
     });
 }

@@ -759,6 +759,10 @@ for test in TEST_CASES:
     if test.name.startswith('backprop_test_oc_split_2'):
         continue
 
+    # TODO(hamaji): Unexpected shape will appear due to broadcast.
+    if test.name.startswith('backprop_test_oc_pow_const'):
+        continue
+
     # computation_order is supported in limited test cases
     if test.name.startswith('backprop_test_oc'):
         for two_phase in [False, True]:
