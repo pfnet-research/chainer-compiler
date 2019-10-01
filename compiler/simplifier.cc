@@ -505,7 +505,7 @@ bool ReplaceChainerSelectItem(Graph* graph, Node* node) {
     Value* x = node->input(0);
     Value* values = gb.Const(ArrayBuilder({2}).WithData<double>({0.0, 1.0}).Build().AsType(x->type().dtype().chx()));
     Value* shape = gb.Op(Node::kShape, {x});
-    Value* one = gb.ScalarConst<int64_t>(1, Dtype::kInt64);
+    Value* one = gb.ScalarConst(1, Dtype::kInt64);
     Value* num_classes = gb.Op(Node::kGather, {shape, one});
     num_classes = gb.Op(Node::kUnsqueeze, {num_classes});
     num_classes->producer()->set_axes({0});
@@ -528,7 +528,7 @@ bool ReplaceChainerLinear(Graph* graph, Node* node) {
     Value* batch_size = nullptr;
     std::vector<Value*> dims;
     for (int i = 0; i < node->n_batch_axes(); ++i) {
-        Value* axis = gb.ScalarConst<int64_t>(i, Dtype::kInt64);
+        Value* axis = gb.ScalarConst(i, Dtype::kInt64);
         Value* dim = gb.Op(Node::kGather, {x_shape, axis});
         dim = gb.Op(Node::kUnsqueeze, {dim});
         dim->producer()->set_axes({0});
