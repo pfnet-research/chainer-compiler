@@ -5,7 +5,7 @@ import sys
 import typing
 
 from chainer_compiler.elichika.typing import types
-from chainer_compiler.elichika.typing.type_checker import TypeChecker
+from chainer_compiler.elichika.typing.type_inference import InferenceEngine
 from chainer_compiler.elichika.typing.utils import node_description
 from chainer_compiler.elichika.parser import utils
 
@@ -43,7 +43,7 @@ def generate_id2node(node2id):
 
 
 def generate_node2type(tree, args, is_debug=False, module=None, type_hints={}):
-    tc = TypeChecker(is_debug=is_debug, module=module)
+    tc = InferenceEngine(is_debug=is_debug, module=module)
     func_body = tree.body[0]  # XXX: only checks first function
     try:
         node2type = tc.infer_function_value_args(func_body, args, type_hints=type_hints)
