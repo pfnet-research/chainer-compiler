@@ -87,7 +87,7 @@ Node* GraphBuilder::MOp(const onnx::NodeProto& base, const std::vector<Value*>& 
 
 Value* GraphBuilder::Const(const chainerx::Array& ary, Value* value) {
     Value* v = value ? Op(Node::kConstant, {}, {value}) : Op(Node::kConstant, {});
-    v->producer()->set_tensor_value(new Tensor(v->name(), ary));
+    v->producer()->set_tensor_value(new Tensor(v->name(), ary.ToNative()));
     v->set_type(new Type(Dtype(ary.dtype()), std::vector<int64_t>(ary.shape().begin(), ary.shape().end())));
     return v;
 }
