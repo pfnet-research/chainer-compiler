@@ -33,7 +33,7 @@ void SetInitialGradients(Graph* graph) {
         GraphBuilder gb(graph, "GradIn", value);
         std::vector<float> data(value->type().NumElements(), 1.0);
         Value* grad =
-                gb.Const(ArrayBuilder({static_cast<int64_t>(data.size())}).WithData(data).Build().AsType(value->type().dtype().chx()));
+                gb.Const(ArrayBuilder(chainerx::Shape(value->type().dims())).WithData(data).Build().AsType(value->type().dtype().chx()));
         CHECK(value->grad() == nullptr);
         value->set_grad(grad);
     }
