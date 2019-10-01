@@ -236,7 +236,7 @@ void PowGradFn(GradientOpContext* gc) {
     Value* y = gc->y(0);
     Value* x0 = gc->x(0);
     Value* x1 = gc->x(1);
-    Value* one = gb.Const(Type(GetFloatDtype(gc->NoRetainX(0)), {}), {1.0});
+    Value* one = gb.ScalarConst(1.0, GetFloatDtype(gc->NoRetainX(0)));
     Value* tmp;
 
     // gx1 = x1 * (x0 ** (x1 - one)) * gy
@@ -268,9 +268,9 @@ void EluGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* y = gc->y(0);
     Value* gy = gc->gy(0);
-    Value* zero = gb.Const(Type(GetFloatDtype(y), {}), {0.0});
+    Value* zero = gb.ScalarConst(0.0, GetFloatDtype(y));
     Value* cond = gb.Op(Node::kGreater, {gc->x(0), zero});
-    Value* alpha = gb.Const(Type(GetFloatDtype(y), {}), {gc->node()->alpha()});
+    Value* alpha = gb.ScalarConst(gc->node()->alpha(), GetFloatDtype(y));
 
     Value* tmp = gb.Op(Node::kAdd, {y, alpha});
     tmp = gb.Op(Node::kMul, {tmp, gy});
