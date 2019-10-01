@@ -1,7 +1,7 @@
 import argparse
 
 
-FLAGS = {
+COMPILER_FLAGS = {
     'compiler_log': {
         'type': 'bool',
         'doc': 'Enables logging.'
@@ -159,7 +159,10 @@ FLAGS = {
 parser = argparse.ArgumentParser(description='Generate compiler option codes')
 parser.add_argument('--mode')
 parser.add_argument('--output')
+parser.add_argument('--flag_category')
 args = parser.parse_args()
+
+FLAGS = sorted(COMPILER_FLAGS.items())
 
 f = open(args.output, mode='w')
 
@@ -172,7 +175,7 @@ if args.mode == 'flags.h':
 namespace chainer_compiler {
 
 ''')
-    for name, v in FLAGS.items():
+    for name, v in FLAGS:
         f.write('''
 // {}
 extern {} g_{};
@@ -188,7 +191,7 @@ elif args.mode == 'flags.cc':
 
 namespace chainer_compiler {
 ''')
-    for name, v in FLAGS.items():
+    for name, v in FLAGS:
         f.write('''
 
 // {}
@@ -198,7 +201,7 @@ namespace chainer_compiler {
     f.write('''
 struct Flags {
 ''')
-    for name, v in FLAGS.items():
+    for name, v in FLAGS:
         f.write('''
 {} {};
 '''.format(v['type'], name))
@@ -221,7 +224,7 @@ namespace runtime {
 
 void AddCompilerFlags(cmdline::parser* args) {
 ''')
-    for name, info in FLAGS.items():
+    for name, info in FLAGS:
         type_param = '' if info['type'] == 'bool' else '<{}>'.format(info['type'])
         def_arg = '' if info['type'] == 'bool' else ', false'
         f.write('''
@@ -233,7 +236,7 @@ void AddCompilerFlags(cmdline::parser* args) {
 
 void ApplyCompilerFlags(const cmdline::parser& args) {
 ''')
-    for name, info in FLAGS.items():
+    for name, info in FLAGS:
         func = 'exist' if info['type'] == 'bool' else 'get<{}>'.format(info['type'])
         f.write('''
     g_{} = args.{}("{}");
@@ -248,23 +251,23 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
 ''')
 elif args.mode == 'chainer_compiler_core.cxx_args.inc':
     res = []
-    for name, info in sorted(FLAGS.items()):
+    for name, info in FLAGS:
         res.append('{} {}'.format(info['type'], name))
     f.write(', '.join(res))
 elif args.mode == 'chainer_compiler_core.apply_cxx_args.inc':
-    for name, info in sorted(FLAGS.items()):
+    for name, info in FLAGS:
         f.write('''
         g_{} = {};
 '''.format(name, name))
 elif args.mode == 'chainer_compiler_core.pybind_args.inc':
     res = []
-    for name, info in sorted(FLAGS.items()):
+    for name, info in FLAGS:
         def_val = 'false' if info['type'] == 'bool' else '""' if info['type'] == 'std::string' else '0'
         res.append('"{}"_a = {}'.format(name, def_val))
     f.write(', '.join(res))
 elif args.mode == 'menoh_chainer_compiler.json_args.inc':
     res = []
-    for name, info in sorted(FLAGS.items()):
+    for name, info in FLAGS:
         if info['type'] == 'bool':
             default = 'false'
         elif info['type'] == 'int':
@@ -275,13 +278,13 @@ elif args.mode == 'menoh_chainer_compiler.json_args.inc':
     f.write('\n'.join(res))
 elif args.mode == 'menoh_chainer_compiler.args_json.inc':
     res = []
-    for name, info in sorted(FLAGS.items()):
+    for name, info in FLAGS:
         res.append('config["{0}"] = chainer_compiler::g_{0};'.format(name))
     f.write('\n'.join(res))
 elif args.mode == 'menoh_example_default_config.json':
     import json
     config = {}
-    for name, info in sorted(FLAGS.items()):
+    for name, info in FLAGS:
         if info['type'] == 'bool':
             default = False
         elif info['type'] == 'int':

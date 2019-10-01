@@ -27,5 +27,9 @@ chainerx::Array StageArray(chainerx::Array a);
 
 void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdline::parser& args, bool check_values, bool show_diff);
 
+void ParseArgs(cmdline::parser* args, int argc, char** argv);
+void ParseArgs(cmdline::parser* args, const std::vector<std::string>& argv);
+void SetupGlobals(const cmdline::parser& args);
+
 }  // namespace runtime
 }  // namespace chainer_compiler

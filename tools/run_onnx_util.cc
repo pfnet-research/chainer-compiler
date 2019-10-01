@@ -268,5 +268,31 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
     if (check_values) CHECK_EQ(ok_cnt, test_case.outputs.size());
 }
 
+static void AddCommonRuntimeFlags(cmdline::parser* args) {
+    args->add("trace", 't', "Tracing mode");
+    args->add("verbose", 'v', "Verbose mode");
+    args->add("quiet", 'q', "Quiet mode");
+    args->add<std::string>("backend", '\0', "The name of the backend", false, "chxvm");
+}
+
+void ParseArgs(cmdline::parser* args, int argc, char** argv) {
+    AddCompilerFlags(args);
+    AddCommonRuntimeFlags(args);
+    args->parse_check(argc, argv);
+}
+
+void ParseArgs(cmdline::parser* args, const std::vector<std::string>& argv) {
+    AddCompilerFlags(args);
+    AddCommonRuntimeFlags(args);
+    args->parse_check(argv);
+}
+
+void SetupGlobals(const cmdline::parser& args) {
+    ApplyCompilerFlags(args);
+    g_compiler_log |= args.exist("trace") || args.exist("verbose");
+    g_backend_name = args.get<std::string>("backend");
+    g_quiet = args.exist("quiet");
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler
