@@ -48,8 +48,8 @@ TEST(EvaluatorTest, EvalWithFeeds) {
 
     const std::vector<Node*> nodes = {r->producer()};
     std::vector<std::pair<Value*, Tensor*>> feeds;
-    feeds.emplace_back(a, new Tensor("a", Dtype::kInt32, {2}, {3, 10}));
-    feeds.emplace_back(b, new Tensor("b", Dtype::kInt32, {2}, {7, 32}));
+    feeds.emplace_back(a, new Tensor("a", ArrayBuilder({2}).WithData<int32_t>({3, 10}).Build()));
+    feeds.emplace_back(b, new Tensor("b", ArrayBuilder({2}).WithData<int32_t>({7, 32}).Build()));
     std::vector<std::unique_ptr<EvaluatedValue>> outputs;
     Eval(nodes, feeds, {r}, &outputs);
     ASSERT_EQ(1UL, outputs.size());
