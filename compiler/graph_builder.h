@@ -47,7 +47,7 @@ public:
     template <class T>
     Value* ScalarConst(const T& v, const Dtype& t, Value* value = nullptr) {
         using chainerx::testing::array_detail::ArrayBuilder;
-        return Const(ArrayBuilder({}).WithData<T>({v}).Build().AsType(t.chx()));
+        return Const(ArrayBuilder({}).WithData<T>({v}).Build().AsType(t.chx()), value);
     }
 
     Value* Param(const chainerx::Array& ary, Value* base_value);
