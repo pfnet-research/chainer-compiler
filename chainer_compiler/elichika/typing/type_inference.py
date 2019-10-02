@@ -32,8 +32,8 @@ def copy_tyenv(tyenv):
     return new_tyenv
 
 
-def copy_TypeChecker(tc):
-    new_tc = TypeChecker(
+def copy_InferenceEngine(tc):
+    new_tc = InferenceEngine(
             tyenv=tc.tyenv, attribute_tyenv=tc.attribute_tyenv,
             is_debug=tc.is_debug, module=tc.module)
     return new_tc
@@ -141,7 +141,7 @@ list_attr_ty = {
 
 # ==============================================================================
 
-class TypeChecker():
+class InferenceEngine():
     # TODO(momohatt): Don't use Exception
     class ArgumentRequired(Exception):
         def __init__(self, func=None, ty_obj=None):
@@ -369,7 +369,7 @@ class TypeChecker():
         # FunctionDef of called subroutine
         func_node = gast.ast_to_gast(ast.parse(code)).body[0]
         self.subroutine_node[node] = func_node
-        tc = TypeChecker(is_debug=self.is_debug,
+        tc = InferenceEngine(is_debug=self.is_debug,
                 module=sys.modules[func.__module__])
         tc.infer_function(func_node, ty_args,
                 type_hints=typing.get_type_hints(func_body))
@@ -532,7 +532,7 @@ class TypeChecker():
             unify(ty_iteration, TySequence(ty_i, None))
 
         for _ in range(2):
-            tc = copy_TypeChecker(self)
+            tc = copy_InferenceEngine(self)
             self.infer_block(tc, node.body)
 
         utils.add_dict(self.nodetype, tc.nodetype)
@@ -546,13 +546,13 @@ class TypeChecker():
         x = lazy_initializer(node)
 
         if node.orelse == []:
-            tc = copy_TypeChecker(self)
+            tc = copy_InferenceEngine(self)
             self.infer_block(tc, node.body)
             utils.add_dict(self.nodetype, tc.nodetype)
             utils.add_dict(self.subroutine_node, tc.subroutine_node)
         else:
-            tc1 = copy_TypeChecker(self)
-            tc2 = copy_TypeChecker(self)
+            tc1 = copy_InferenceEngine(self)
+            tc2 = copy_InferenceEngine(self)
             self.infer_2blocks(tc1, tc2, node.body, node.orelse)
             utils.add_dict(self.nodetype, tc1.nodetype)
             utils.add_dict(self.nodetype, tc2.nodetype)
@@ -676,7 +676,7 @@ class TypeChecker():
         # TODO: handle cases where len(gen.ifs) > 0
         assert len(gen.ifs) == 0
 
-        tc = copy_TypeChecker(self)
+        tc = copy_InferenceEngine(self)
         ty_iteration = tc.infer_expr(gen.iter)
         ty_i = tc.generate_fresh_TyVar(gen.target)
         if isinstance(ty_iteration, TyTensor):
@@ -963,7 +963,7 @@ if __name__ == '__main__':
     orig_ast = gast.ast_to_gast(ast.parse(code))
     dump_ast(orig_ast, 'original')
 
-    tc = TypeChecker(is_debug=True, module=module)
+    tc = InferenceEngine(is_debug=True, module=module)
     try:
         nodetype = tc.infer(orig_ast)
     except UnifyError as e:

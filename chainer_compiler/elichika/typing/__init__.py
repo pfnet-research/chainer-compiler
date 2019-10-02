@@ -1,1 +1,1 @@
-from chainer_compiler.elichika.typing import type_checker
+from chainer_compiler.elichika.typing import type_inference
