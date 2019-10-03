@@ -219,10 +219,10 @@ onnx::ModelProto load_model_proto(const uint8_t* onnx_data, int64_t size) {
 
 }  // namespace
 
-menoh_error_code menoh_make_model_data_from_onnx_data_on_memory(const uint8_t* onnx_data, int64_t size, menoh_model_data_handle* dst_handle) {
+menoh_error_code menoh_make_model_data_from_onnx_data_on_memory(
+        const uint8_t* onnx_data, int64_t size, menoh_model_data_handle* dst_handle) {
     return check_error([&]() {
-            *dst_handle =
-                    std::make_unique<menoh_model_data>(menoh_model_data{load_model_proto(onnx_data, size).graph()}).release();
+        *dst_handle = std::make_unique<menoh_model_data>(menoh_model_data{load_model_proto(onnx_data, size).graph()}).release();
         return menoh_error_code_success;
     });
 }
@@ -491,7 +491,8 @@ menoh_error_code menoh_build_variable_profile_table(
             auto xgraph_ptr = std::make_unique<onnx::GraphProto>();
             graph->ToONNX(xgraph_ptr.get());
             *dst_handle = std::make_unique<menoh_variable_profile_table>(
-                                  menoh_variable_profile_table{std::move(xgraph_ptr), builder->input_profiles, std::move(output_profiles), is_dynamic})
+                                  menoh_variable_profile_table{
+                                          std::move(xgraph_ptr), builder->input_profiles, std::move(output_profiles), is_dynamic})
                                   .release();
         }
         return menoh_error_code_success;
