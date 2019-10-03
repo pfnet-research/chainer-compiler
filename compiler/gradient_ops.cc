@@ -658,7 +658,8 @@ void BatchNormalizationGradFn(GradientOpContext* gc) {
         expanded_shape_value.push_back(i == axis ? x->type().dims()[i] : 1);
     }
 
-    chainerx::Array expanded_shape_array = ArrayBuilder({static_cast<int>(x->type().ndim())}).WithData<int64_t>(expanded_shape_value).Build();
+    chainerx::Array expanded_shape_array =
+            ArrayBuilder({static_cast<int>(x->type().ndim())}).WithData<int64_t>(expanded_shape_value).Build();
     Value* expanded_shape = gb.Const(expanded_shape_array);
 
     gamma = gb.Op(Node::kReshape, {gamma, expanded_shape});
