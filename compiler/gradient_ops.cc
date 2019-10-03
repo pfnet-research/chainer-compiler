@@ -6,8 +6,11 @@
 #include <memory>
 #include <string>
 
+#include <chainerx/testing/array.h>
+
 #include <common/log.h>
 #include <common/strutil.h>
+#include <compiler/flags.h>
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
@@ -624,12 +627,69 @@ void SoftmaxGradFn(GradientOpContext* gc) {
 
 void BatchNormalizationGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
+    if (!g_fixed_batch_norm) {
+        Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
+        Value* gy = gc->gy(0);
+        Value* gx0 = gc->AddGradValue(0);
+        Value* gx1 = gc->AddGradValue(1);
+        Value* gx2 = gc->AddGradValue(2);
+        gb.MOp(Node::kChainerBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2});
+        return;
+    }
+
+    Value* x = gc->x(0);
+    Value* gamma = gc->x(1);
+    Value* mean = gc->x(3);
+    Value* var = gc->x(4);
     Value* gy = gc->gy(0);
-    Value* gx0 = gc->AddGradValue(0);
-    Value* gx1 = gc->AddGradValue(1);
-    Value* gx2 = gc->AddGradValue(2);
-    gb.MOp(Node::kChainerBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2});
+
+    CHECK(x->type().HasKnownShape()) << x->ToString();
+    const int axis = 1;
+    std::vector<int64_t> reduce_axes;
+    for (size_t i = 0; i < x->type().ndim(); ++i) {
+        if (i != axis) {
+            reduce_axes.push_back(i);
+        }
+    }
+
+    using chainerx::testing::array_detail::ArrayBuilder;
+    std::vector<int64_t> expanded_shape_value;
+    for (size_t i = 0; i < x->type().ndim(); ++i) {
+        expanded_shape_value.push_back(i == axis ? x->type().dims()[i] : 1);
+    }
+
+    chainerx::Array expanded_shape_array = ArrayBuilder({static_cast<int>(x->type().ndim())}).WithData<int64_t>(expanded_shape_value).Build();
+    Value* expanded_shape = gb.Const(expanded_shape_array);
+
+    gamma = gb.Op(Node::kReshape, {gamma, expanded_shape});
+    mean = gb.Op(Node::kReshape, {mean, expanded_shape});
+    var = gb.Op(Node::kReshape, {var, expanded_shape});
+
+    Value* eps = gb.ScalarConst(gc->node()->epsilon(), x->type().dtype());
+    Value* inv_var = gb.Op(Node::kReciprocal, {gb.Op(Node::kAdd, {var, eps})});
+    Value* inv_std = gb.Op(Node::kSqrt, {inv_var});
+    Value* gamma_over_std = gb.Op(Node::kMul, {gamma, inv_std});
+
+    Value* x_hat = gb.Op(Node::kMul, {gb.Op(Node::kSub, {x, mean}), inv_std});
+
+    gc->GradOp(Node::kMul, 0, {gamma_over_std, gy});
+
+    Value* ggamma = gc->GradOp(Node::kReduceSum, 1, {gb.Op(Node::kMul, {x_hat, gy})});
+    ggamma->producer()->set_axes(reduce_axes)->set_keepdims(false);
+
+    Value* gbeta = gc->GradOp(Node::kReduceSum, 2, {gy});
+    gbeta->producer()->set_axes(reduce_axes)->set_keepdims(false);
+
+    gbeta = gb.Op(Node::kReshape, {gbeta, expanded_shape});
+    Value* gmean = gb.Op(Node::kNeg, {gb.Op(Node::kMul, {gamma_over_std, gbeta})});
+    gc->GradOp(Node::kSqueeze, 3, {gmean})->producer()->set_axes(reduce_axes);
+
+    Value* tmp = gb.ScalarConst(-0.5, x->type().dtype());
+    tmp = gb.Op(Node::kMul, {tmp, inv_var});
+    tmp = gb.Op(Node::kMul, {tmp, gamma});
+    ggamma = gb.Op(Node::kReshape, {ggamma, expanded_shape});
+    Value* gvar = gb.Op(Node::kMul, {tmp, ggamma});
+    gc->GradOp(Node::kSqueeze, 4, {gvar})->producer()->set_axes(reduce_axes);
 }
 
 void LRNGradFn(GradientOpContext* gc) {

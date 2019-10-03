@@ -183,7 +183,8 @@ def get_backprop_tests():
          g=aranges(5),
          b=aranges(5),
          r=aranges(2, 5) % 7)
-    # TODO(hamaji): Enable this test.
+    # TODO(hamaji): Enable this test after merging this PR:
+    # https://github.com/chainer/onnx-chainer/pull/244
     # test('fixed_batch_normalization',
     #      lambda m: F.fixed_batch_normalization(m.x, m.g, m.b, m.m, m.v) * m.r,
     #      x=aranges(2, 5, 3, 3),

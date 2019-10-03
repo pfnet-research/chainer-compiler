@@ -94,6 +94,11 @@ FLAGS = {
         'doc': 'Use fp16 with TensorRT.'
     },
 
+    'fixed_batch_norm': {
+        'type': 'bool',
+        'doc': 'Use fixed batch normalization even for backprop.'
+    },
+
     'trace_level': {
         'type': 'int',
         'doc': 'Enables ChainerX VM trace during constant propagation.'
