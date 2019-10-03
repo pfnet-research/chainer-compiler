@@ -1410,13 +1410,14 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
         veval_ast_if(astc, local_field, graph, context)
         return None
 
-    elif isinstance(astc.nast, gast.gast.Constant):
-        if isinstance(astc.nast.value, numbers.Number):
-            return veval_ast_num(astc, local_field, graph, context)
-        elif isinstance(astc.nast.value, numbers.Number):
-            return veval_ast_str(astc, local_field, graph, context)
-        else:
-            return veval_ast_name_constant(astc, local_field, graph, context)
+    elif isinstance(astc.nast, gast.gast.Constant) and isinstance(astc.nast.value, numbers.Number):
+        return veval_ast_num(astc, local_field, graph, context)
+
+    elif isinstance(astc.nast, gast.gast.Constant) and isinstance(astc.nast.value, numbers.Number):
+        return veval_ast_str(astc, local_field, graph, context)
+
+    elif isinstance(astc.nast, gast.gast.Constant) and astc.nast.value in [False, True, None]:
+        return veval_ast_name_constant(astc, local_field, graph, context)
 
     elif isinstance(astc.nast, gast.gast.Tuple):
         ret = veval_ast_tuple(astc, local_field, graph, context)
