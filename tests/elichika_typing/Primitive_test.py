@@ -6,7 +6,7 @@ import unittest
 import chainer
 
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
-from chainer_compiler.elichika.testtools import type_checker_tools
+from chainer_compiler.elichika.testtools import type_inference_tools
 
 
 class TestNum(unittest.TestCase):
@@ -709,7 +709,7 @@ class TestLazy(unittest.TestCase):
 
 
     def test_lazy_init_branch_if(self):
-        type_checker_tools.reset_state()
+        type_inference_tools.reset_state()
 
         class Test(chainer.Chain):
             def forward(self, x):

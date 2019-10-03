@@ -10,14 +10,16 @@
 namespace chainer_compiler {
 namespace {
 
+using chainerx::testing::array_detail::ArrayBuilder;
+
 TEST(ShapeEvaluatorTest, EvaluateShapes) {
     chainerx::testing::ContextSession sess;
 
     Value dummy_for_test("test");
     Graph graph("test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);
-    Value* a = gb.Const(Type(Dtype::kInt32, {2, 1, 1}), {0, 0});
-    Value* b = gb.Const(Type(Dtype::kInt32, {1, 1, 3}), {0, 0, 0});
+    Value* a = gb.Const(ArrayBuilder({2, 1, 1}).WithData<int32_t>({0, 0}).Build());
+    Value* b = gb.Const(ArrayBuilder({1, 1, 3}).WithData<int32_t>({0, 0, 0}).Build());
     Value* r = gb.Op(Node::kAdd, {a, b});
     ASSERT_TRUE(a->type().HasKnownShape());
     ASSERT_TRUE(b->type().HasKnownShape());

@@ -11,6 +11,7 @@
         "ExpandFunction": true,
         "ReplaceArgMin": true,
         "ReplaceChainerReduceSumTo": true,
+        "ReplaceConstant": false,
         "ReplaceConstantLike": true,
         "ReplaceConstantOfShape": true,
         "ReplaceFlatten": true,
