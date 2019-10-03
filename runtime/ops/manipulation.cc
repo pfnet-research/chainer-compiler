@@ -51,18 +51,8 @@ chainerx::Array ReshapeOp::RunImpl(ChxVMState* st, const chainerx::Array& data, 
 }
 
 chainerx::Array ExpandOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Shape& shape) {
-    bool needs_bidiretional_broadcast = shape.size() < data.ndim();
-    for (size_t i = 0; i < shape.size(); ++i) {
-        if (data.shape()[data.ndim() - i - 1] > shape[shape.size() - i - 1]) {
-            needs_bidiretional_broadcast = true;
-            break;
-        }
-    }
-    if (needs_bidiretional_broadcast) {
-        return data + chainerx::Zeros(shape, data.dtype(), data.device());
-    } else {
-        return chainerx::BroadcastTo(data, shape);
-    }
+    chainerx::Shape dst_shape = chainerx::internal::BroadcastShapes(data.shape(), shape);
+    return chainerx::BroadcastTo(data, dst_shape);
 }
 
 chainerx::Array SqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
