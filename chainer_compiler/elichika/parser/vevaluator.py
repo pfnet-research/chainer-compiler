@@ -972,15 +972,17 @@ def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', g
     Ex. True
     '''
     assert(isinstance(astc.nast, gast.gast.Constant))
-    # assert(isinstance(astc.nast, gast.gast.NameConstant))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
     ret = None
     if astc.nast.value == True:
         ret = values.Object(values.BoolValue(True))
-    if astc.nast.value == False:
+    elif astc.nast.value == False:
         ret = values.Object(values.BoolValue(False))
-    if astc.nast.value is None:
+    elif astc.nast.value is None:
         ret = values.Object(values.NoneValue())
+    else:
+        print("Invalid name constant: {}".format(astc.nast.value))
+        assert False
 
     name = values.create_ref_value_name_with_constant(ret)
     ret.name = name
