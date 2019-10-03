@@ -183,6 +183,15 @@ def get_backprop_tests():
          g=aranges(5),
          b=aranges(5),
          r=aranges(2, 5) % 7)
+    # TODO(hamaji): Enable this test.
+    # test('fixed_batch_normalization',
+    #      lambda m: F.fixed_batch_normalization(m.x, m.g, m.b, m.m, m.v) * m.r,
+    #      x=aranges(2, 5, 3, 3),
+    #      g=aranges(5),
+    #      b=aranges(5),
+    #      m=aranges(5),
+    #      v=aranges(5),
+    #      r=aranges(2, 5, 3, 3) % 7)
 
     test('pad',
          lambda m: F.pad(m.x, 2, 'constant'),
