@@ -1467,4 +1467,4 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
 
     else:
         if config.show_warnings:
-            print('Unknown ast is found : {} in L.{}'.format(type(astc.nast),astc.lineno))
+            print('Unknown ast is found : {} in L.{}'.format(astc.nast,astc.lineno))
