@@ -34,7 +34,7 @@ def expr_to_str(node):
         return "{}.{}".format(expr_to_str(node.value), node.attr)
     if isinstance(node, gast.Subscript):
         return "{}[{}]".format(expr_to_str(node.value), slice_to_str(node.slice))
-    if isinstance(node, gast.NameConstant):
+    if isinstance(node, gast.Constant):  # assume is NameConstant
         return str(node.value)
     if isinstance(node, gast.Name):
         return node.id

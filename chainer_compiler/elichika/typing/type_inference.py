@@ -56,7 +56,7 @@ def lazy_initializer(node):
             (isinstance(node.test.left, gast.Name) or \
             isinstance(node.test.left, gast.Attribute)) and \
             isinstance(node.test.ops[0], gast.Is) and \
-            isinstance(node.test.comparators[0], gast.NameConstant) and \
+            isinstance(node.test.comparators[0], gast.Constant) and \
             node.test.comparators[0].value is None:
         x = node.test.left  # variable/attribute being initialized
         assign_x = [isinstance(stmt, gast.Assign) and \
@@ -591,9 +591,6 @@ class InferenceEngine():
             self.nodetype[node] = self.infer_Call(node)
         elif isinstance(node, gast.Constant):
             # Constant(constant value)
-            self.nodetype[node] = type_of_value(node.value)
-        elif isinstance(node, gast.NameConstant):
-            # NameConstant(singleton value)
             self.nodetype[node] = type_of_value(node.value)
         elif isinstance(node, gast.Attribute):
             self.nodetype[node] = self.infer_Attribute(node)
