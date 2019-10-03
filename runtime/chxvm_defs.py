@@ -390,6 +390,7 @@ CHX_OPS = [
      ['y']),
     ('BatchNormalizationGrad', [Array('gy'), Opaque('ctx')],
      ['gx0', 'gx1', 'gx2']),
+    ('BatchNormalizationExpandedStatsShape', [Array('x')], ['shape']),
 
     ('LRN',
      [Array('x'), Float('alpha'), Float('beta'), Float('bias'), Int('size')],

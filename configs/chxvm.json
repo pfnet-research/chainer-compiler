@@ -67,6 +67,7 @@
         "Cast": true,
         "Ceil": true,
         "ChainerAveragePoolGrad": true,
+        "ChainerBatchNormalizationExpandedStatsShape": true,
         "ChainerBatchNormalizationGrad": true,
         "ChainerConcatGrad": true,
         "ChainerConvGradWeight": true,

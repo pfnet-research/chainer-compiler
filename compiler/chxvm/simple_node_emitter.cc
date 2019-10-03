@@ -693,6 +693,8 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
         EMIT(Flatten, out(0), in(0), node.axis());
+    } else if (node.op_type() == Node::kChainerBatchNormalizationExpandedStatsShape) {
+        EMIT(BatchNormalizationExpandedStatsShape, out(0), in(0));
     } else {
         CHECK(false) << "Unsupported op: " << node.op_type();
     }
