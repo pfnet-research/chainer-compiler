@@ -51,7 +51,8 @@ chainerx::Array ReshapeOp::RunImpl(ChxVMState* st, const chainerx::Array& data, 
 }
 
 chainerx::Array ExpandOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Shape& shape) {
-    return chainerx::BroadcastTo(data, shape);
+    chainerx::Shape dst_shape = chainerx::internal::BroadcastShapes(data.shape(), shape);
+    return chainerx::BroadcastTo(data, dst_shape);
 }
 
 chainerx::Array SqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {

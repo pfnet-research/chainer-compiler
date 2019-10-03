@@ -272,9 +272,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_reshape_one_dim'),
     TestCase(NODE_TEST, 'test_reshape_reduced_dims'),
     TestCase(NODE_TEST, 'test_reshape_reordered_dims'),
-    # Broadcast from (3, 1) to (2, 1, 6).
-    # TODO(ChainerX): Do we really want to support this?
-    # TestCase(NODE_TEST, 'test_expand_dim_changed'),
+    TestCase(NODE_TEST, 'test_expand_dim_changed'),
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
     TestCase(NODE_TEST, 'test_squeeze'),
     TestCase(NODE_TEST, 'test_squeeze_negative_axes'),
