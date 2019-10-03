@@ -65,7 +65,7 @@ class Canonicalizer(gast.NodeTransformer):
         breaked_flags = self.for_breaked_stack.pop()
         bool_values = []
         if breaked_flags:
-            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Store(), annotation=None, type_comment=None)], value=gast.Constant(value=False, kind=NOne)))
+            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Store(), annotation=None, type_comment=None)], value=gast.Constant(value=False, kind=None)))
             bool_values.append(gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Load(), annotation=None))
 
         if len(self.func_returned_stack) > 0:
