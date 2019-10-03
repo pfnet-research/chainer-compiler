@@ -245,6 +245,15 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalization
     return std::forward_as_tuple(gx, gx1, gx2);
 }
 
+chainerx::Array BatchNormalizationExpandedStatsShapeOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
+    const int axis = 1;
+    std::vector<int64_t> shape;
+    for (size_t i = 0; i < x.shape().size(); ++i) {
+        shape.push_back(i == axis ? x.shape()[i] : 1);
+    }
+    return MakeHostArray(chainerx::Dtype::kInt64, {static_cast<int64_t>(shape.size())}, shape.data());
+}
+
 std::tuple<chainerx::Array, chainerx::Array> LRNOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     int half_n = size / 2;
     chainerx::Array x2 = x * x;

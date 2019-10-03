@@ -8,6 +8,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <compiler/flags.h>
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
@@ -624,12 +625,52 @@ void SoftmaxGradFn(GradientOpContext* gc) {
 
 void BatchNormalizationGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
+    if (!g_fixed_batch_norm) {
+        Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
+        Value* gy = gc->gy(0);
+        Value* gx0 = gc->AddGradValue(0);
+        Value* gx1 = gc->AddGradValue(1);
+        Value* gx2 = gc->AddGradValue(2);
+        gb.MOp(Node::kChainerBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2});
+        return;
+    }
+
+    Value* x = gc->x(0);
+    Value* gamma = gc->x(1);
+    Value* mean = gc->x(3);
+    Value* var = gc->x(4);
     Value* gy = gc->gy(0);
-    Value* gx0 = gc->AddGradValue(0);
-    Value* gx1 = gc->AddGradValue(1);
-    Value* gx2 = gc->AddGradValue(2);
-    gb.MOp(Node::kChainerBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2});
+
+    Value* original_shape = gb.Op(Node::kShape, {gamma});
+    Value* expanded_shape = gb.Op(Node::kChainerBatchNormalizationExpandedStatsShape, {x});
+
+    gamma = gb.Op(Node::kReshape, {gamma, expanded_shape});
+    mean = gb.Op(Node::kReshape, {mean, expanded_shape});
+    var = gb.Op(Node::kReshape, {var, expanded_shape});
+
+    Value* eps = gb.ScalarConst(gc->node()->epsilon(), x->type().dtype());
+    Value* inv_var = gb.Op(Node::kReciprocal, {gb.Op(Node::kAdd, {var, eps})});
+    Value* inv_std = gb.Op(Node::kSqrt, {inv_var});
+    Value* gamma_over_std = gb.Op(Node::kMul, {gamma, inv_std});
+
+    Value* x_hat = gb.Op(Node::kMul, {gb.Op(Node::kSub, {x, mean}), inv_std});
+
+    gc->GradOp(Node::kMul, 0, {gamma_over_std, gy});
+
+    Value* ggamma = gb.Op(Node::kChainerReduceSumTo, {gb.Op(Node::kMul, {x_hat, gy}), expanded_shape});
+    gc->GradOp(Node::kReshape, 1, {ggamma, original_shape});
+
+    Value* gbeta = gb.Op(Node::kChainerReduceSumTo, {gy, expanded_shape});
+    gc->GradOp(Node::kReshape, 2, {gbeta, original_shape});
+
+    Value* gmean = gb.Op(Node::kNeg, {gb.Op(Node::kMul, {gamma_over_std, gbeta})});
+    gc->GradOp(Node::kReshape, 3, {gmean, original_shape});
+
+    Value* tmp = gb.ScalarConst(-0.5, x->type().dtype());
+    tmp = gb.Op(Node::kMul, {tmp, inv_var});
+    tmp = gb.Op(Node::kMul, {tmp, gamma});
+    Value* gvar = gb.Op(Node::kMul, {tmp, ggamma});
+    gc->GradOp(Node::kReshape, 4, {gvar, original_shape});
 }
 
 void LRNGradFn(GradientOpContext* gc) {
