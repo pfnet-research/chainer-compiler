@@ -24,7 +24,7 @@ fi
 python3 -m pip install dist-chainer/*.whl
 
 # TODO(take-cheeze): Update gast to 0.3.x
-python3 -m pip install gast==0.2.2 chainercv
+python3 -m pip install gast==0.3.2 chainercv
 # TODO(take-cheeze): Remove this when onnx-chainer drops 1.4.1 support
 python3 -m pip install onnx==1.5.0
 python3 -m pip install --no-cache-dir third_party/onnx-chainer[test]
