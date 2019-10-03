@@ -52,8 +52,9 @@ void InitializeMemoryMonitoring(chainerx::Device* device) {
     };
 
     auto free_preprocess_hook = [](chainerx::cuda::MemoryPool&, void* ptr) {
+        if (!ptr) return;
         auto found = g_memory_map.find(ptr);
-        CHECK(found != g_memory_map.end());
+        CHECK(found != g_memory_map.end()) << ptr;
         g_total_memory -= found->second;
         g_memory_map.erase(found);
     };
