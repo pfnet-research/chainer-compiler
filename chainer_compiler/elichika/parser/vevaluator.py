@@ -4,6 +4,7 @@ import chainer.links as L
 import inspect
 import ast, gast
 import itertools
+import numbers
 from contextlib import ExitStack
 
 from chainer_compiler.elichika.parser import config
@@ -940,9 +941,10 @@ def veval_ast_num(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     '''
     Ex. 1, 2, ...
     '''
-    assert(isinstance(astc.nast, gast.gast.Num))
+    assert(isinstance(astc.nast, gast.gast.Constant))
+    assert(isinstance(astc.nast.value, numbers.Number))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
-    value = values.NumberValue(astc.nast.n)
+    value = values.NumberValue(astc.nast.value)
     ret = values.Object(value)
 
     name = values.create_ref_value_name_with_constant(ret)
@@ -954,9 +956,10 @@ def veval_ast_str(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     '''
     Ex. "str"
     '''
-    assert(isinstance(astc.nast, gast.gast.Str))
+    assert(isinstance(astc.nast, gast.gast.Constant))
+    assert(isinstance(astc.nast.value, str))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
-    value = values.StrValue(astc.nast.s)
+    value = values.StrValue(astc.nast.value)
     ret = values.Object(value)
 
     name = values.create_ref_value_name_with_constant(ret)
@@ -968,7 +971,8 @@ def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', g
     '''
     Ex. True
     '''
-    assert(isinstance(astc.nast, gast.gast.NameConstant))
+    assert(isinstance(astc.nast, gast.gast.Constant))
+    # assert(isinstance(astc.nast, gast.gast.NameConstant))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
     ret = None
     if astc.nast.value == True:
@@ -1406,17 +1410,13 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
         veval_ast_if(astc, local_field, graph, context)
         return None
 
-    elif isinstance(astc.nast, gast.gast.Num):
-        ret = veval_ast_num(astc, local_field, graph, context)
-        return ret
-
-    elif isinstance(astc.nast, gast.gast.Str):
-        ret = veval_ast_str(astc, local_field, graph, context)
-        return ret
-
-    elif isinstance(astc.nast, gast.gast.NameConstant):
-        ret = veval_ast_name_constant(astc, local_field, graph, context)
-        return ret
+    elif isinstance(astc.nast, gast.gast.Constant):
+        if isinstance(astc.nast.value, numbers.Number):
+            return veval_ast_num(astc, local_field, graph, context)
+        elif isinstance(astc.nast.value, numbers.Number):
+            return veval_ast_str(astc, local_field, graph, context)
+        else:
+            return veval_ast_name_constant(astc, local_field, graph, context)
 
     elif isinstance(astc.nast, gast.gast.Tuple):
         ret = veval_ast_tuple(astc, local_field, graph, context)

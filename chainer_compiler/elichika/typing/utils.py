@@ -1,5 +1,6 @@
 import ast
 import gast
+import numbers
 
 # ============================== Display utils =================================
 
@@ -23,9 +24,9 @@ def expr_to_str(node):
                 ["{}={}".format(kwarg.arg, expr_to_str(kwarg.value))
                         for kwarg in node.keywords]
         return "{}({})".format(expr_to_str(node.func), intercalate(args, ", "))
-    if isinstance(node, gast.Num):
-        return str(node.n)
-    if isinstance(node, gast.Str):
+    if isinstance(node, gast.Constant) and isinstance(node.value, numbers.Number):
+        return str(node.value)
+    if isinstance(node, gast.Constant) and isinstance(node.value, numbers.Number):
         if len(node.s) < 20:
             return "\'" + node.s + "\'"
         return "\"...\""  # sometimes it is too long
@@ -108,13 +109,9 @@ def is_expr(node):
             or isinstance(node, gast.Compare) \
             or isinstance(node, gast.Call) \
             or isinstance(node, gast.Repr) \
-            or isinstance(node, gast.Num) \
-            or isinstance(node, gast.Str) \
+            or isinstance(node, gast.Constant) \
             or isinstance(node, gast.FormattedValue) \
             or isinstance(node, gast.JoinedStr) \
-            or isinstance(node, gast.Bytes) \
-            or isinstance(node, gast.NameConstant) \
-            or isinstance(node, gast.Ellipsis) \
             or isinstance(node, gast.Attribute) \
             or isinstance(node, gast.Subscript) \
             or isinstance(node, gast.Starred) \
