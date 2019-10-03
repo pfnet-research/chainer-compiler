@@ -1,6 +1,7 @@
 """Tests for ChainerCV models."""
 
 import os
+import shutil
 
 import chainer
 import chainer.functions as F
@@ -24,8 +25,10 @@ def chainercv_model_test(model):
     def fn(test_name):
         np.random.seed(42)
         x = np.random.rand(1, 3, 224, 224).astype(np.float32)
+        test_dir = os.path.join('out', test_name)
+        shutil.rmtree(test_dir, ignore_errors=True)
         onnx_chainer.export_testcase(model, [x],
-                                     os.path.join('out', test_name),
+                                     test_dir,
                                      opset_version=9)
 
     return fn

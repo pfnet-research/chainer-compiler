@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import shutil
+
 import chainer
 import numpy as np
 import onnx_chainer
@@ -28,6 +30,7 @@ def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
     model = AnyModel(fn, params)
 
     chainer.disable_experimental_feature_warning = True
+    shutil.rmtree(test_dir, ignore_errors=True)
     onnx_chainer.export_testcase(model,
                                  (),
                                  test_dir,
