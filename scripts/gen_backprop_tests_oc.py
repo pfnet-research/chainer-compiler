@@ -6,6 +6,8 @@ import chainer
 import numpy as np
 import onnx_chainer
 
+from test_case import TestCase
+
 
 class AnyModel(chainer.Chain):
     def __init__(self, fn, params):
@@ -22,7 +24,7 @@ class AnyModel(chainer.Chain):
 
 
 def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
-    test_dir = 'out/backprop_test_oc_%s' % test_name
+    test_dir = 'out/%s' % test_name
 
     params = {}
     for name, value in kwargs.items():
@@ -38,12 +40,13 @@ def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
                                  output_names='loss')
 
 
-class BackpropTest(object):
-    def __init__(self, name, fn, rtol=None, **kwargs):
-        self.name = name
+class BackpropTest(TestCase):
+    def __init__(self, name, fn, rtol=None, test_params=None, **kwargs):
+        name = 'backprop_test_oc_%s' % name
+        test_params = {} if test_params is None else test_params
+        super().__init__(basedir='out', name=name, rtol=rtol, **test_params)
         self.fn = fn
         self.kwargs = kwargs
-        self.rtol = rtol
 
     def generate(self):
         create_backprop_test(self.name, self.fn, **self.kwargs)
@@ -57,7 +60,8 @@ def get_backprop_tests():
         for dtype in (np.float16, np.float32, np.float64):
             test_name = '%s_%s' % (name, dtype.__name__)
             rtol = None if dtype != np.float16 else 0.02
-            tests.append(BackpropTest(test_name, fn, dtype=dtype, rtol=rtol, **kwargs))
+            tests.append(BackpropTest(test_name, fn, dtype=dtype, rtol=rtol,
+                                      **kwargs))
 
     def aranges(*shape):
         r = np.prod(shape)
@@ -186,16 +190,15 @@ def get_backprop_tests():
          g=aranges(5),
          b=aranges(5),
          r=aranges(2, 5) % 7)
-    # TODO(hamaji): Enable this test after merging this PR:
-    # https://github.com/chainer/onnx-chainer/pull/244
-    # test('fixed_batch_normalization',
-    #      lambda m: F.fixed_batch_normalization(m.x, m.g, m.b, m.m, m.v) * m.r,
-    #      x=aranges(2, 5, 3, 3),
-    #      g=aranges(5),
-    #      b=aranges(5),
-    #      m=aranges(5),
-    #      v=aranges(5),
-    #      r=aranges(2, 5, 3, 3) % 7)
+    test('fixed_batch_normalization',
+         lambda m: F.fixed_batch_normalization(m.x, m.g, m.b, m.m, m.v) * m.r,
+         x=aranges(2, 5, 3, 3) * 0.1,
+         g=aranges(5),
+         b=aranges(5),
+         m=aranges(5),
+         v=aranges(5),
+         r=aranges(2, 5, 3, 3) % 7,
+         test_params={'fixed_batch_norm': True})
 
     test('pad',
          lambda m: F.pad(m.x, 2, 'constant'),
