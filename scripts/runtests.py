@@ -757,6 +757,9 @@ for test in TEST_CASES:
     if test.name.startswith('backprop_test_oc_pow_const'):
         continue
 
+    if test.fixed_batch_norm:
+        continue
+
     # computation_order is supported in limited test cases
     if test.name.startswith('backprop_test_oc'):
         for two_phase in [False, True]:
@@ -973,6 +976,8 @@ def main():
             test_case.args.append('--skip_inference')
         if test_case.skip_runtime_type_check:
             test_case.args.append('--skip_runtime_type_check')
+        if test_case.fixed_batch_norm:
+            test_case.args.append('--fixed_batch_norm')
         if test_case.is_backprop_two_phase:
             test_case.args.append('--backprop_two_phase')
         elif test_case.is_backprop:
