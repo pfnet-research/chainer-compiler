@@ -6,6 +6,8 @@ import chainer
 import numpy as np
 import onnx_chainer
 
+from test_case import TestCase
+
 
 class AnyModel(chainer.Chain):
     def __init__(self, fn, params):
@@ -38,12 +40,11 @@ def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
                                  output_names='loss')
 
 
-class BackpropTest(object):
+class BackpropTest(TestCase):
     def __init__(self, name, fn, rtol=None, **kwargs):
-        self.name = name
+        super().__init__(basedir='out', name=name, rtol=rtol)
         self.fn = fn
         self.kwargs = kwargs
-        self.rtol = rtol
 
     def generate(self):
         create_backprop_test(self.name, self.fn, **self.kwargs)
