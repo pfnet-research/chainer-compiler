@@ -705,14 +705,8 @@ for backprop_test in gen_backprop_tests_oc.get_backprop_tests():
     TEST_CASES.append(backprop_test)
 
 for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
-    dirname = 'out'
-    name = 'backprop_test_pc_' + backprop_test.name
-    assert os.path.exists(os.path.join(dirname, name))
-    # TODO(hamaji): Do not skip shape inference.
-    skip_shape_inference = name.endswith('_embed')
-    TEST_CASES.append(TestCase(dirname, name, rtol=backprop_test.rtol,
-                               fail=backprop_test.fail,
-                               skip_shape_inference=skip_shape_inference))
+    assert os.path.exists(backprop_test.test_dir)
+    TEST_CASES.append(backprop_test)
 
 for test in gen_extra_test.get_tests():
     assert os.path.exists(test.test_dir), test.test_dir
