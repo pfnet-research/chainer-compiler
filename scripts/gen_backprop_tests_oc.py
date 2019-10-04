@@ -24,7 +24,7 @@ class AnyModel(chainer.Chain):
 
 
 def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
-    test_dir = 'out/backprop_test_oc_%s' % test_name
+    test_dir = 'out/%s' % test_name
 
     params = {}
     for name, value in kwargs.items():
@@ -42,6 +42,7 @@ def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
 
 class BackpropTest(TestCase):
     def __init__(self, name, fn, rtol=None, **kwargs):
+        name = 'backprop_test_oc_%s' % name
         super().__init__(basedir='out', name=name, rtol=rtol)
         self.fn = fn
         self.kwargs = kwargs

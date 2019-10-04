@@ -701,12 +701,8 @@ if args.all:
 num_official_onnx_tests = len(TEST_CASES)
 
 for backprop_test in gen_backprop_tests_oc.get_backprop_tests():
-    dirname = 'out'
-    name = 'backprop_test_oc_' + backprop_test.name
-    assert os.path.exists(os.path.join(dirname, name))
-    tc = TestCase(dirname, name)
-    tc.rtol = backprop_test.rtol
-    TEST_CASES.append(tc)
+    assert os.path.exists(backprop_test.test_dir)
+    TEST_CASES.append(backprop_test)
 
 for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
     dirname = 'out'
