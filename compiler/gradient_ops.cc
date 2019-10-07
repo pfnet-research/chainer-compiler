@@ -278,6 +278,32 @@ void EluGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kWhere, 0, {cond, gy, tmp});
 }
 
+void ClipGradFn(GradientOpContext* gc) {
+    CHECK_NE(1, gc->node()->inputs().size()) << "Clip must be upgraded to Clip-11";
+    GraphBuilder gb{gc->builder(0)};
+    Value* x = gc->x(0);
+    Value* cond = nullptr;
+    if (gc->node()->inputs().size() > 1 && !gc->node()->input(1)->IsNull()) {
+        cond = gb.Op(Node::kGreater, {gc->x(1), x});
+    }
+    if (gc->node()->inputs().size() > 2 && !gc->node()->input(2)->IsNull()) {
+        Value* c = gb.Op(Node::kGreater, {x, gc->x(2)});
+        if (cond) {
+            cond = gb.Op(Node::kOr, {cond, c});
+        } else {
+            cond = c;
+        }
+    }
+
+    CHECK(cond);
+    Value* tmp = gb.Op(Node::kNot, {cond});
+    tmp = gb.Op(Node::kCast, {tmp});
+    Dtype dtype = x->type().dtype();
+    CHECK_NE(Dtype::kUnknown, dtype);
+    tmp->producer()->set_to(dtype);
+    gc->GradOp(Node::kMul, 0, {gc->gy(0), tmp});
+}
+
 void SqrtGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* t0 = gb.Op(Node::kAdd, {gc->y(0), gc->y(0)});
@@ -1154,6 +1180,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kElu, &EluGradFn);
         register_grad_fn(Node::kSqrt, &SqrtGradFn);
         register_grad_fn(Node::kTanh, &TanhGradFn);
+        register_grad_fn(Node::kClip, &ClipGradFn);
 
         register_grad_fn(Node::kIdentity, &IdentityGradFn);
         register_grad_fn(Node::kReshape, &ReshapeGradFn);
