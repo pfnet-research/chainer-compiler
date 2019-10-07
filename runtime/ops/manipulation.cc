@@ -62,7 +62,7 @@ chainerx::Array SqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) 
 chainerx::Array UnsqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     chainerx::Shape shape = data.shape();
     for (int d : axes) {
-        d = d < 0 ? shape.size() + d : d;
+        d = d < 0 ? shape.size() + axes.size() + d : d;
         CHECK_LE(d, shape.size()) << "Unsqueezing axis out of bound: " << d;
         shape.insert(shape.begin() + d, 1);
     }
