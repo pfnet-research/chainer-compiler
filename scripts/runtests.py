@@ -272,9 +272,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_reshape_one_dim'),
     TestCase(NODE_TEST, 'test_reshape_reduced_dims'),
     TestCase(NODE_TEST, 'test_reshape_reordered_dims'),
-    # Broadcast from (3, 1) to (2, 1, 6).
-    # TODO(ChainerX): Do we really want to support this?
-    # TestCase(NODE_TEST, 'test_expand_dim_changed'),
+    TestCase(NODE_TEST, 'test_expand_dim_changed'),
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
     TestCase(NODE_TEST, 'test_squeeze'),
     TestCase(NODE_TEST, 'test_squeeze_negative_axes'),
@@ -703,22 +701,12 @@ if args.all:
 num_official_onnx_tests = len(TEST_CASES)
 
 for backprop_test in gen_backprop_tests_oc.get_backprop_tests():
-    dirname = 'out'
-    name = 'backprop_test_oc_' + backprop_test.name
-    assert os.path.exists(os.path.join(dirname, name))
-    tc = TestCase(dirname, name)
-    tc.rtol = backprop_test.rtol
-    TEST_CASES.append(tc)
+    assert os.path.exists(backprop_test.test_dir)
+    TEST_CASES.append(backprop_test)
 
 for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
-    dirname = 'out'
-    name = 'backprop_test_pc_' + backprop_test.name
-    assert os.path.exists(os.path.join(dirname, name))
-    # TODO(hamaji): Do not skip shape inference.
-    skip_shape_inference = name.endswith('_embed')
-    TEST_CASES.append(TestCase(dirname, name, rtol=backprop_test.rtol,
-                               fail=backprop_test.fail,
-                               skip_shape_inference=skip_shape_inference))
+    assert os.path.exists(backprop_test.test_dir)
+    TEST_CASES.append(backprop_test)
 
 for test in gen_extra_test.get_tests():
     assert os.path.exists(test.test_dir), test.test_dir
@@ -761,6 +749,9 @@ for test in TEST_CASES:
 
     # TODO(hamaji): Unexpected shape will appear due to broadcast.
     if test.name.startswith('backprop_test_oc_pow_const'):
+        continue
+
+    if test.fixed_batch_norm:
         continue
 
     # computation_order is supported in limited test cases
@@ -979,6 +970,8 @@ def main():
             test_case.args.append('--skip_inference')
         if test_case.skip_runtime_type_check:
             test_case.args.append('--skip_runtime_type_check')
+        if test_case.fixed_batch_norm:
+            test_case.args.append('--fixed_batch_norm')
         if test_case.is_backprop_two_phase:
             test_case.args.append('--backprop_two_phase')
         elif test_case.is_backprop:

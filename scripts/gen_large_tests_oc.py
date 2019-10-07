@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import shutil
+
 import chainer
 import numpy as np
 import onnx_chainer
@@ -20,6 +22,7 @@ def create_test(test_name, get_fun, dtype):
     test_dir = 'out/%s' % test_name
 
     chainer.disable_experimental_feature_warning = True
+    shutil.rmtree(test_dir, ignore_errors=True)
     onnx_chainer.export_testcase(model,
                                  inputs,
                                  test_dir,
