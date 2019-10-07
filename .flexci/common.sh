@@ -8,4 +8,4 @@ cp -a . ${TEMP}/chainer-compiler
 cd ${TEMP}/chainer-compiler
 
 gcloud -q auth configure-docker
-CI_IMAGE="asia.gcr.io/pfn-public-ci/chainer-compiler:ci-base-39114d83"
+CI_IMAGE="asia.gcr.io/pfn-public-ci/chainer-compiler:ci-base-70323579"
