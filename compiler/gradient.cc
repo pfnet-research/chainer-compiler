@@ -100,17 +100,21 @@ void GenerateGradientNodesImpl(Graph* graph, Graph* dest_graph, const std::set<V
         value->set_grad(grad);
     }
 
-    std::map<Value*, Value*> retained;
-    GenerateGradientNodes(graph, dest_graph, std::vector<Value*>(xs.begin(), xs.end()), graph->output_values(), &retained);
+    if (graph == dest_graph) {
+        GenerateGradientNodes(graph, dest_graph, std::vector<Value*>(xs.begin(), xs.end()), graph->output_values(), nullptr);
+    } else {
+        std::map<Value*, Value*> retained;
+        GenerateGradientNodes(graph, dest_graph, std::vector<Value*>(xs.begin(), xs.end()), graph->output_values(), &retained);
 
-    for (const auto& p : retained) {
-        GraphBuilder gbs(graph, "retain", p.first);
-        GraphBuilder gbd(dest_graph, "retain", p.second);
-        const std::string& name = "retained_" + p.first->name();
-        Value* o = graph->AddOutputValue(name, p.first->type());
-        gbs.Op(Node::kIdentity, {p.first}, o);
-        Value* i = dest_graph->AddInputValue(name, p.second->type());
-        gbd.Op(Node::kIdentity, {i}, p.second);
+        for (const auto& p : retained) {
+            GraphBuilder gbs(graph, "retain", p.first);
+            GraphBuilder gbd(dest_graph, "retain", p.second);
+            const std::string& name = "retained_" + p.first->name();
+            Value* o = graph->AddOutputValue(name, p.first->type());
+            gbs.Op(Node::kIdentity, {p.first}, o);
+            Value* i = dest_graph->AddInputValue(name, p.second->type());
+            gbd.Op(Node::kIdentity, {i}, p.second);
+        }
     }
 
     ExposeParamGradsAsOutputs(graph, dest_graph, xs);
