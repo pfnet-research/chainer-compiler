@@ -30,3 +30,10 @@ python3 -m pip install onnx==1.5.0
 python3 -m pip install --no-cache-dir third_party/onnx-chainer[test]
 
 python3 -m pip list -v
+
+# Install SNPE stuffs
+mkdir -p build
+cd build
+wget ${SNPE_DOWNLOAD_URL}
+unzip snpe-$SNPE_VERSION.zip
+cd ..

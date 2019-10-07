@@ -149,6 +149,9 @@ FROM nvidia/cuda:10.1-cudnn7-devel AS ci-base
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
+    python2.7 \
+    python2.7-dev \
+    python-pip \
     python3-dev \
     python3-pip \
     python3-wheel \
@@ -198,6 +201,7 @@ FROM ci-base AS dev-base
 RUN git clone --recursive https://github.com/pfnet-research/chainer-compiler.git
 # TODO(take-cheeze): Update gast to 0.3.x
 RUN python3 -m pip install --user gast==0.2.2 packaging
+RUN python2.7 -m pip install --user -r .flexci/snpe_requirements.txt
 RUN export CHAINER_VERSION=$(python3 -c "import imp;print(imp.load_source('_version','chainer-compiler/third_party/chainer/chainer/_version.py').__version__)") && \
     python3 -m pip install --user cupy-cuda101==$CHAINER_VERSION
 RUN CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j8 \

@@ -7,6 +7,8 @@ set -eux
 
 . .flexci/before_install.sh
 
+SNPE_ROOT=/chainer-compiler/build/snpe-$SNPE_VERSION
+
 mkdir -p build
 cd build
 cmake .. \
@@ -20,6 +22,9 @@ cmake .. \
     -DCHAINER_COMPILER_TVM_INCLUDE_DIRS="/root/tvm_dist/include;/root/dmlc_core_dist/include;/root/dlpack/include;/root/tvm_dist/include/HalideIR" \
     -DCHAINER_COMPILER_NGRAPH_DIR=$HOME/ngraph_dist \
     -DCHAINER_COMPILER_DLDT_DIR=$HOME/dldt \
+    -DCHAINER_COMPILER_ENABLE_SNPE=ON \
+    -DCHAINER_COMPILER_SNPE_INCLUDE_DIR=$SNPE_ROOT/include \
+    -DCHAINER_COMPILER_SNPE_LIBRARY_DIR=$SNPE_ROOT/lib/x86_64-linux-clang \
     -DPYTHON_EXECUTABLE=$(which python3) \
     -DCHAINERX_BUILD_CUDA=ON \
     -DCHAINERX_BUILD_PYTHON=ON \
@@ -48,7 +53,12 @@ EOM
 . .flexci/cache.sh
 pull_chainer_whl
 
-docker run --runtime=nvidia --memory-swap=-1 --rm -v=$(pwd):/chainer-compiler --workdir=/chainer-compiler \
+docker run --runtime=nvidia \
+    --memory-swap=-1 \
+    --rm \
+    -v=$(pwd):/chainer-compiler \
+    --env-file .flexci/env
+    --workdir=/chainer-compiler \
     ${CI_IMAGE} /bin/bash /chainer-compiler/runtest.sh
 
 push_chainer_whl
