@@ -1415,7 +1415,7 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
     elif isinstance(astc.nast, gast.gast.Constant) and isinstance(astc.nast.value, numbers.Number):
         return veval_ast_num(astc, local_field, graph, context)
 
-    elif isinstance(astc.nast, gast.gast.Constant) and isinstance(astc.nast.value, numbers.Number):
+    elif isinstance(astc.nast, gast.gast.Constant) and isinstance(astc.nast.value, str):
         return veval_ast_str(astc, local_field, graph, context)
 
     elif isinstance(astc.nast, gast.gast.Constant) and astc.nast.value in [False, True, None]:
