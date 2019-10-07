@@ -612,7 +612,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             graph.add_node(node)
             return values.Object(ret_value)
     else:
-        utils.print_warning("Subscript not possible for type {}".format(type(value_value)))
+        utils.print_warning("Subscript not possible for type {}".format(type(value_value)), lineprop)
 
     return None
 
@@ -1467,4 +1467,4 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
 
     else:
         if config.show_warnings:
-            print('Unknown ast is found : {} in L.{}'.format(astc.nast,astc.lineno))
+            print('Unknown ast is found : {} in L.{}'.format(astc.nast, astc.lineno))
