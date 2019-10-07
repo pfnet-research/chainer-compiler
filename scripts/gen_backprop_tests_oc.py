@@ -248,6 +248,12 @@ def get_backprop_tests():
          lambda m: sum(F.split_axis(m.x, 3, axis=1)),
          x=aranges(2, 12, 2))
 
+    def get_item(m):
+        indices = aranges(5, 3).astype(np.int32) % 12
+        return m.x[:, indices] * m.r
+    test('get_item', get_item,
+         x=aranges(1, 12, 32), r=aranges(1, 5, 3, 32))
+
     return tests
 
 
