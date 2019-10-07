@@ -26,7 +26,7 @@ def expr_to_str(node):
         return "{}({})".format(expr_to_str(node.func), intercalate(args, ", "))
     if isinstance(node, gast.Constant) and isinstance(node.value, numbers.Number):
         return str(node.value)
-    if isinstance(node, gast.Constant) and isinstance(node.value, numbers.Number):
+    if isinstance(node, gast.Constant) and isinstance(node.value, numbers.str):
         if len(node.s) < 20:
             return "\'" + node.s + "\'"
         return "\"...\""  # sometimes it is too long
