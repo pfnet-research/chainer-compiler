@@ -2,6 +2,7 @@
     "simplify_preproc": {
         "ReplaceChainerSelectItem": true,
         "ReplaceChainerSoftmaxCrossEntropy": true,
+        "ReplaceClip": true,
         "ReplaceIdentity": true,
         "ReplaceScan": true,
         "ReplaceSequenceEmpty": true,
