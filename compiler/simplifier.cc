@@ -706,6 +706,20 @@ bool ReplaceSequenceEmpty(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceClip(Graph* graph, Node* node) {
+    // No need to upgrade to Clip-11.
+    if (node->inputs().size() > 1) {
+        return false;
+    }
+    GraphBuilder gb(graph, "SimplifyClip", node->output(0));
+    Dtype dtype = node->input(0)->type().dtype();
+    CHECK_NE(Dtype::kUnknown, dtype);
+    Value* min = gb.ScalarConst(node->min(), dtype);
+    Value* max = gb.ScalarConst(node->max(), dtype);
+    gb.Op(Node::kClip, {node->input(0), min, max}, node->output(0));
+    return true;
+}
+
 SimplifierFn FunctionExpander(const std::string& fn, const onnx::OpSchema* schema) {
     return [fn, schema](Graph* graph, Node* fn_nd) {
         std::unordered_map<std::string, Value*> value_table;
@@ -819,6 +833,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     REGISTER_SIMPLIFIER(SequenceEmpty);
     REGISTER_SIMPLIFIER(Concat);
     REGISTER_SIMPLIFIER(Constant);
+    REGISTER_SIMPLIFIER(Clip);
 
     register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
     register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);

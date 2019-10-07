@@ -81,6 +81,8 @@ def get_backprop_tests():
     test('relu', lambda m: F.relu(m.a), a=[-3, 3, 5])
     test('elu', lambda m: F.elu(m.a), a=[-3, 3, 5])
     test('reduce_sum', lambda m: F.sum(m.a, axis=0), a=[3, 5, 7])
+    test('clip', lambda m: F.clip(m.a, -2.0, 4.0),
+         a=[-3.0, -2.0, 3.0, 4.0, 5.0])
 
     test('mulconst', lambda m: m.a * 1.23, a=[3, 5])
     test('mulbcast', lambda m: m.a * m.b, a=[[1, 2, 3], [4, 5, 6]], b=[7, 8, 9])
