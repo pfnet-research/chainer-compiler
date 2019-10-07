@@ -34,7 +34,6 @@ else
   cp -p third_party/chainer/dist/*.whl $CHAINER_WHL_CACHE_DIR
 fi
 run pip_chainer sudo pip3 install $CHAINER_WHL_CACHE_DIR/*.whl
-# TODO(take-cheeze): Update gast to 0.3.x
 run pip_dependencies sudo pip3 install gast==0.3.2 chainercv
 run pip_onnx_chainer sudo pip3 install third_party/onnx-chainer[test]
 

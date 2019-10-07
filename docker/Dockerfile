@@ -196,7 +196,6 @@ ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:${LD_LIBRA
 
 FROM ci-base AS dev-base
 RUN git clone --recursive https://github.com/pfnet-research/chainer-compiler.git
-# TODO(take-cheeze): Update gast to 0.3.x
 RUN python3 -m pip install --user gast==0.3.2 packaging
 RUN export CHAINER_VERSION=$(python3 -c "import imp;print(imp.load_source('_version','chainer-compiler/third_party/chainer/chainer/_version.py').__version__)") && \
     python3 -m pip install --user cupy-cuda101==$CHAINER_VERSION
