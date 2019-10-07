@@ -338,7 +338,7 @@ void SelectItemGradFn(GradientOpContext* gc) {
 void GatherGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* t0 = gb.Op(Node::kShape, {gc->x(0)});
-    gc->GradOp(Node::kChainerGatherGrad, 0, {gc->gy(0), gc->x(1), t0});
+    gc->GradOp(Node::kChainerGatherGrad, 0, {gc->gy(0), gc->x(1), t0})->producer()->set_axis(gc->node()->axis());
 }
 
 void ExpandGradFn(GradientOpContext* gc) {
