@@ -120,6 +120,8 @@ public:
                 backprop_ins_.push_back(value->name());
             }
             flops_ += CalculateTotalFlops(backprop_model.graph(), &num_unknown_ops_);
+
+            // TODO(hamaji): Set `ordered_output_names_` in two-phase mode.
         } else {
             LOG() << "Constructing model..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), args_.exist("backprop"));
