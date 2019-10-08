@@ -287,20 +287,20 @@ if(${CHAINER_COMPILER_ENABLE_PYTHON})
 endif()
 
 set(ONNX_CHAINER_DEPS
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/__init__.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/context.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/export.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/export_testcase.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/mapping.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/onnx_helper.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/__init__.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/activation.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/array.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/connection.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/math.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/noise.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/normalization.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/pooling.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/context.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/export.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/export_testcase.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/mapping.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/onnx_helper.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/functions/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/functions/activation.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/functions/array.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/functions/connection.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/functions/math.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/functions/noise.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/functions/normalization.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/functions/pooling.py
   )
 
 set(ABSEIL_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/abseil)
@@ -317,16 +317,16 @@ add_subdirectory(tools)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
-  COMMAND ${RM_RF} "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && ${ENV_SET} PYTHONPATH=third_party/onnx-chainer pytest -m "not gpu" --value-check-runtime skip third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  COMMAND ${RM_RF} "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && ${ENV_SET} PYTHONPATH=third_party/chainer pytest -m "not gpu" --value-check-runtime skip third_party/chainer/tests/onnx_chainer_tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
   DEPENDS
-  third_party/onnx-chainer/tests/functions_tests/test_activations.py
-  third_party/onnx-chainer/tests/functions_tests/test_arrays.py
-  third_party/onnx-chainer/tests/functions_tests/test_connections.py
-  third_party/onnx-chainer/tests/functions_tests/test_loss.py
-  third_party/onnx-chainer/tests/functions_tests/test_maths.py
-  third_party/onnx-chainer/tests/functions_tests/test_noises.py
-  third_party/onnx-chainer/tests/functions_tests/test_normalizations.py
-  third_party/onnx-chainer/tests/functions_tests/test_poolings.py
+  third_party/chainer/tests/onnx_chainer_tests/functions_tests/test_activations.py
+  third_party/chainer/tests/onnx_chainer_tests/functions_tests/test_arrays.py
+  third_party/chainer/tests/onnx_chainer_tests/functions_tests/test_connections.py
+  third_party/chainer/tests/onnx_chainer_tests/functions_tests/test_loss.py
+  third_party/chainer/tests/onnx_chainer_tests/functions_tests/test_maths.py
+  third_party/chainer/tests/onnx_chainer_tests/functions_tests/test_noises.py
+  third_party/chainer/tests/onnx_chainer_tests/functions_tests/test_normalizations.py
+  third_party/chainer/tests/onnx_chainer_tests/functions_tests/test_poolings.py
   ${ONNX_CHAINER_DEPS}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
