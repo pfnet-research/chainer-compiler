@@ -100,7 +100,7 @@ public:
 
     void InferShapes();
 
-    void ResetGradients();
+    void ResetGradients(bool reset_grad_names);
 
     void DeleteDetached();
 

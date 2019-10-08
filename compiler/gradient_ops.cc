@@ -913,7 +913,9 @@ void LoopGradFn(GradientOpContext* gc) {
         backward_loop->set_body(grad_graph.release());
     }
 
-    body->ResetGradients();
+    // TODO(hamaji): Better to give pretty names even in subgraphs.
+    const bool reset_grad_names = false;
+    body->ResetGradients(reset_grad_names);
 }
 
 void IfGradFn(GradientOpContext* gc) {
@@ -1034,8 +1036,10 @@ void IfGradFn(GradientOpContext* gc) {
         backward_cond->set_else_branch(else_grad_graph.release());
     }
 
-    then_graph->ResetGradients();
-    else_graph->ResetGradients();
+    // TODO(hamaji): Better to give pretty names even in subgraphs.
+    const bool reset_grad_names = false;
+    then_graph->ResetGradients(reset_grad_names);
+    else_graph->ResetGradients(reset_grad_names);
 }
 
 void SequenceStackGradFn(GradientOpContext* gc) {

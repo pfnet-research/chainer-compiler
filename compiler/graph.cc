@@ -345,10 +345,10 @@ void Graph::InferShapes() {
     Construct(xgraph);
 }
 
-void Graph::ResetGradients() {
+void Graph::ResetGradients(bool reset_grad_names) {
     for (const auto& v : all_values()) {
         if (Value* gv = v->grad()) {
-            if (v->IsTemp()) {
+            if (reset_grad_names && v->IsTemp()) {
                 gv->ResetName("grad@" + v->name());
             }
             gv->set_type(new Type(v->type()));
