@@ -287,7 +287,9 @@ public:
      * \note This function is deprecated. Given dtype is totally ignored and
      * inferred by dtype of input. Use add_output_name() instead.
      */
-    [[deprecated("Use add_output_name() instead")]] void add_output_profile(std::string const& name, dtype_t) { add_output_name(name); }
+    [[deprecated("Use add_output_name() instead")]] void add_output_profile(std::string const& name, dtype_t) {
+        add_output_name(name);
+    }
 
     //! Factory function for variable_profile_table.
     variable_profile_table build_variable_profile_table(model_data const& model_data) {
