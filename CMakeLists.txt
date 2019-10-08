@@ -276,6 +276,7 @@ set(CHAINER_COMPILER_DEPENDENCY_LIBRARIES
   absl::variant
   absl::optional
   ${OpenCV_LIBS}
+  ${CMAKE_DL_LIBS}
   )
 
 add_custom_target(large_tests)
