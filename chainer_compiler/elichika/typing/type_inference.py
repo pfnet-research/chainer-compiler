@@ -1,6 +1,7 @@
 import ast
 import inspect
 import gast
+import numbers
 import sys
 import types
 import typing
@@ -55,7 +56,7 @@ def lazy_initializer(node):
             (isinstance(node.test.left, gast.Name) or \
             isinstance(node.test.left, gast.Attribute)) and \
             isinstance(node.test.ops[0], gast.Is) and \
-            isinstance(node.test.comparators[0], gast.NameConstant) and \
+            isinstance(node.test.comparators[0], gast.Constant) and \
             node.test.comparators[0].value is None:
         x = node.test.left  # variable/attribute being initialized
         assign_x = [isinstance(stmt, gast.Assign) and \
@@ -236,11 +237,8 @@ class InferenceEngine():
             attr = getattr(v_value, node.attr)
             return attr
 
-        if isinstance(node, gast.Num):
-            return node.n
-
-        if isinstance(node, gast.Str):
-            return node.s
+        if isinstance(node, gast.Constant):
+            return node.value
 
         if isinstance(node, gast.Name) and hasattr(self.module, node.id):
             return getattr(self.module, node.id)
@@ -591,14 +589,8 @@ class InferenceEngine():
             self.nodetype[node] = TyBool()
         elif isinstance(node, gast.Call):
             self.nodetype[node] = self.infer_Call(node)
-        elif isinstance(node, gast.Num):
-            # Num(object n)
-            self.nodetype[node] = type_of_value(node.n)
-        elif isinstance(node, gast.Str):
-            # Str(string s)
-            self.nodetype[node] = TyString(value=node.s)
-        elif isinstance(node, gast.NameConstant):
-            # NameConstant(singleton value)
+        elif isinstance(node, gast.Constant):
+            # Constant(constant value)
             self.nodetype[node] = type_of_value(node.value)
         elif isinstance(node, gast.Attribute):
             self.nodetype[node] = self.infer_Attribute(node)
@@ -813,8 +805,9 @@ class InferenceEngine():
             self.infer_slice(node.slice)
             if ty_obj.is_fixed_len and \
                     isinstance(node.slice, gast.Index) and \
-                    isinstance(node.slice.value, gast.Num):
-                return ty_obj.get_tys()[node.slice.value.n]
+                    isinstance(node.slice.value, gast.Constant) and \
+                    isinstance(node.slice.value.value, numbers.Number):
+                return ty_obj.get_tys()[node.slice.value.value]
 
             if ty_obj.is_fixed_len and \
                     isinstance(node.slice, gast.Slice) and \

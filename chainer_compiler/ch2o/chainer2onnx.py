@@ -798,7 +798,7 @@ def eval_list_comp(nast, env):
         # とりあえず、このあたりはまだ実装しません
         assert len(gen.ifs) == 0 and gen.is_async == 0
         tast = gast.For(target=gen.target, iter=gen.iter,
-                        body=[tast], orelse=[])
+                        body=[tast], orelse=[], type_comment=None)
 
     init = gast.ast_to_gast(ast.parse("v = []")).body[0]
     init.targets[0].id = vn
@@ -1013,14 +1013,12 @@ def eval_ast_impl(nast, env):
             elif nast.id in dir(builtins):
                 return getattr(builtins, nast.id)
             raise
-    elif isinstance(nast, gast.Num):
-        return nast.n
-    elif isinstance(nast, gast.NameConstant):
+    elif isinstance(nast, gast.Constant):
         return nast.value
     elif isinstance(nast, gast.Expr):
         return eval_ast(nast.value, env)
-    elif isinstance(nast, gast.Str):
-        return nast.s
+    elif isinstance(nast, gast.Constant) and isinstance(nast.value, str):
+        return nast.value
     elif isinstance(nast, gast.Tuple):
         return tuple(map(lambda x: eval_ast(x, env), nast.elts))
     elif isinstance(nast, gast.List):

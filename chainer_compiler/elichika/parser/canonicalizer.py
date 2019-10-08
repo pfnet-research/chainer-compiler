@@ -6,6 +6,7 @@
 #
 
 import gast
+import numbers
 
 class Canonicalizer(gast.NodeTransformer):
 
@@ -37,9 +38,9 @@ class Canonicalizer(gast.NodeTransformer):
 
     def visit_UnaryOp(self, node):
         node = self.generic_visit(node)
-        if isinstance(node.op, gast.USub) and isinstance(node.operand, gast.Num):
-            value = node.operand.n
-            replacement = gast.Num(n=-value)
+        if isinstance(node.op, gast.USub) and (isinstance(node.operand, gast.Constant) and isinstance(node.operand.value, numbers.Number)):
+            value = node.operand.value
+            replacement = gast.Constant(value=-value, kind=None)
             return gast.copy_location(replacement, node)
         else:
             return node
@@ -49,9 +50,9 @@ class Canonicalizer(gast.NodeTransformer):
         returned_id = len(self.func_returned_stack)
         returned_flags = self.func_returned_stack.pop()
         if returned_flags:
-            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
-        node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.returned_value_key, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=None)))
-        node.body.append(gast.Return(value=gast.Name(id=self.returned_value_key, ctx=gast.Load(), annotation=None)))
+            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Store(), annotation=None, type_comment=None)], value=gast.Constant(value=False, kind=None)))
+        node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.returned_value_key, ctx=gast.Store(), annotation=None, type_comment=None)], value=gast.Constant(value=None, kind=None)))
+        node.body.append(gast.Return(value=gast.Name(id=self.returned_value_key, ctx=gast.Load(), annotation=None, type_comment=None)))
         return modified_node
 
     def visit_For(self, node):
@@ -59,19 +60,19 @@ class Canonicalizer(gast.NodeTransformer):
         continued_id = len(self.for_continued_stack)
         continued_flags = self.for_continued_stack.pop()
         if continued_flags:
-            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.continued_flag + str(continued_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
+            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.continued_flag + str(continued_id), ctx=gast.Store(), annotation=None, type_comment=None)], value=gast.Constant(value=False, kind=None)))
         breaked_id = len(self.for_breaked_stack)
         breaked_flags = self.for_breaked_stack.pop()
         bool_values = []
         if breaked_flags:
-            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
-            bool_values.append(gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Load(), annotation=None))
+            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Store(), annotation=None, type_comment=None)], value=gast.Constant(value=False, kind=None)))
+            bool_values.append(gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Load(), annotation=None, type_comment=None))
 
         if len(self.func_returned_stack) > 0:
             returned_id = len(self.func_returned_stack)
             returned_flags = self.func_returned_stack[-1]
             if returned_flags:
-                bool_values.append(gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Load(), annotation=None))
+                bool_values.append(gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Load(), annotation=None, type_comment=None))
 
         if len(bool_values) > 0:
             if len(bool_values) == 1:
@@ -79,7 +80,7 @@ class Canonicalizer(gast.NodeTransformer):
             elif len(bool_values) > 1:
                 cond = gast.BoolOp(op=gast.Or(), values=bool_values)
             
-            node.body.append(gast.Assign(targets=[gast.Name(id=self.keepgoing_flag, ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
+            node.body.append(gast.Assign(targets=[gast.Name(id=self.keepgoing_flag, ctx=gast.Store(), annotation=None, type_comment=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
             node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
         return modified_node
 
@@ -89,13 +90,13 @@ class Canonicalizer(gast.NodeTransformer):
                 bool_values = []
                 if self.stack_has_flags(self.for_continued_stack):
                     continued_id = len(self.for_continued_stack)
-                    bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=self.continued_flag + str(continued_id), ctx=gast.Load(), annotation=None)))
+                    bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=self.continued_flag + str(continued_id), ctx=gast.Load(), annotation=None, type_comment=None)))
                 if self.stack_has_flags(self.for_breaked_stack):
                     breaked_id = len(self.for_breaked_stack)
-                    bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Load(), annotation=None)))
+                    bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Load(), annotation=None, type_comment=None)))
                 if self.stack_has_flags(self.func_returned_stack):
                     returned_id = len(self.func_returned_stack)
-                    bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Load(), annotation=None)))
+                    bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Load(), annotation=None, type_comment=None)))
 
                 if isinstance(node, gast.For):
                     self.for_continued_stack.append(False)
@@ -124,13 +125,13 @@ class Canonicalizer(gast.NodeTransformer):
     def visit_Return(self, node):
         modified_node = self.generic_visit(node)
         if node.value is None:
-            node_value = gast.NameConstant(value=None)
+            node_value = gast.Constant(value=None, kind=None)
         else:
             node_value = node.value
         self.func_returned_stack[-1] = True
         returned_id = len(self.func_returned_stack)
-        replacement  = [gast.Assign(targets=[gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True)),
-                        gast.Assign(targets=[gast.Name(id=self.returned_value_key, ctx=gast.Store(), annotation=None)], value=node_value)]
+        replacement  = [gast.Assign(targets=[gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Store(), annotation=None, type_comment=None)], value=gast.Constant(value=True, kind=None)),
+                        gast.Assign(targets=[gast.Name(id=self.returned_value_key, ctx=gast.Store(), annotation=None, type_comment=None)], value=node_value)]
         if isinstance(modified_node, gast.If):  #TODO: Add location to returned value.
             modified_node.body = replacement
             return modified_node
@@ -141,7 +142,7 @@ class Canonicalizer(gast.NodeTransformer):
         modified_node = self.generic_visit(node)
         self.for_continued_stack[-1] = True
         continued_id = len(self.for_continued_stack)
-        replacement = gast.Assign(targets=[gast.Name(id=self.continued_flag + str(continued_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
+        replacement = gast.Assign(targets=[gast.Name(id=self.continued_flag + str(continued_id), ctx=gast.Store(), annotation=None, type_comment=None)], value=gast.Constant(value=True, kind=None))
         return gast.copy_location(replacement, node)
 
 
@@ -149,7 +150,7 @@ class Canonicalizer(gast.NodeTransformer):
         modified_node = self.generic_visit(node)
         self.for_breaked_stack[-1] = True
         breaked_id = len(self.for_breaked_stack)
-        replacement = gast.Assign(targets=[gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
+        replacement = gast.Assign(targets=[gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Store(), annotation=None, type_comment=None)], value=gast.Constant(value=True, kind=None))
         return gast.copy_location(replacement, node)
 
 if __name__ == '__main__':
