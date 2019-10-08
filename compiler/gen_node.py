@@ -211,7 +211,8 @@ NodeDef('MaxPool', 1, (1, 2, 3), **pool_attrs)
 NodeDef('AveragePool', 1, (1, 2), count_include_pad=False, **pool_attrs)
 NodeDef('GlobalMaxPool', 1, 1)
 NodeDef('GlobalAveragePool', 1, 1)
-NodeDef('Pad', 1, 1, mode='constant', pads=[int], value=0.0)
+# 1 input version is for Pad-2.
+NodeDef('Pad', (1, 2, 3), 1, mode='constant', pads=[int], value=0.0)
 NodeDef('Upsample', (1, 2), 1, mode='nearest',
         width_scale=float, height_scale=float)
 # TODO(take-cheeze): Handle opset 11 version with (3, 4)

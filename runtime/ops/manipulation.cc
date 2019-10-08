@@ -104,7 +104,9 @@ chainerx::Array TransposeOp::RunImpl(ChxVMState* st, const chainerx::Array& data
     return chainerx::Transpose(data, axes);
 }
 
-chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
+namespace {
+
+chainerx::Array Pad(const chainerx::Array& data, const Int64StackVector& pads, chainerx::Scalar value) {
     CHECK_EQ(data.ndim() * 2, pads.size());
     const chainerx::Shape shape = data.shape();
     chainerx::Shape new_shape = data.shape();
@@ -129,6 +131,20 @@ chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     chainerx::Array result = chainerx::Full(new_shape, value, data.dtype(), data.device());
     BlitArray(data.At(indices1), result.At(indices2));
     return result;
+}
+
+}  // namespace
+
+chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
+    return Pad(data, pads, value);
+}
+
+chainerx::Array DynamicPadOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Shape& pads, const absl::optional<StrictScalar>& value) {
+    chainerx::Scalar v(0.0, chainerx::GetKind(data.dtype()));
+    if (value.has_value()) {
+        v = chainerx::Scalar(*value);
+    }
+    return Pad(data, pads, v);
 }
 
 chainerx::Array CastOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
