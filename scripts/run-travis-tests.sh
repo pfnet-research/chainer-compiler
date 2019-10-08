@@ -35,7 +35,6 @@ else
 fi
 run pip_chainer sudo pip3 install $CHAINER_WHL_CACHE_DIR/*.whl
 run pip_dependencies sudo pip3 install gast==0.3.2 chainercv
-run pip_onnx_chainer sudo pip3 install third_party/onnx-chainer[test]
 
 run pip_list pip3 list -v
 
