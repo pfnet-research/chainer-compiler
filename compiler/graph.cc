@@ -248,6 +248,10 @@ void Graph::SortNodesTopologically() {
     nodes_.swap(next_nodes);
 }
 
+std::vector<std::pair<Value*, int>> Graph::GetTopologicallySortedValuesWithDistance() const {
+    return SortValuesTopologicallyWithDistance(GetLiveNodes(), input_values(), true);
+}
+
 std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Value*>& output_values) const {
     std::queue<Node*> q;
     for (const Value* value : output_values) {
