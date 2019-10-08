@@ -53,7 +53,9 @@ void ExposeParamGradsAsOutputs(Graph* graph, Graph* dest_graph, const std::set<V
         CHECK(false);
     }
 
-    graph->ResetGradients();
+    // TODO(hamaji): Better to give pretty names even in two-phase mode.
+    const bool reset_grad_names = graph == dest_graph;
+    graph->ResetGradients(reset_grad_names);
 }
 
 void FilterOutUnnecessaryNode(const std::vector<Value*>& xs, std::map<Node*, int>* node_set) {
