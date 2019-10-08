@@ -317,7 +317,7 @@ add_subdirectory(tools)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
-  COMMAND ${RM_RF} "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && ${ENV_SET} PYTHONPATH=third_party/chainer pytest -m "not gpu" --value-check-runtime skip third_party/chainer/tests/onnx_chainer_tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  COMMAND ${RM_RF} "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && ${ENV_SET} pytest -m "not gpu" --value-check-runtime skip third_party/chainer/tests/onnx_chainer_tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
   DEPENDS
   third_party/chainer/tests/onnx_chainer_tests/functions_tests/test_activations.py
   third_party/chainer/tests/onnx_chainer_tests/functions_tests/test_arrays.py
