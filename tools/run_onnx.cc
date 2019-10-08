@@ -124,6 +124,8 @@ public:
             LOG() << "Constructing model..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), args_.exist("backprop"));
             CompileModel(model.get(), &chxvm_);
+
+            ordered_output_names_ = GetOrderedOutputNames(model->graph());
         }
         flops_ += CalculateTotalFlops(model->graph(), &num_unknown_ops_);
 
@@ -249,6 +251,10 @@ public:
         return num_unknown_ops_ ? 0 : flops_;
     }
 
+    const std::vector<std::string>& ordered_output_names() const {
+        return ordered_output_names_;
+    }
+
 private:
     int trace_level() const {
         return args_.exist("verbose") ? 2 : args_.exist("trace") ? 1 : 0;
@@ -274,6 +280,7 @@ private:
     std::vector<std::string> backprop_ins_;
     int64_t flops_{0};
     int num_unknown_ops_{0};
+    std::vector<std::string> ordered_output_names_;
 };
 
 void RunMain(const std::vector<std::string>& argv) {
@@ -449,7 +456,13 @@ void RunMain(const std::vector<std::string>& argv) {
             }
         } else {
             test_cnt++;
-            VerifyOutputs(outputs, *test_case, args, !args.exist("no_check_values") && iterations == 1, args.exist("always_show_diff"));
+            VerifyOutputs(
+                    outputs,
+                    *test_case,
+                    args,
+                    !args.exist("no_check_values") && iterations == 1,
+                    args.exist("always_show_diff"),
+                    model_runner.ordered_output_names());
         }
 
         chainerx::GetDefaultDevice().Synchronize();

@@ -66,7 +66,8 @@ std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std:
     return sorted_nodes;
 }
 
-std::vector<std::pair<Node*, int>> SortTopologicallyWithDistance(const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph) {
+std::vector<std::pair<Node*, int>> SortTopologicallyWithDistance(
+        const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph) {
     // TODO(hamaji): Add a test for this function.
     std::queue<std::pair<Value*, int>> q;
     for (Value* value : inputs) {
@@ -113,7 +114,8 @@ std::vector<std::pair<Node*, int>> SortTopologicallyWithDistance(const std::vect
     return sorted_nodes;
 }
 
-std::vector<std::pair<Value*, int>> SortValuesTopologicallyWithDistance(const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph) {
+std::vector<std::pair<Value*, int>> SortValuesTopologicallyWithDistance(
+        const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph) {
     std::vector<std::pair<Value*, int>> sorted_values;
     for (const std::pair<Node*, int>& p : SortTopologicallyWithDistance(nodes, inputs, is_full_graph)) {
         for (Value* v : p.first->outputs()) {

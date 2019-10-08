@@ -22,11 +22,13 @@ std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std:
 
 // Returns `nodes` and their distances from `inputs` after sorting it
 // topologically. Nodes which is unreachable from `inputs` will be discarded.
-std::vector<std::pair<Node*, int>> SortTopologicallyWithDistance(const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph);
+std::vector<std::pair<Node*, int>> SortTopologicallyWithDistance(
+        const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph);
 
 // Returns values related to `nodes` and their distances from `inputs` after
 // sorting it topologically. Nodes which is unreachable from `inputs` will be
 // discarded.
-std::vector<std::pair<Value*, int>> SortValuesTopologicallyWithDistance(const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph);
+std::vector<std::pair<Value*, int>> SortValuesTopologicallyWithDistance(
+        const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph);
 
 }  // namespace chainer_compiler
