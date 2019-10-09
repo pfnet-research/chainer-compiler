@@ -404,16 +404,29 @@ void ReduceSumGradFn(GradientOpContext* gc) {
 
 void ReduceMeanGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = gc->gy(0);
     Value* shape = gb.Op(Node::kShape, {gc->x(0)});
-    Value* zero = gb.ScalarConst(0, Dtype::kInt64);
-    zero->producer()->set_chainer_host(true);
-    Value* batch_size_int = gb.Op(Node::kGather, {shape, zero});
-    Value* batch_size = gb.Op(Node::kCast, {batch_size_int});
-    batch_size->producer()->set_to(Dtype::kFloat32);
-    Value* divided = gb.Op(Node::kDiv, {gy, batch_size});
-    gc->GradOp(Node::kExpand, 0, {divided, shape});
+
+    Value* num_elements = nullptr;
+    for (int axis_value : gc->node()->axes()) {
+        Value* axis = gb.ScalarConst(axis_value, Dtype::kInt64);
+        axis->producer()->set_chainer_host(true);
+        Value* dim = gb.Op(Node::kGather, {shape, axis});
+        if (num_elements) {
+            num_elements = gb.Op(Node::kMul, {num_elements, dim});
+        } else {
+            num_elements = dim;
+        }
+    }
+
+    Dtype dtype = gc->NoRetainX(0)->type().dtype();
+    CHECK_NE(Dtype::kUnknown, dtype);
+    num_elements = gb.Op(Node::kCast, {num_elements});
+    num_elements->producer()->set_to(dtype);
+    Value* divided = gb.Op(Node::kDiv, {gy, num_elements});
+
+    gy = ReduceGrad(gc->node(), &gb, divided);
+    gc->GradOp(Node::kExpand, 0, {gy, shape});
 }
 
 void GemmGradFn(GradientOpContext* gc) {
