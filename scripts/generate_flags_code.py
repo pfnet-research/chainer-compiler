@@ -98,6 +98,10 @@ FLAGS = {
         'type': 'bool',
         'doc': 'Use fixed batch normalization even for backprop.'
     },
+    'opset_version': {
+        'type': 'int',
+        'doc': 'Set the opset_version for shape inference.'
+    },
 
     'trace_level': {
         'type': 'int',
