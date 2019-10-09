@@ -289,6 +289,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_unsqueeze_negative_axes'),
     TestCase(NODE_TEST, 'test_unsqueeze_two_axes'),
     TestCase(NODE_TEST, 'test_unsqueeze_three_axes'),
+    TestCase(NODE_TEST, 'test_unsqueeze_unsorted_axes'),
     TestCase(NODE_TEST, 'test_flatten_axis0'),
     TestCase(NODE_TEST, 'test_flatten_axis1'),
     TestCase(NODE_TEST, 'test_flatten_axis2'),

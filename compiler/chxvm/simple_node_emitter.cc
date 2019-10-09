@@ -1,6 +1,7 @@
 #include "compiler/chxvm/simple_node_emitter.h"
 
 #include <common/log.h>
+#include <common/strutil.h>
 #include <compiler/chxvm/chxvm_value.h>
 #include <compiler/chxvm/value_id_manager.h>
 #include <compiler/flops.h>
@@ -298,7 +299,14 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
     } else if (node.op_type() == Node::kUnsqueeze) {
         CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
-        EMIT(Unsqueeze, out(0), in(0), node.axes());
+        std::vector<int64_t> axes = node.axes();
+        if (!axes.empty()) {
+            std::sort(axes.begin(), axes.end());
+            if (axes.front() < 0 && axes.back() > 0) {
+                CHECK(false) << "Unsqueeze with negative/positive axes mixed is not supported: " << JoinString(node.axes());
+            }
+        }
+        EMIT(Unsqueeze, out(0), in(0), axes);
     } else if (node.op_type() == Node::kMatMul) {
         CHECK_EQ(2UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
