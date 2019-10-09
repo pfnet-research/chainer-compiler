@@ -23,6 +23,7 @@
         "ReplaceLpNormalization": true,
         "ReplaceMaxRoiPool": true,
         "ReplaceMean": true,
+        "ReplacePad": true,
         "ReplaceQLinearMatMul": true,
         "ReplaceReduceL1": true,
         "ReplaceReduceL2": true,
