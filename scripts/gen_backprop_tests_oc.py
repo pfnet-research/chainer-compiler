@@ -85,6 +85,8 @@ def get_backprop_tests():
          a=aranges(2, 3, 5))
     test('reduce_sum_keepdims',
          lambda m: F.sum(m.a, axis=1, keepdims=True), a=aranges(2, 3, 5))
+    test('reduce_sum_multi_axes',
+         lambda m: F.sum(m.a, axis=(0, 2)), a=aranges(2, 3, 5))
     test('reduce_mean', lambda m: F.mean(m.a, axis=0), a=[3, 5, 7])
     test('reduce_mean_neg_axis', lambda m: F.mean(m.a, axis=-1),
          a=aranges(2, 3, 5))
@@ -92,6 +94,8 @@ def get_backprop_tests():
          lambda m: F.mean(m.a, axis=1, keepdims=True), a=aranges(2, 3, 5))
     test('clip', lambda m: F.clip(m.a, -2.0, 4.0),
          a=[-3.0, -2.0, 3.0, 4.0, 5.0])
+    test('reduce_mean_multi_axes',
+         lambda m: F.mean(m.a, axis=(0, 2)), a=aranges(2, 3, 5))
 
     test('mulconst', lambda m: m.a * 1.23, a=[3, 5])
     test('mulbcast', lambda m: m.a * m.b, a=[[1, 2, 3], [4, 5, 6]], b=[7, 8, 9])
