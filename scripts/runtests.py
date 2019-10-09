@@ -356,8 +356,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_gemm_alpha'),
     TestCase(NODE_TEST, 'test_gemm_beta'),
     TestCase(NODE_TEST, 'test_gemm_default_matrix_bias'),
-    # TODO(hamaji): Investigate why this test is failing.
-    TestCase(NODE_TEST, 'test_gemm_default_no_bias', fail=True),
+    TestCase(NODE_TEST, 'test_gemm_default_no_bias'),
     TestCase(NODE_TEST, 'test_gemm_default_scalar_bias'),
     TestCase(NODE_TEST, 'test_gemm_default_single_elem_vector_bias'),
     TestCase(NODE_TEST, 'test_gemm_default_vector_bias'),

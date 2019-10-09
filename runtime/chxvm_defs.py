@@ -350,7 +350,7 @@ CHX_OPS = [
 
     ('MatMul', [Array('a'), Array('b')], ['y']),
     ('Gemm',
-     [Array('a'), Array('b'), Array('c'),
+     [Array('a'), Array('b'), OptionalArray('c'),
       Float('alpha'), Float('beta'), Int('trans_a'), Int('trans_b')],
      ['y']),
 
