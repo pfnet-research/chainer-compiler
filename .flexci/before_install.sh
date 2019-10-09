@@ -25,6 +25,6 @@ python3 -m pip install dist-chainer/*.whl
 
 python3 -m pip install gast chainercv
 # TODO(take-cheeze): Remove this when onnx-chainer drops 1.4.1 support
-python3 -m pip install onnx==1.5.0 pytest<5.0.0 chainercv>=0.11.0
+python3 -m pip install onnx==1.5.0 'pytest<5.0.0' 'chainercv>=0.11.0'
 
 python3 -m pip list -v
