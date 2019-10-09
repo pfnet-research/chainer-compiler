@@ -352,8 +352,18 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_depthtospace_dcr_mode'),
     TestCase(NODE_TEST, 'test_depthtospace_example'),
 
-    TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
-    TestCase(NODE_TEST, 'test_gemm_broadcast'),
+    TestCase(NODE_TEST, 'test_gemm_all_attributes'),
+    TestCase(NODE_TEST, 'test_gemm_alpha'),
+    TestCase(NODE_TEST, 'test_gemm_beta'),
+    TestCase(NODE_TEST, 'test_gemm_default_matrix_bias'),
+    # TODO(hamaji): Investigate why this test is failing.
+    TestCase(NODE_TEST, 'test_gemm_default_no_bias', fail=True),
+    TestCase(NODE_TEST, 'test_gemm_default_scalar_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_single_elem_vector_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_vector_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_zero_bias'),
+    TestCase(NODE_TEST, 'test_gemm_transposeA'),
+    TestCase(NODE_TEST, 'test_gemm_transposeB'),
 
     TestCase(NODE_TEST, 'test_rnn_seq_length'),
     TestCase(NODE_TEST, 'test_simple_rnn_defaults'),
