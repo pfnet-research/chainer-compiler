@@ -269,9 +269,15 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_reshape_extended_dims'),
     TestCase(NODE_TEST, 'test_reshape_negative_dim'),
+    TestCase(NODE_TEST, 'test_reshape_negative_extended_dims'),
     TestCase(NODE_TEST, 'test_reshape_one_dim'),
     TestCase(NODE_TEST, 'test_reshape_reduced_dims'),
-    TestCase(NODE_TEST, 'test_reshape_reordered_dims'),
+    TestCase(NODE_TEST, 'test_reshape_reordered_all_dims'),
+    TestCase(NODE_TEST, 'test_reshape_reordered_last_dims'),
+    # TODO(hamaji): Support zero dims in reshape op.
+    TestCase(NODE_TEST, 'test_reshape_zero_dim', fail=True),
+    TestCase(NODE_TEST, 'test_reshape_zero_and_negative_dim', fail=True),
+
     TestCase(NODE_TEST, 'test_expand_dim_changed'),
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
     TestCase(NODE_TEST, 'test_squeeze'),
@@ -306,6 +312,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_gather_elements_0'),
     TestCase(NODE_TEST, 'test_gather_elements_1'),
     TestCase(NODE_TEST, 'test_gather_elements_negative_indices'),
+    TestCase(NODE_TEST, 'test_gather_negative_indices'),
     TestCase(NODE_TEST, 'test_gathernd_example_int32'),
     TestCase(NODE_TEST, 'test_gathernd_example_float32'),
     TestCase(NODE_TEST, 'test_scatter_with_axis'),
@@ -346,8 +353,17 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_depthtospace_dcr_mode'),
     TestCase(NODE_TEST, 'test_depthtospace_example'),
 
-    TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
-    TestCase(NODE_TEST, 'test_gemm_broadcast'),
+    TestCase(NODE_TEST, 'test_gemm_all_attributes'),
+    TestCase(NODE_TEST, 'test_gemm_alpha'),
+    TestCase(NODE_TEST, 'test_gemm_beta'),
+    TestCase(NODE_TEST, 'test_gemm_default_matrix_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_no_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_scalar_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_single_elem_vector_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_vector_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_zero_bias'),
+    TestCase(NODE_TEST, 'test_gemm_transposeA'),
+    TestCase(NODE_TEST, 'test_gemm_transposeB'),
 
     TestCase(NODE_TEST, 'test_rnn_seq_length'),
     TestCase(NODE_TEST, 'test_simple_rnn_defaults'),
@@ -564,6 +580,11 @@ TEST_CASES = [
     TestCase(SIMPLE_TEST, 'test_sequence_model5', skip_shape_inference=True),
     TestCase(SIMPLE_TEST, 'test_sequence_model6', skip_shape_inference=True),
     TestCase(SIMPLE_TEST, 'test_sequence_model7', skip_shape_inference=True),
+
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model1'),
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model2'),
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model3'),
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model4'),
 ]
 
 TEST_CASES += [
@@ -825,6 +846,7 @@ if args.ngraph:
         'backprop_test_oc_mul_same_float64_two_phase',
         'backprop_test_oc_sigmoid_float64_two_phase',
         'extra_backprop_test_need_stack_loop_two_phase',
+        'test_gemm_default_no_bias',
     ]
     for test in TEST_CASES:
         if test.name in ngraph_blacklist:

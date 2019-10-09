@@ -308,6 +308,8 @@ CHX_OPS = [
     ('Resize', [Array('x'), Array('scales')], ['y']),
     ('ResizeGrad', [Array('x'), Array('scales')], ['y']),
     ('Pad', [Array('data'), Ints('pads'), Float('value')], ['output']),
+    ('DynamicPad', [Array('data'), Shape('pads'), OptionalScalar('value')],
+     ['output']),
     ('MaxPool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),
       Int('cover_all'), String('auto_pad')],
@@ -348,7 +350,7 @@ CHX_OPS = [
 
     ('MatMul', [Array('a'), Array('b')], ['y']),
     ('Gemm',
-     [Array('a'), Array('b'), Array('c'),
+     [Array('a'), Array('b'), OptionalArray('c'),
       Float('alpha'), Float('beta'), Int('trans_a'), Int('trans_b')],
      ['y']),
 

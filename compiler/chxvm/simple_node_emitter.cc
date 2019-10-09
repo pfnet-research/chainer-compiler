@@ -304,9 +304,8 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         CHECK_EQ(1UL, node.outputs().size());
         EMIT(MatMul, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kGemm) {
-        CHECK_EQ(3UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
-        EMIT(Gemm, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
+        EMIT(Gemm, out(0), in(0), in(1), oin(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
     } else if (node.op_type() == Node::kLRN) {
         EMIT(LRN, out(0), oout(1), in(0), node.alpha(), node.beta(), node.bias(), node.size());
     } else if (node.op_type() == Node::kChainerLRNGrad) {
@@ -325,10 +324,15 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
     } else if (node.op_type() == Node::kChainerResizeGrad) {
         EMIT(ResizeGrad, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kPad) {
-        CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
-        CHECK_EQ("constant", node.mode()) << "Only constant padding is supported";
-        EMIT(Pad, out(0), in(0), node.pads(), node.value());
+        if (node.inputs().size() == 1) {
+            CHECK_EQ("constant", node.mode()) << "Only constant padding is supported";
+            EMIT(Pad, out(0), in(0), node.pads(), node.value());
+        } else {
+            CHECK_EQ(0, node.pads().size());
+            CHECK_EQ(0.0, node.value());
+            EMIT(DynamicPad, out(0), in(0), in(1), oin(2));
+        }
     } else if (node.op_type() == Node::kMaxPool) {
         CHECK_EQ(1UL, node.inputs().size());
         if (node.outputs().size() != 1) {
