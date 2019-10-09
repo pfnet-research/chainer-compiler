@@ -337,8 +337,6 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
             CHECK_EQ("constant", node.mode()) << "Only constant padding is supported";
             EMIT(Pad, out(0), in(0), node.pads(), node.value());
         } else {
-            CHECK_EQ(0, node.pads().size());
-            CHECK_EQ(0.0, node.value());
             EMIT(DynamicPad, out(0), in(0), in(1), oin(2));
         }
     } else if (node.op_type() == Node::kMaxPool) {

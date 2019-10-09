@@ -730,7 +730,7 @@ bool ReplacePad(Graph* graph, Node* node) {
     CHECK_NE(Dtype::kUnknown, dtype);
     Value* pads = gb.Const(ArrayBuilder({static_cast<int64_t>(node->pads().size())}).WithData<int64_t>(node->pads()).Build());
     Value* value = gb.ScalarConst(node->value(), dtype);
-    gb.Op(Node::kPad, {node->input(0), pads, value}, node->output(0));
+    gb.Op(Node::kPad, {node->input(0), pads, value}, node->output(0))->producer()->set_pads(node->pads())->set_value(node->value())->set_mode(node->mode());
     return true;
 }
 
