@@ -269,9 +269,15 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_reshape_extended_dims'),
     TestCase(NODE_TEST, 'test_reshape_negative_dim'),
+    TestCase(NODE_TEST, 'test_reshape_negative_extended_dims'),
     TestCase(NODE_TEST, 'test_reshape_one_dim'),
     TestCase(NODE_TEST, 'test_reshape_reduced_dims'),
-    TestCase(NODE_TEST, 'test_reshape_reordered_dims'),
+    TestCase(NODE_TEST, 'test_reshape_reordered_all_dims'),
+    TestCase(NODE_TEST, 'test_reshape_reordered_last_dims'),
+    # TODO(hamaji): Support zero dims in reshape op.
+    TestCase(NODE_TEST, 'test_reshape_zero_dim', fail=True),
+    TestCase(NODE_TEST, 'test_reshape_zero_and_negative_dim', fail=True),
+
     TestCase(NODE_TEST, 'test_expand_dim_changed'),
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
     TestCase(NODE_TEST, 'test_squeeze'),
