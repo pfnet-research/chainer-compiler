@@ -345,7 +345,13 @@ void Graph::InferShapes() {
     all_values_.clear();
     nodes_.clear();
     nodes_buf_.clear();
-    onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
+    // TODO(hamaji): Probably, we can remove this try-catch by passing
+    // appropriate opset_imports.
+    try {
+        onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
+    } catch (std::runtime_error e) {
+        std::cerr << "WARNING: Error during shape inference: " << e.what() << std::endl;
+    }
     Construct(xgraph);
 }
 
