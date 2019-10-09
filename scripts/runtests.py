@@ -846,6 +846,7 @@ if args.ngraph:
         'backprop_test_oc_mul_same_float64_two_phase',
         'backprop_test_oc_sigmoid_float64_two_phase',
         'extra_backprop_test_need_stack_loop_two_phase',
+        'test_gemm_default_no_bias',
     ]
     for test in TEST_CASES:
         if test.name in ngraph_blacklist:
