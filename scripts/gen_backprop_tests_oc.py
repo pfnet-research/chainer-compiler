@@ -83,6 +83,8 @@ def get_backprop_tests():
     test('reduce_sum', lambda m: F.sum(m.a, axis=0), a=[3, 5, 7])
     test('reduce_sum_neg_axis', lambda m: F.sum(m.a, axis=-1),
          a=aranges(2, 3, 5))
+    test('reduce_sum_keepdims',
+         lambda m: F.sum(m.a, axis=1, keepdims=True), a=aranges(2, 3, 5))
     test('clip', lambda m: F.clip(m.a, -2.0, 4.0),
          a=[-3.0, -2.0, 3.0, 4.0, 5.0])
 
