@@ -139,7 +139,8 @@ chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     return Pad(data, pads, value);
 }
 
-chainerx::Array DynamicPadOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Shape& pads, const absl::optional<StrictScalar>& value) {
+chainerx::Array DynamicPadOp::RunImpl(
+        ChxVMState* st, const chainerx::Array& data, const chainerx::Shape& pads, const absl::optional<StrictScalar>& value) {
     chainerx::Scalar v(0.0, chainerx::GetKind(data.dtype()));
     if (value.has_value()) {
         v = chainerx::Scalar(*value);

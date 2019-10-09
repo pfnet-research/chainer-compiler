@@ -158,7 +158,8 @@ chainerx::Array MatMulOp::RunImpl(ChxVMState* st, const chainerx::Array& a, cons
     return NumpyMatMul(a, b);
 }
 
-chainerx::Array GemmOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b, const absl::optional<chainerx::Array>& c) {
+chainerx::Array GemmOp::RunImpl(
+        ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b, const absl::optional<chainerx::Array>& c) {
     if (alpha == 1.0 && beta == 1.0 && !trans_a && trans_b && (!c.has_value() || c->ndim() == 1)) {
         return Linear(a, b, c);
     }
