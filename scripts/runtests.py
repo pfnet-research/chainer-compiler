@@ -312,6 +312,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_gather_elements_0'),
     TestCase(NODE_TEST, 'test_gather_elements_1'),
     TestCase(NODE_TEST, 'test_gather_elements_negative_indices'),
+    TestCase(NODE_TEST, 'test_gather_negative_indices'),
     TestCase(NODE_TEST, 'test_gathernd_example_int32'),
     TestCase(NODE_TEST, 'test_gathernd_example_float32'),
     TestCase(NODE_TEST, 'test_scatter_with_axis'),
@@ -579,6 +580,11 @@ TEST_CASES = [
     TestCase(SIMPLE_TEST, 'test_sequence_model5', skip_shape_inference=True),
     TestCase(SIMPLE_TEST, 'test_sequence_model6', skip_shape_inference=True),
     TestCase(SIMPLE_TEST, 'test_sequence_model7', skip_shape_inference=True),
+
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model1'),
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model2'),
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model3'),
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model4'),
 ]
 
 TEST_CASES += [
