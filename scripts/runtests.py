@@ -56,6 +56,10 @@ parser.add_argument('--computation_order', default=None,
 parser.add_argument('--cache', action='store_true', help='Enable model caching')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
+parser.add_argument('--target_opsets',
+                    help='Specify target opsets to run with comma separated string')
+parser.add_argument('--only_opset_targetable', action='store_true',
+                    help='Run test cases with opset_version is not None')
 args = parser.parse_args()
 
 
@@ -70,6 +74,10 @@ SIMPLE_TEST = os.path.join(ONNX_TEST_DATA, 'simple')
 
 # ChainerX does not support 1D conv/pool.
 fail_1d_conv_pool = args.use_gpu_all
+
+target_opsets = [int(o) for o in args.target_opsets.split(',')]
+if len(target_opsets) > 0:
+    print('Targeting opsets: {}'.format(target_opsets))
 
 TEST_CASES = [
     TestCase(NODE_TEST, 'test_identity'),
@@ -712,13 +720,37 @@ for test_case in TEST_CASES:
 
 
 if args.all:
-    models = glob.glob(os.path.join(ONNX_TEST_DATA, '*/*/model.onnx'))
-    for onnx in sorted(models):
-        path = os.path.dirname(onnx)
-        if path not in TEST_PATHS:
-            case = TestCase(os.path.dirname(path), os.path.basename(path),
-                            fail=True)
-            TEST_CASES.append(case)
+    def extend_all_onnx_test_data(opset_version=None):
+        tests_dir = ONNX_TEST_DATA
+        if opset_version is not None:
+            tests_dir = tests_dir.replace(
+                'third_party/onnx/',
+                'third_party/onnx-{}/'.format(opset_version))
+        models = glob.glob(os.path.join(tests_dir, '*/*/model.onnx'))
+        for onnx in sorted(models):
+            path = os.path.dirname(onnx)
+            if path not in TEST_PATHS:
+                case = TestCase(os.path.dirname(path), os.path.basename(path),
+                                fail=True)
+                TEST_CASES.append(case)
+
+    extend_all_onnx_test_data()
+    for opset in target_opsets:
+        extend_all_onnx_test_data(opset)
+elif len(target_opsets) > 0:
+    print('Finding opset variants: {}'.format(target_opsets))
+    new_tcs = []
+    for opset in target_opsets:
+        for tc in TEST_CASES:
+            var_test_dir = tc.test_dir.replace(
+                'third_party/onnx/',
+                'third_party/onnx-{}/'.format(opset))
+            if os.path.isdir(var_test_dir) is False:
+                print('Test {} does not exist in opset {}'.format(tc.name, opset))
+                continue
+            new_tcs.append(TestCase(name=tc.name, test_dir=var_test_dir, opset_version=opset))
+
+    TEST_CASES.extend(new_tcs)
 
 num_official_onnx_tests = len(TEST_CASES)
 
@@ -747,7 +779,7 @@ TEST_CASES.extend(ch2o_tests.get())
 
 TEST_CASES.extend(elichika_tests.get())
 
-TEST_CASES.extend(onnx_chainer_tests.get())
+TEST_CASES.extend(onnx_chainer_tests.get(target_opsets))
 
 TEST_CASES.extend(onnx_real_tests.get())
 
@@ -980,6 +1012,13 @@ def main():
             not test_case.test_dir.startswith(NODE_TEST)):
             runner = run_onnx
 
+        if len(target_opsets) != 0:
+            if args.only_opset_targetable and test_case.opset_version is None:
+                continue
+            if not (test_case.opset_version in target_opsets):
+                continue
+
+        test_case.runner = run_onnx
         test_case.args = [runner, '--test', test_case.test_dir]
         test_case.args.append('--compiler_log')
         is_gpu = False

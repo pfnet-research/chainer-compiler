@@ -18,3 +18,4 @@ chainer_compiler.egg-info/
 __pycache__
 /build
 /out
+/third_party/onnx-*
