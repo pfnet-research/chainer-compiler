@@ -27,15 +27,15 @@ def expr_to_str(node):
     if isinstance(node, gast.Constant) and isinstance(node.value, numbers.Number):
         return str(node.value)
     if isinstance(node, gast.Constant) and isinstance(node.value, numbers.str):
-        if len(node.s) < 20:
-            return "\'" + node.s + "\'"
+        if len(node.value) < 20:
+            return "\'" + node.value + "\'"
         return "\"...\""  # sometimes it is too long
+    if isinstance(node, gast.Constant):  # assume is NameConstant
+        return str(node.value)
     if isinstance(node, gast.Attribute):
         return "{}.{}".format(expr_to_str(node.value), node.attr)
     if isinstance(node, gast.Subscript):
         return "{}[{}]".format(expr_to_str(node.value), slice_to_str(node.slice))
-    if isinstance(node, gast.Constant):  # assume is NameConstant
-        return str(node.value)
     if isinstance(node, gast.Name):
         return node.id
     if isinstance(node, gast.List):
