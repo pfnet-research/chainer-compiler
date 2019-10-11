@@ -753,6 +753,7 @@ elif len(target_opsets) > 0:
                 continue
             new_tcs.append(TestCase(
                 name=tc.name, test_dir=var_test_dir,
+                rtol=tc.rtol, atol=tc.atol, equal_nan=tc.equal_nan,
                 fail=tc.fail, opset_version=opset))
 
     for tc_name, opsets in skip_tcs.items():
