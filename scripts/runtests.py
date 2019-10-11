@@ -748,7 +748,9 @@ elif len(target_opsets) > 0:
             if os.path.isdir(var_test_dir) is False:
                 print('Test {} does not exist in opset {}'.format(tc.name, opset))
                 continue
-            new_tcs.append(TestCase(name=tc.name, test_dir=var_test_dir, opset_version=opset))
+            new_tcs.append(TestCase(
+                name=tc.name, test_dir=var_test_dir,
+                fail=tc.fail, opset_version=opset))
 
     TEST_CASES.extend(new_tcs)
 
