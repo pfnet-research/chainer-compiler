@@ -75,7 +75,9 @@ SIMPLE_TEST = os.path.join(ONNX_TEST_DATA, 'simple')
 # ChainerX does not support 1D conv/pool.
 fail_1d_conv_pool = args.use_gpu_all
 
-target_opsets = [int(o) for o in args.target_opsets.split(',')]
+target_opsets = []
+if args.target_opsets is not None:
+    target_opsets = [int(o) for o in args.target_opsets.split(',')]
 if len(target_opsets) > 0:
     print('Targeting opsets: {}'.format(target_opsets))
 
