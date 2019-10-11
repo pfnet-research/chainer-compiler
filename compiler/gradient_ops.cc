@@ -305,9 +305,9 @@ void ClipGradFn(GradientOpContext* gc) {
 }
 
 void CastGradFn(GradientOpContext* gc) {
-    Dtype dtype = gc->NoRetainX(0)->type().dtype();
-    CHECK_NE(Dtype::kUnknown, dtype);
-    gc->GradOp(Node::kCast, 0, {gc->gy(0)})->producer()->set_to(dtype);
+    GraphBuilder gb{gc->builder(0)};
+    Value* dtype = gb.Op(Node::kChainerDtype, {gc->x(0)});
+    gc->GradOp(Node::kChainerDynamicCast, 0, {gc->gy(0), dtype});
 }
 
 void SqrtGradFn(GradientOpContext* gc) {
