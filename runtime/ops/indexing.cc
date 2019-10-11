@@ -243,7 +243,13 @@ chainerx::Array ScatterNDOp::RunImpl(
 }
 
 chainerx::Array GatherOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
-    return data.Take(indices.ToDevice(data.device()), axis);
+#if 0
+    if (data.ndim() != axis + 1) {
+        fprintf(stderr, "oops %d\n", axis);
+    }
+#endif
+    fprintf(stderr, "take %d %d\n", (int)data.ndim(), (int)axis);
+    return chainerx::AsContiguous(data).Take(chainerx::AsContiguous(indices).ToDevice(data.device()), axis);
 }
 
 chainerx::Array GatherElementsOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices_) {
@@ -296,9 +302,14 @@ chainerx::Array ScatterOp::RunImpl(
 chainerx::Array GatherGradOp::RunImpl(
         ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Shape& shape) {
     chainerx::Array out = chainerx::Zeros(shape, gy.dtype());
+#if 0
+    if (out.ndim() != axis + 1) {
+        fprintf(stderr, "oops gg %d\n", axis);
+    }
+#endif
     // TODO(hamaji): Ineffcient. Update the TODO is removed in ChainerX:
     // https://github.com/chainer/chainer/pull/6789
-    return chainerx::AddAt(out, indices.ToDevice(out.device()), axis, gy);
+    return chainerx::AddAt(chainerx::AsContiguous(out), chainerx::AsContiguous(indices).ToDevice(out.device()), axis, gy);
 }
 
 chainerx::Array SelectItemOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
