@@ -740,18 +740,23 @@ if args.all:
 elif len(target_opsets) > 0:
     print('Finding opset variants: {}'.format(target_opsets))
     new_tcs = []
+    skip_tcs = {}
     for opset in target_opsets:
         for tc in TEST_CASES:
             var_test_dir = tc.test_dir.replace(
                 'third_party/onnx/',
                 'third_party/onnx-{}/'.format(opset))
             if os.path.isdir(var_test_dir) is False:
-                print('Test {} does not exist in opset {}'.format(tc.name, opset))
+                if tc.name not in skip_tcs:
+                    skip_tcs[tc.name] = []
+                skip_tcs[tc.name].append(opset)
                 continue
             new_tcs.append(TestCase(
                 name=tc.name, test_dir=var_test_dir,
                 fail=tc.fail, opset_version=opset))
 
+    for tc_name, opsets in skip_tcs.items():
+        print('Skipping {} for opsets: {}'.format(tc_name, opsets))
     TEST_CASES.extend(new_tcs)
 
 num_official_onnx_tests = len(TEST_CASES)
