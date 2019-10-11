@@ -52,7 +52,7 @@ run large_tests make large_tests
 run unit_tests ctest -V
 
 cd ..
-run ./scripts/checkout-onnx-worktrees.sh
+./scripts/checkout-onnx-worktrees.sh
 PYTHONPATH=. run runtests ./scripts/runtests.py --target_opsets=8,9,10 2>&1
 PYTHONPATH=. run pytest pytest -sv tests
 PYTHONPATH=. run canonicalizer_tests pytest testcases/elichika_tests/canonicalizer
