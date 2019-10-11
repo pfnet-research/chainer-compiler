@@ -9,6 +9,7 @@
 #include <chainerx/backprop_mode.h>
 #include <chainerx/context.h>
 #include <chainerx/routines/creation.h>
+#include <chainerx/routines/indexing.h>
 #include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
@@ -181,7 +182,8 @@ void RunMain(const std::vector<std::string>& argv) {
                 CHECK_EQ(3, infeed_values.size());
                 inputs.emplace("Input_0", std::shared_ptr<ChxVMVar>(new ChxVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
-                chainerx::Array onehot = chainerx::Eye(1000, absl::nullopt, absl::nullopt, chainerx::Dtype::kFloat32).Take(labels, 0);
+                chainerx::Array onehot = chainerx::Eye(1000, absl::nullopt, absl::nullopt, chainerx::Dtype::kFloat32)
+                                                 .Take(labels, 0, chainerx::IndexBoundsMode::kDefault);
                 inputs.emplace("Input_1", std::shared_ptr<ChxVMVar>(new ChxVMVar(onehot)));
                 StrictScalar b(chainerx::Dtype::kInt64, chainerx::Scalar(batch_size), true);
                 inputs.emplace("Input_2", std::shared_ptr<ChxVMVar>(new ChxVMVar(b)));
