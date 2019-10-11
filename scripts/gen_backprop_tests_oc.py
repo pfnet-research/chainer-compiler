@@ -267,6 +267,10 @@ def get_backprop_tests():
     test('get_item', get_item,
          x=aranges(1, 12, 32), r=aranges(1, 5, 3, 32))
 
+    test('cast',
+         lambda m: F.cast(m.x, np.float64),
+         x=aranges(2, 12, 2))
+
     return tests
 
 

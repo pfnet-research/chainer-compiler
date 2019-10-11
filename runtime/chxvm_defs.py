@@ -405,7 +405,10 @@ CHX_OPS = [
     ('Greater', [Array('a'), Array('b')], ['c']),
     ('GreaterEqual', [Array('a'), Array('b')], ['c']),
     ('Not', [Array('x')], ['y']),
+
+    ('Dtype', [Array('input')], [Scalar('output')]),
     ('Cast', [Array('input'), Int('to')], ['output']),
+    ('DynamicCast', [Array('input'), Scalar('to')], ['output']),
 
     ('IntScalarConstant',
      [Int('value'), Int('dtype'), Int('host')], [Scalar('output')]),

@@ -74,6 +74,8 @@
         "ChainerConvGradWeight": true,
         "ChainerConvTransposeWithDynamicOutputShape": true,
         "ChainerDoSomething": true,
+        "ChainerDtype": true,
+        "ChainerDynamicCast": true,
         "ChainerDynamicSliceGrad": true,
         "ChainerFusionGroup": true,
         "ChainerGatherGrad": true,

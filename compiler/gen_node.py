@@ -316,6 +316,8 @@ NodeDef('ChainerConvGradWeight', 3, 1, **conv_attrs)
 NodeDef('ChainerGatherGrad', 3, 1, axis=0)
 NodeDef('ChainerConcatGrad', None, None, axis=0)
 NodeDef('ChainerDynamicSliceGrad', (4, 5, 6), 1)
+NodeDef('ChainerDtype', 1, 1)
+NodeDef('ChainerDynamicCast', 2, 1)
 NodeDef('ChainerFusionGroup', None, None, subgraph=Graph, fusion_type=str)
 
 # Numpy's advanced indexing.
