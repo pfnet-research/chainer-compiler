@@ -214,7 +214,7 @@ NodeDef('GlobalAveragePool', 1, 1)
 # 1 input version is for Pad-2.
 NodeDef('Pad', (1, 2, 3), 1, mode='constant', pads=[int], value=0.0)
 NodeDef('Upsample', (1, 2), 1, mode='nearest',
-        width_scale=float, height_scale=float)
+        width_scale=float, height_scale=float, scales=[float])
 # TODO(take-cheeze): Handle opset 11 version with (3, 4)
 NodeDef('Resize', (2, 3, 4), 1, mode='nearest')
 

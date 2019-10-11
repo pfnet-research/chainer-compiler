@@ -725,11 +725,25 @@ bool ReplaceTopK(Graph* graph, Node* node) {
         return false;
     }
 
+    // TopK-1 to TopK-10
     CHECK(node->k() > 0);
-
     GraphBuilder gb(graph, "SimplifyTopK", node->output(0));
     Value* k = gb.ScalarConst(node->k(), Dtype::kInt64);
     gb.MOp(Node::kTopK, {node->input(0), k}, node->outputs())->set_axis(node->axis());
+
+    return true;
+}
+
+bool ReplaceUpsample(Graph* graph, Node* node) {
+    if (node->inputs().size() == 2) {
+        return false;
+    }
+
+    // Upsample-7 to Upsample-9
+    CHECK(node->scales().size() > 0);
+    GraphBuilder gb(graph, "SimplifyUpsample", node->output(0));
+    Value* scales = gb.Const(ArrayBuilder({static_cast<int64_t>(node->scales().size())}).WithData<float>(node->scales()).Build());
+    gb.MOp(Node::kUpsample, {node->input(0), scales}, node->outputs())->set_mode(node->mode());
 
     return true;
 }
@@ -853,6 +867,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     REGISTER_SIMPLIFIER(Constant);
     REGISTER_SIMPLIFIER(Clip);
     REGISTER_SIMPLIFIER(TopK);
+    REGISTER_SIMPLIFIER(Upsample);
 
     register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
     register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);

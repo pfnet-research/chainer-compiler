@@ -6,7 +6,9 @@
         "ReplaceIdentity": true,
         "ReplaceScan": true,
         "ReplaceSequenceEmpty": true,
-        "ReplaceShape": true
+        "ReplaceShape": true,
+        "ReplaceTopK": true,
+        "ReplaceUpsample": true
     },
     "simplify": {
         "ExpandFunction": true,
@@ -35,8 +37,7 @@
         // These passes are workarounds for Chainer which does not
         // support pooling with imbalanced padding.
         "ReplaceMaxPool": true,
-        "ReplaceAveragePool": true,
-        "ReplaceTopK": true
+        "ReplaceAveragePool": true
     },
     "merge": {
         "MergeSplitConcat": true,
