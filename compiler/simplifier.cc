@@ -720,6 +720,20 @@ bool ReplaceClip(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceTopK(Graph* graph, Node* node) {
+    if (node->inputs().size() == 2) {
+        return false;
+    }
+
+    CHECK(node->k() > 0);
+
+    GraphBuilder gb(graph, "SimplifyTopK", node->output(0));
+    Value* k = gb.ScalarConst(node->k(), Dtype::kInt64);
+    gb.MOp(Node::kTopK, {node->input(0), k}, node->outputs())->set_axis(node->axis());
+
+    return true;
+}
+
 SimplifierFn FunctionExpander(const std::string& fn, const onnx::OpSchema* schema) {
     return [fn, schema](Graph* graph, Node* fn_nd) {
         std::unordered_map<std::string, Value*> value_table;
@@ -834,6 +848,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     REGISTER_SIMPLIFIER(Concat);
     REGISTER_SIMPLIFIER(Constant);
     REGISTER_SIMPLIFIER(Clip);
+    REGISTER_SIMPLIFIER(TopK);
 
     register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
     register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);

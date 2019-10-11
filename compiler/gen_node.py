@@ -230,7 +230,7 @@ NodeDef('Scan', None, None, body=Graph,
         scan_output_axes=[int],
         scan_output_directions=[int])
 NodeDef('Where', 3, 1)
-NodeDef('TopK', 2, 2, axis=-1, largest=1, sorted=1)
+NodeDef('TopK', (1, 2), 2, axis=-1, largest=1, sorted=1, k=-1)
 NodeDef('NonMaxSuppression', (2, 3, 4, 5), 1, center_point_box=0)
 
 NodeDef('ImageScaler', 1, 1, scale=1.0, bias_list=[float])
