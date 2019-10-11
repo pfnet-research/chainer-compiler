@@ -718,6 +718,12 @@ TEST_PATHS = set()
 for test_case in TEST_CASES:
     TEST_PATHS.add(test_case.test_dir)
 
+opsets_blacklist = {
+    8: set([
+        # Fixed in https://github.com/onnx/onnx/pull/1437
+        'test_convtranspose_output_shape',
+    ]),
+}
 
 if args.all:
     def extend_all_onnx_test_data(opset_version=None):
@@ -743,6 +749,9 @@ elif len(target_opsets) > 0:
     skip_tcs = {}
     for opset in target_opsets:
         for tc in TEST_CASES:
+            if opset in opsets_blacklist and tc.name in opsets_blacklist[opset]:
+                continue
+
             var_test_dir = tc.test_dir.replace(
                 'third_party/onnx/',
                 'third_party/onnx-{}/'.format(opset))
