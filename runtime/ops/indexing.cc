@@ -443,7 +443,7 @@ std::tuple<chainerx::Array, chainerx::Array> TopKOp::RunImpl(ChxVMState* st, con
     chainerx::Shape out_shape = in_shape;
     out_shape[axis] = k;
     if (k == 0) {
-        return std::make_tuple(chainerx::Full(out_shape, 0.f, x.device()), chainerx::Full(out_shape, 0L, x.device()));
+        return std::make_tuple(chainerx::Full(out_shape, 0.f, x.device()), chainerx::Full(out_shape, static_cast<int64_t>(0L), x.device()));
     }
 
     int64_t rows = 1;
