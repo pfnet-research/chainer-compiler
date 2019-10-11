@@ -245,7 +245,7 @@ class FunctionArgCollection():
                 continue
             parameter_count += 1
 
-        isSelfRemoved = parameter_count != len(argspec.args)
+        isSelfRemoved = parameter_count != len(argspec.args) + len(argspec.kwonlyargs)
 
         if isSelfRemoved:
             self.add_arg(argspec.args[0], None)
