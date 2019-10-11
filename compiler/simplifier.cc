@@ -805,7 +805,11 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     std::set<std::string> all_simplifier_names;
     std::map<Node::OpType, Simplifier> simplifiers;
 
-    auto register_simplifier = [&simplifiers, &all_simplifier_names](const Node::OpType& op, const char* name, SimplifierFn func) {
+    auto register_simplifier = [&simplifiers, &all_simplifier_names, &simplifier_names](
+                                       const Node::OpType& op, const char* name, SimplifierFn func) {
+        if (!simplifier_names.count(name)) {
+            return;
+        }
         CHECK(simplifiers.emplace(op, Simplifier(name, func)).second);
         CHECK(all_simplifier_names.emplace(name).second);
     };
@@ -882,9 +886,6 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
                 continue;
             }
             const Simplifier& simplifier = found->second;
-            if (!simplifier_names.count(simplifier.name)) {
-                continue;
-            }
             if (simplifier.fn(graph, node)) {
                 CLOG() << node->op_type() << " simplified" << std::endl;
                 graph->DetachNode(node);
