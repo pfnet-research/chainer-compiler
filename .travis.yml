@@ -1,6 +1,7 @@
 language: cpp
 
-dist: xenial
+notifications:
+  email: false
 
 cache:
   ccache: true
