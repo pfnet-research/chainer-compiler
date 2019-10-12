@@ -19,25 +19,26 @@ env:
 
 matrix:
   include:
-    - name: Ubuntu16.04
-      dist: xenial
-      before_install:
-        - |
-          sudo apt-get install -y --no-install-recommends \
-            libprotobuf-dev protobuf-compiler libopencv-dev \
-            python3 python3-pip python3-setuptools \
-            cmake libopenblas-dev
-      script:
-        - bash ./scripts/run-travis-tests.sh
-      addons:
-        apt:
-          update: true
+    # - name: Ubuntu16.04
+    #   dist: xenial
+    #   before_install:
+    #     - |
+    #       sudo apt-get install -y --no-install-recommends \
+    #         libprotobuf-dev protobuf-compiler libopencv-dev \
+    #         python3 python3-pip python3-setuptools \
+    #         cmake libopenblas-dev
+    #   script:
+    #     - bash ./scripts/run-travis-tests.sh
+    #   addons:
+    #     apt:
+    #       update: true
     - name: macOS
       os: osx
       before_install:
-        - echo hoge
+        - |
+          brew install protobuf opencv python cmake openblas
       script:
-        - echo foo
+        - bash ./scripts/run-travis-tests.sh
 
 notifications:
   slack:
