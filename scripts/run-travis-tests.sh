@@ -4,7 +4,7 @@
 # set -eux
 set -ex
 
-./scripts/run-clang-format.sh
+# ./scripts/run-clang-format.sh
 
 run() {
     set +x
