@@ -304,6 +304,12 @@ void ClipGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kMul, 0, {gc->gy(0), tmp});
 }
 
+void CastGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* dtype = gb.Op(Node::kChainerDtype, {gc->x(0)});
+    gc->GradOp(Node::kChainerDynamicCast, 0, {gc->gy(0), dtype});
+}
+
 void SqrtGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* t0 = gb.Op(Node::kAdd, {gc->y(0), gc->y(0)});
@@ -1198,6 +1204,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kSqrt, &SqrtGradFn);
         register_grad_fn(Node::kTanh, &TanhGradFn);
         register_grad_fn(Node::kClip, &ClipGradFn);
+        register_grad_fn(Node::kCast, &CastGradFn);
 
         register_grad_fn(Node::kIdentity, &IdentityGradFn);
         register_grad_fn(Node::kReshape, &ReshapeGradFn);

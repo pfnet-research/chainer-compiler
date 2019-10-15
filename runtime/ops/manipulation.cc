@@ -148,8 +148,16 @@ chainerx::Array DynamicPadOp::RunImpl(
     return Pad(data, pads, v);
 }
 
+StrictScalar DtypeOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
+    return StrictScalar(chainerx::Dtype::kInt64, static_cast<int64_t>(input.dtype()), true);
+}
+
 chainerx::Array CastOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
     return CastTo(input, static_cast<chainerx::Dtype>(to));
+}
+
+chainerx::Array DynamicCastOp::RunImpl(ChxVMState* st, const chainerx::Array& input, const StrictScalar& to) {
+    return CastTo(input, static_cast<chainerx::Dtype>(static_cast<int64_t>(to)));
 }
 
 chainerx::Array PadBatchSizeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {

@@ -4,8 +4,6 @@
 # set -eux
 set -ex
 
-./scripts/run-clang-format.sh
-
 run() {
     set +x
     travis_fold start $1
@@ -20,7 +18,7 @@ run() {
 }
 
 pushd third_party/chainer
-CHAINER_WHL_CACHE_DIR=$HOME/dist-chainer/$(git rev-parse --short HEAD)
+CHAINER_WHL_CACHE_DIR=$HOME/dist-chainer/$TRAVIS_OS_NAME/$(git rev-parse --short HEAD)
 popd
 if [[ -d $CHAINER_WHL_CACHE_DIR ]]; then
   echo "Use cached chainer wheel"
@@ -42,7 +40,7 @@ mkdir build
 cd build
 run cmake cmake .. \
       -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
-      -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+      -DPYTHON_EXECUTABLE=$(which python3) \
       -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
       -DCHAINER_COMPILER_PREBUILT_CHAINERX_DIR=$(pip3 show chainer | awk '/^Location: / {print $2}')/chainerx
 run make make -j2

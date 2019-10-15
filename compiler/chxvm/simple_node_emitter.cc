@@ -412,6 +412,10 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
         EMIT(Cast, out(0), in(0), node.to());
+    } else if (node.op_type() == Node::kChainerDynamicCast) {
+        EMIT(DynamicCast, out(0), in(0), in(1));
+    } else if (node.op_type() == Node::kChainerDtype) {
+        EMIT(Dtype, out(0), in(0));
     } else if (node.op_type() == Node::kOneHot) {
         EMIT(OneHot, out(0), in(0), in(1), in(2), node.axis());
     } else if (node.op_type() == Node::kConstantFill) {
@@ -707,6 +711,10 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         EMIT(Flatten, out(0), in(0), node.axis());
     } else if (node.op_type() == Node::kChainerBatchNormalizationExpandedStatsShape) {
         EMIT(BatchNormalizationExpandedStatsShape, out(0), in(0));
+    } else if (node.op_type() == Node::kCumSum) {
+        CHECK_EQ(0, node.exclusive());
+        CHECK_EQ(0, node.reverse());
+        EMIT(CumSum, out(0), in(0), oin(1));
     } else {
         CHECK(false) << "Unsupported op: " << node.op_type();
     }

@@ -425,6 +425,10 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_clip_inbounds'),
     TestCase(NODE_TEST, 'test_clip_outbounds'),
     TestCase(NODE_TEST, 'test_clip_splitbounds'),
+    TestCase(NODE_TEST, 'test_cumsum_1d'),
+    TestCase(NODE_TEST, 'test_cumsum_2d_axis_0'),
+    TestCase(NODE_TEST, 'test_cumsum_2d_axis_1'),
+    TestCase(NODE_TEST, 'test_cumsum_2d_negative_axis'),
 
     TestCase(NODE_TEST, 'test_argmax_default_axis_example'),
     TestCase(NODE_TEST, 'test_argmax_default_axis_random'),
