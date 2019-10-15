@@ -349,7 +349,7 @@ void Graph::InferShapes() {
     // appropriate opset_imports.
     try {
         onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
-    } catch (std::runtime_error e) {
+    } catch (const std::runtime_error& e) {
         std::cerr << "WARNING: Error during shape inference: " << e.what() << std::endl;
     }
     Construct(xgraph);
