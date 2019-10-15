@@ -7,7 +7,9 @@
         "ReplaceIdentity": true,
         "ReplaceScan": true,
         "ReplaceSequenceEmpty": true,
-        "ReplaceShape": true
+        "ReplaceShape": true,
+        "ReplaceTopK": true,
+        "ReplaceUpsample": true
     },
     "simplify": {
         "ExpandFunction": true,

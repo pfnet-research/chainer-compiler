@@ -37,7 +37,7 @@ cd ..
 ./build/tools/run_onnx data/shufflenet --compiler_log --use_dldt
 ./build/tools/run_onnx data/shufflenet --compiler_log -d cuda --use_tensorrt
 
-PYTHONPATH=. python3 scripts/runtests.py -g --fuse
+PYTHONPATH=. python3 scripts/runtests.py -g --fuse --target_opsets=8,9,10
 LD_LIBRARY_PATH=$HOME/ngraph_dist/lib:$LD_LIBRARY_PATH PYTHONPATH=. python3 scripts/runtests.py --ngraph
 PYTHONPATH=. python3 -m pytest -sv tests
 

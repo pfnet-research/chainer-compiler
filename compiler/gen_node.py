@@ -215,7 +215,7 @@ NodeDef('GlobalAveragePool', 1, 1)
 # 1 input version is for Pad-2.
 NodeDef('Pad', (1, 2, 3), 1, mode='constant', pads=[int], value=0.0)
 NodeDef('Upsample', (1, 2), 1, mode='nearest',
-        width_scale=float, height_scale=float)
+        width_scale=float, height_scale=float, scales=[float])
 # TODO(take-cheeze): Handle opset 11 version with (3, 4)
 NodeDef('Resize', (2, 3, 4), 1, mode='nearest')
 
@@ -231,7 +231,7 @@ NodeDef('Scan', None, None, body=Graph,
         scan_output_axes=[int],
         scan_output_directions=[int])
 NodeDef('Where', 3, 1)
-NodeDef('TopK', 2, 2, axis=-1, largest=1, sorted=1)
+NodeDef('TopK', (1, 2), 2, axis=-1, largest=1, sorted=1, k=-1)
 NodeDef('NonMaxSuppression', (2, 3, 4, 5), 1, center_point_box=0)
 
 NodeDef('ImageScaler', 1, 1, scale=1.0, bias_list=[float])

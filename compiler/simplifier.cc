@@ -720,6 +720,35 @@ bool ReplaceClip(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceTopK(Graph* graph, Node* node) {
+    if (node->inputs().size() == 2) {
+        return false;
+    }
+
+    // TopK-1 to TopK-10
+    CHECK(node->k() > 0);
+    GraphBuilder gb(graph, "SimplifyTopK", node->output(0));
+    Value* k = gb.ScalarConst(node->k(), Dtype::kInt64);
+    gb.MOp(Node::kTopK, {node->input(0), k}, node->outputs())->set_axis(node->axis());
+
+    return true;
+}
+
+bool ReplaceUpsample(Graph* graph, Node* node) {
+    if (node->inputs().size() == 2) {
+        // TODO(take-cheeze): Canonicalize to Resize op
+        return false;
+    }
+
+    // Upsample-7 to Resize-10
+    CHECK(node->scales().size() > 0);
+    GraphBuilder gb(graph, "SimplifyUpsample", node->output(0));
+    Value* scales = gb.Const(ArrayBuilder({static_cast<int64_t>(node->scales().size())}).WithData<float>(node->scales()).Build());
+    gb.MOp(Node::kResize, {node->input(0), scales}, node->outputs())->set_mode(node->mode());
+
+    return true;
+}
+
 SimplifierFn FunctionExpander(const std::string& fn, const onnx::OpSchema* schema) {
     return [fn, schema](Graph* graph, Node* fn_nd) {
         std::unordered_map<std::string, Value*> value_table;
@@ -791,7 +820,11 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     std::set<std::string> all_simplifier_names;
     std::map<Node::OpType, Simplifier> simplifiers;
 
-    auto register_simplifier = [&simplifiers, &all_simplifier_names](const Node::OpType& op, const char* name, SimplifierFn func) {
+    auto register_simplifier = [&simplifiers, &all_simplifier_names, &simplifier_names](
+                                       const Node::OpType& op, const char* name, SimplifierFn func) {
+        if (!simplifier_names.count(name)) {
+            return;
+        }
         CHECK(simplifiers.emplace(op, Simplifier(name, func)).second);
         CHECK(all_simplifier_names.emplace(name).second);
     };
@@ -834,6 +867,8 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     REGISTER_SIMPLIFIER(Concat);
     REGISTER_SIMPLIFIER(Constant);
     REGISTER_SIMPLIFIER(Clip);
+    REGISTER_SIMPLIFIER(TopK);
+    REGISTER_SIMPLIFIER(Upsample);
 
     register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
     register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);
@@ -867,9 +902,6 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
                 continue;
             }
             const Simplifier& simplifier = found->second;
-            if (!simplifier_names.count(simplifier.name)) {
-                continue;
-            }
             if (simplifier.fn(graph, node)) {
                 CLOG() << node->op_type() << " simplified" << std::endl;
                 graph->DetachNode(node);
