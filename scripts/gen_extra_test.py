@@ -494,13 +494,17 @@ def gen_sequence_test(test_name):
         inputs=['seq3', 'index'],
         outputs=['lookup_result']))
     nodes.append(onnx.helper.make_node(
-        'ChainerSequenceStack',
+        'ConcatFromSequence',
         inputs=['seq3'],
-        outputs=['stack3_result']))
+        outputs=['stack3_result'],
+        axis=0,
+        new_axis=1))
     nodes.append(onnx.helper.make_node(
-        'ChainerSequenceStack',
+        'ConcatFromSequence',
         inputs=['seq2'],
-        outputs=['stack2_result']))
+        outputs=['stack2_result'],
+        axis=0,
+        new_axis=1))
     nodes.append(onnx.helper.make_node(
         'ConcatFromSequence',
         inputs=['seq3'],
@@ -562,9 +566,11 @@ def gen_sequence_pad_test(test_name):
     gb.ChainerSequenceLengths(
         inputs=['seq3'],
         outputs=['seq3_lengths_seq'])
-    gb.ChainerSequenceStack(
+    gb.ConcatFromSequence(
         inputs=['seq3_lengths_seq'],
-        outputs=['seq3_lengths'])
+        outputs=['seq3_lengths'],
+        axis=0,
+        new_axis=1)
 
     padded = np.array([[1, 2, 3, -42], [4, -42, -42, -42], [5, 6, -42, -42]])
     outputs = [
@@ -626,7 +632,7 @@ def gen_sequence_io_test(test_name):
     input_seq_v = gb.input('input_seq', Seq(input_seq))
 
     split_v = gb.ChainerSequenceSeparate([input_v])
-    stack_v = gb.ChainerSequenceStack([input_seq_v])
+    stack_v = gb.ConcatFromSequence([input_seq_v], axis=0, new_axis=1)
 
     gb.output(gb.Identity([input_v]), input)
     gb.output(gb.Identity([input_seq_v]), Seq(input_seq))
@@ -696,7 +702,7 @@ def gen_sequence_create_test(test_name):
     inputs_v = [gb.input('input_%d' % i, input)
                 for i, input in enumerate(inputs)]
     seq_v = gb.ChainerSequenceCreate(inputs_v)
-    stack_v = gb.ChainerSequenceStack([seq_v])
+    stack_v = gb.ConcatFromSequence([seq_v], axis=0, new_axis=1)
     gb.output(seq_v, Seq(inputs))
     gb.output(stack_v, np.array(inputs))
     gb.gen_test()
@@ -793,7 +799,8 @@ def gen_generic_getslice_test(test_name):
         gb.output(get_slice(reduced_v, s), reduced[s])
         actual_v = get_slice(seq_v, s)
         if len(expected):
-            gb.output(gb.ChainerSequenceStack([actual_v]), expected)
+            gb.output(gb.ConcatFromSequence([actual_v], axis=0, new_axis=1),
+                      expected)
         else:
             gb.output(gb.ChainerSequenceSize([actual_v]), 0)
 

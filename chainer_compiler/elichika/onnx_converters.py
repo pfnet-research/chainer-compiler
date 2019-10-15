@@ -759,10 +759,12 @@ class ONNXValue:
                             self.name, '/tensor'])
 
             self.onnx_graph.add_node(
-                "ChainerSequenceStack",
+                "ConcatFromSequence",
                 [value],
                 [ret],
-                str('create_tensor'))
+                str('create_tensor'),
+                axis=0,
+                new_axis=True)
             return ret
 
         elif(isinstance(self.value, values.ListValue)):
@@ -772,10 +774,12 @@ class ONNXValue:
                             self.name, '/tensor'])
 
             self.onnx_graph.add_node(
-                "ChainerSequenceStack",
+                "ConcatFromSequence",
                 [value],
                 [ret],
-                str('create_tensor'))
+                str('create_tensor'),
+                axis=0,
+                new_axis=True)
             return ret
 
         elif(isinstance(self.value, values.TensorValue)):
@@ -790,10 +794,12 @@ class ONNXValue:
                             self.name, '/tensor'])
 
             self.onnx_graph.add_node(
-                "ChainerSequenceStack",
+                "ConcatFromSequence",
                 [self],
                 [ret],
-                str('create_tensor'))
+                str('create_tensor'),
+                axis=0,
+                new_axis=True)
             return ret
         elif(isinstance(self.value, values.Value)):
             value = self.value  # type:values.Value
@@ -1454,18 +1460,22 @@ class ONNXGenerator:
                     if isinstance(node.inputs[0], values.ListValue) or isinstance(node.inputs[0], values.TupleValue):
                         if dtype is None:
                             onnx_node = onnx_graph.add_node(
-                                "ChainerSequenceStack",
+                                "ConcatFromSequence",
                                 [value],
                                 [o],
-                                str(node.lineprop))
+                                str(node.lineprop),
+                                axis=0,
+                                new_axis=True)
                         else:
                             casting_name = value2onnx_parameter[node.outputs[0]
                                                                 ].onnx_name + '/Cast'
                             onnx_node = onnx_graph.add_node(
-                                "ChainerSequenceStack",
+                                "ConcatFromSequence",
                                 [value],
                                 [casting_name],
-                                str(node.lineprop))
+                                str(node.lineprop),
+                                axis=0,
+                                new_axis=True)
 
                             onnx_node = onnx_graph.add_node(
                                 "Cast",

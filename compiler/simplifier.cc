@@ -248,7 +248,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         for (Value* v : scan_outputs) {
             Value* outputs = gb.Temp();
             loop_outputs.push_back(outputs);
-            gb.Op(Node::kChainerSequenceStack, {outputs}, v)->producer()->set_axis(output_axis);
+            gb.Op(Node::kConcatFromSequence, {outputs}, v)->producer()->set_axis(output_axis)->set_new_axis(true);
         }
 
         Node* loop = gb.MOp(Node::kLoop, loop_inputs, loop_outputs);

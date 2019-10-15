@@ -97,8 +97,10 @@ class Value(object):
             self.is_py = False
         else:
             if self.is_sequence():
-                self.value = env.calc('ChainerSequenceStack',
-                                      inputs=[self.value.name])
+                self.value = env.calc('ConcatFromSequence',
+                                      inputs=[self.value.name],
+                                      axis=0,
+                                      new_axis=True)
                 self.is_py = False
 
             if dtype is not None:

@@ -455,9 +455,10 @@ class Function_Hstack(Callable):
 class Function_Stack(Callable):
     def call_impl(self, env, xs, axis):
         return env.calc(
-            'ChainerSequenceStack',
+            'ConcatFromSequence',
             inputs=[xs.to_sequence(env).name],
-            axis=axis.to_int()
+            axis=axis.to_int(),
+            new_axis=True
         )
 
 

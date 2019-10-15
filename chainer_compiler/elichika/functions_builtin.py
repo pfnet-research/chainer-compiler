@@ -611,11 +611,12 @@ class ConverterStack(BaseConverter):
         parser = self.parse_args(onnx_graph, node)
 
         onnx_graph.add_node(
-            "ChainerSequenceStack",
+            "ConcatFromSequence",
             [parser.get('xs').create_sequence()],
             node.outputs,
             name=str(node.lineprop),
-            axis=parser.get('axis'))
+            axis=parser.get('axis'),
+            new_axis=True)
 
 
 class ConverterSeparate(BaseConverter):
