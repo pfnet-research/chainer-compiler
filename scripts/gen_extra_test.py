@@ -502,13 +502,15 @@ def gen_sequence_test(test_name):
         inputs=['seq2'],
         outputs=['stack2_result']))
     nodes.append(onnx.helper.make_node(
-        'ChainerSequenceConcat',
+        'ConcatFromSequence',
         inputs=['seq3'],
-        outputs=['concat3_result']))
+        outputs=['concat3_result'],
+        axis=0))
     nodes.append(onnx.helper.make_node(
-        'ChainerSequenceConcat',
+        'ConcatFromSequence',
         inputs=['seq2'],
-        outputs=['concat2_result']))
+        outputs=['concat2_result'],
+        axis=0))
     nodes.append(onnx.helper.make_node(
         'ChainerSequenceSize',
         inputs=['seq3'],

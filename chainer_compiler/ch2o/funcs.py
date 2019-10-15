@@ -199,7 +199,7 @@ class Function_Concat(Callable):
             )
         else:
             return env.calc(
-                "ChainerSequenceConcat",
+                "ConcatFromSequence",
                 inputs=[xs.to_sequence(env).name],
                 axis=axis.to_int(),
             )
@@ -437,7 +437,7 @@ class Cuda_ToCpu(object):
 class Function_Vstack(Callable):
     def call_impl(self, env, xs):
         return env.calc(
-            'ChainerSequenceConcat',
+            'ConcatFromSequence',
             inputs=[xs.to_sequence(env).name],
             axis=0
         )
@@ -446,7 +446,7 @@ class Function_Vstack(Callable):
 class Function_Hstack(Callable):
     def call_impl(self, env, xs):
         return env.calc(
-            'ChainerSequenceConcat',
+            'ConcatFromSequence',
             inputs=[xs.to_sequence(env).name],
             axis=1
         )

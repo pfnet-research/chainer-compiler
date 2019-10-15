@@ -107,7 +107,6 @@
         "ChainerSelectItemGrad": true,
         "ChainerSetItem": true,
         "ChainerSequenceAppend": true,
-        "ChainerSequenceConcat": true,
         "ChainerSequenceConstants": true,
         "ChainerSequenceCreate": true,
         "ChainerSequenceExtend": true,

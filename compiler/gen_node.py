@@ -275,8 +275,8 @@ NodeDef('SequenceErase', (1, 2), 1)
 
 NodeDef('SequenceAt', 2, 1)
 
-# The second argument for the gradient context.
-NodeDef('ConcatFromSequence', (1, 2), 1, axis=Required(int), new_axis=0)
+# The second output is for the gradient context.
+NodeDef('ConcatFromSequence', 1, (1, 2), axis=Required(int), new_axis=0)
 NodeDef('SplitToSequence', (1, 2), 1, axis=0, keepdims=True)
 
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
@@ -375,10 +375,6 @@ NodeDef('ChainerSequenceGetSlice', (1, 2, 3, 4), 1)
 
 # Stacks elements in a sequence: ([T]) -> (T)
 NodeDef('ChainerSequenceStack', 1, 1, axis=0)
-
-# Concatenates elements in a sequence: ([T]) -> (T)
-# The second output is for backward context.
-NodeDef('ChainerSequenceConcat', 1, (1, 2), axis=0)
 
 # Splits a tensor to a sequence (like F.split_axis): (T, I) -> ([T])
 NodeDef('ChainerSequenceSplitAxis', 2, 1, axis=0)

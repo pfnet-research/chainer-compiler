@@ -1061,6 +1061,19 @@ void IfGradFn(GradientOpContext* gc) {
     else_graph->ResetGradients(reset_grad_names);
 }
 
+void ConcatFromSequenceGradFn(GradientOpContext* gc) {
+    const Node* node = gc->node();
+    if (node->new_axis()) {
+        Value* gy = gc->gy(0);
+        gc->GradOp(Node::kChainerSequenceSeparate, 0, {gy})->producer()->set_axis(node->axis());
+    } else {
+        GraphBuilder gb{gc->builder(0)};
+        Node* node = gc->node();
+        Value* indices = gc->AddOutput(Type(Dtype::kInt64));
+        gc->GradOp(Node::kChainerSequenceSplitAxis, 0, {gc->gy(0), indices})->producer()->set_axis(node->axis());
+    }
+}
+
 void SequenceStackGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
     Value* gy = gc->gy(0);
@@ -1103,17 +1116,10 @@ void SequenceExtendGradFn(GradientOpContext* gc) {
     }
 }
 
-void SequenceConcatGradFn(GradientOpContext* gc) {
-    GraphBuilder gb{gc->builder(0)};
-    Node* node = gc->node();
-    Value* indices = gc->AddOutput(Type(Dtype::kInt64));
-    gc->GradOp(Node::kChainerSequenceSplitAxis, 0, {gc->gy(0), indices})->producer()->set_axis(node->axis());
-}
-
 void SequenceSplitAxisGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
-    gc->GradOp(Node::kChainerSequenceConcat, 0, {gc->gy(0)})->producer()->set_axis(node->axis());
+    gc->GradOp(Node::kConcatFromSequence, 0, {gc->gy(0)})->producer()->set_axis(node->axis());
 }
 
 void SequencePadGradFn(GradientOpContext* gc) {
@@ -1254,11 +1260,11 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kDynamicSlice, &DynamicSliceGradFn);
         register_grad_fn(Node::kChainerGetItem, &GetItemGradFn);
 
+        register_grad_fn(Node::kConcatFromSequence, &ConcatFromSequenceGradFn);
         register_grad_fn(Node::kChainerSequenceCreate, &SequenceCreateGradFn);
         register_grad_fn(Node::kChainerSequenceStack, &SequenceStackGradFn);
         register_grad_fn(Node::kChainerSequenceAppend, &SequenceAppendGradFn);
         register_grad_fn(Node::kChainerSequenceExtend, &SequenceExtendGradFn);
-        register_grad_fn(Node::kChainerSequenceConcat, &SequenceConcatGradFn);
         register_grad_fn(Node::kChainerSequenceSplitAxis, &SequenceSplitAxisGradFn);
         register_grad_fn(Node::kChainerSequencePad, &SequencePadGradFn);
         register_grad_fn(Node::kChainerSequenceUnpad, &SequenceUnpadGradFn);

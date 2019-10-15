@@ -412,7 +412,7 @@ class ConverterConcat(BaseConverter):
         parser = self.parse_args(onnx_graph, node)
 
         onnx_graph.add_node(
-            "ChainerSequenceConcat",
+            "ConcatFromSequence",
             [parser.get('xs').create_sequence()],
             node.outputs,
             str(node.lineprop),
@@ -578,7 +578,7 @@ class ConverterVstack(BaseConverter):
         parser = self.parse_args(onnx_graph, node)
 
         onnx_graph.add_node(
-            "ChainerSequenceConcat",
+            "ConcatFromSequence",
             [parser.get('xs').create_sequence()],
             node.outputs,
             name=str(node.lineprop),
@@ -594,7 +594,7 @@ class ConverterHstack(BaseConverter):
         parser = self.parse_args(onnx_graph, node)
 
         onnx_graph.add_node(
-            "ChainerSequenceConcat",
+            "ConcatFromSequence",
             [parser.get('xs').create_sequence()],
             node.outputs,
             name=str(node.lineprop),

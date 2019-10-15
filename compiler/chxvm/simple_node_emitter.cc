@@ -607,8 +607,6 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         EMIT(SequenceGetSliceGrad, out(0), in(0), in(1), oin(2), oin(3), oin(4));
     } else if (node.op_type() == Node::kChainerSequenceStack) {
         EMIT(SequenceStack, out(0), in(0), node.axis());
-    } else if (node.op_type() == Node::kChainerSequenceConcat) {
-        EMIT(SequenceConcat, out(0), oout(1), in(0), node.axis());
     } else if (node.op_type() == Node::kConcatFromSequence) {
         if (node.new_axis()) {
             EMIT(SequenceStack, out(0), in(0), node.axis());
