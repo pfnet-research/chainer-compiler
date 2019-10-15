@@ -135,6 +135,7 @@
         "ConvTranspose": true,
         "Cos": true,
         "Cosh": true,
+        "CumSum": true,
         "DepthToSpace": true,
         "DequantizeLinear": true,
         "Div": true,
