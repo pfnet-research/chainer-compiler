@@ -127,7 +127,7 @@ class Value(object):
             for v in self.value:
                 v = Value(v).to_tensor(env)
                 res = env.calc_seq(
-                    "ChainerSequenceAppend",
+                    "SequenceInsert",
                     inputs=[res.name, v.name],
                 )
             self.value = res

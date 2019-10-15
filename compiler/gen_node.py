@@ -355,9 +355,6 @@ NodeDef('ChainerSequenceConstants', 0, 1, tensor_values=[Tensor])
 # Creates a new sequence: (T...) -> ([T])
 NodeDef('ChainerSequenceCreate', None, 1)
 
-# Appends an element to a sequence: ([T], T) -> ([T])
-NodeDef('ChainerSequenceAppend', 2, 1)
-
 # Extends a sequence to another sequence: ([T], [T]) -> ([T])
 NodeDef('ChainerSequenceExtend', 2, 1)
 

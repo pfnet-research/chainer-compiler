@@ -883,7 +883,7 @@ void LoopGradFn(GradientOpContext* gc) {
             Value* rv = p.first;
             Value* in = body->AddInputValue("bp_push_i@" + rv->name(), Type(Type::Kind::kSequence));
             Value* out = body->AddOutputValue("bp_push_o@" + rv->name(), Type(Type::Kind::kSequence));
-            gb.Op(Node::kChainerSequenceAppend, {in, rv}, out);
+            gb.Op(Node::kSequenceInsert, {in, rv}, out);
         }
     }
 
@@ -1084,8 +1084,10 @@ void SequenceCreateGradFn(GradientOpContext* gc) {
     }
 }
 
-void SequenceAppendGradFn(GradientOpContext* gc) {
+void SequenceInsertGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
+    // TODO(hamaji): Implement this.
+    CHECK_EQ(2, gc->node()->inputs().size()) << "backprop for SequenceInsert with 3 inputs is not supported yet";
     Value* gy = gc->gy(0);
     std::vector<Value*> gxs;
     for (int i = 0; i < 2; ++i) {
@@ -1255,14 +1257,14 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kChainerGetItem, &GetItemGradFn);
 
         register_grad_fn(Node::kConcatFromSequence, &ConcatFromSequenceGradFn);
+        register_grad_fn(Node::kSequenceAt, &SequenceAtGradFn);
+        register_grad_fn(Node::kSequenceInsert, &SequenceInsertGradFn);
         register_grad_fn(Node::kChainerSequenceCreate, &SequenceCreateGradFn);
-        register_grad_fn(Node::kChainerSequenceAppend, &SequenceAppendGradFn);
         register_grad_fn(Node::kChainerSequenceExtend, &SequenceExtendGradFn);
         register_grad_fn(Node::kChainerSequenceSplitAxis, &SequenceSplitAxisGradFn);
         register_grad_fn(Node::kChainerSequencePad, &SequencePadGradFn);
         register_grad_fn(Node::kChainerSequenceUnpad, &SequenceUnpadGradFn);
         register_grad_fn(Node::kChainerSequenceSeparate, &SequenceSeparateGradFn);
-        register_grad_fn(Node::kSequenceAt, &SequenceAtGradFn);
         register_grad_fn(Node::kChainerSequenceGetSlice, &SequenceGetSliceGradFn);
     }
 

@@ -626,7 +626,7 @@ def eval_binary_op(nast, env):
             outputs=[elem.name]
         ))
         nodes.append(helper.make_node(
-            'ChainerSequenceAppend',
+            'SequenceInsert',
             inputs=[state.name, elem.name],
             outputs=[out_state.name]
         ))
@@ -706,7 +706,7 @@ def eval_attribute(nast, env):
                 assert len(args) == 1
                 v = args[0].to_tensor(env)
                 env.set_var(na, _value(env.calc_seq(
-                    'ChainerSequenceAppend',
+                    'SequenceInsert',
                     inputs=[body.to_sequence(env).name, v.name],
                 )))
                 return None
@@ -915,7 +915,7 @@ def eval_list(nast, env):
     for v in vs:
         v = v.to_tensor(env)
         res = env.calc_seq(
-            "ChainerSequenceAppend",
+            "SequenceInsert",
             inputs=[res.name, v.name],
         )
     return res

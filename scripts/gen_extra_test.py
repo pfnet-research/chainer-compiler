@@ -482,7 +482,7 @@ def gen_sequence_test(test_name):
 
     for i, input in enumerate(inputs):
         nodes.append(onnx.helper.make_node(
-            'ChainerSequenceAppend',
+            'SequenceInsert',
             inputs=['seq%d' % i, 'in%d' % i],
             outputs=['seq%d' % (i + 1)]))
 
@@ -546,7 +546,7 @@ def gen_sequence_pad_test(test_name):
     gb.ChainerSequenceCreate(inputs=[], outputs=['seq0'])
 
     for i, input in enumerate(inputs):
-        gb.ChainerSequenceAppend(inputs=['seq%d' % i, 'in%d' % i],
+        gb.SequenceInsert(inputs=['seq%d' % i, 'in%d' % i],
                                 outputs=['seq%d' % (i + 1)])
 
     index_value = 1
@@ -867,7 +867,7 @@ def gen_hello_world_test(test_name):
     out_v = gb.ChainerSequenceCreate([])
     for ch in hello:
         ch_v = gb.const(ord(ch), dtype=np.uint8)
-        out_v = gb.ChainerSequenceAppend([out_v, ch_v])
+        out_v = gb.SequenceInsert([out_v, ch_v])
     gb.output(out_v, Seq(list(np.array(ord(ch), np.uint8) for ch in hello)))
     gb.gen_test()
 

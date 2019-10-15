@@ -366,7 +366,7 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
     if isinstance(node.func, functions_list.AppendFunction):
         # append
         onnx_graph.add_node(
-            "ChainerSequenceAppend",
+            "SequenceInsert",
             node.inputs,
             node.outputs,
             str(node.lineprop))

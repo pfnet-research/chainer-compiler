@@ -201,7 +201,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
 
             Value* output_in = new Value(gb.GenName(), Type(), Value::Kind::kInput);
             Value* output_out = new Value(gb.GenName(), Type(), Value::Kind::kOutput);
-            gb.Op(Node::kChainerSequenceAppend, {output_in, orig_output}, output_out);
+            gb.Op(Node::kSequenceInsert, {output_in, orig_output}, output_out);
 
             new_loop_inputs.push_back(output_in);
             new_loop_outputs.push_back(output_out);
