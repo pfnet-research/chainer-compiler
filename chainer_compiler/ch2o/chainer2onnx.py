@@ -909,7 +909,7 @@ def eval_list(nast, env):
     # Sequenceにする
     vs = list(map(lambda x: eval_ast(x, env), nast.elts))
     res = env.calc_seq(
-        "ChainerSequenceCreate",
+        "SequenceConstruct",
         inputs=[],
     )
     for v in vs:

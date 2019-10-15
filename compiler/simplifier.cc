@@ -234,7 +234,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         }
         for (Value* v : scan_outputs) {
             (void)v;
-            loop_inputs.push_back(gb.Op(Node::kChainerSequenceCreate, {}));
+            loop_inputs.push_back(gb.Op(Node::kSequenceConstruct, {}));
         }
 
         std::vector<Value*> loop_outputs;
@@ -702,7 +702,7 @@ bool ReplaceResizeForDldt(Graph* graph, Node* node) {
 
 bool ReplaceSequenceEmpty(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySequenceEmpty", node->output(0));
-    gb.Op(Node::kChainerSequenceCreate, {}, node->output(0));
+    gb.Op(Node::kSequenceConstruct, {}, node->output(0));
     return true;
 }
 

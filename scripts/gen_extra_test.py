@@ -476,7 +476,7 @@ def gen_sequence_test(test_name):
     inputs = [np.array(a) for a in [[1, 2], [3, 4], [5, 6]]]
     nodes = []
     nodes.append(onnx.helper.make_node(
-        'ChainerSequenceCreate',
+        'SequenceConstruct',
         inputs=[],
         outputs=['seq0']))
 
@@ -543,7 +543,7 @@ def gen_sequence_pad_test(test_name):
     # TODO(hamaji): Rewrite with GraphBuilder's input/output.
     gb = onnx_script.GraphBuilder(test_name)
     inputs = [np.array(a) for a in [[1, 2, 3], [4], [5, 6]]]
-    gb.ChainerSequenceCreate(inputs=[], outputs=['seq0'])
+    gb.SequenceConstruct(inputs=[], outputs=['seq0'])
 
     for i, input in enumerate(inputs):
         gb.SequenceInsert(inputs=['seq%d' % i, 'in%d' % i],
@@ -701,7 +701,7 @@ def gen_sequence_create_test(test_name):
     inputs = [4, 2, 3]
     inputs_v = [gb.input('input_%d' % i, input)
                 for i, input in enumerate(inputs)]
-    seq_v = gb.ChainerSequenceCreate(inputs_v)
+    seq_v = gb.SequenceConstruct(inputs_v)
     stack_v = gb.ConcatFromSequence([seq_v], axis=0, new_axis=1)
     gb.output(seq_v, Seq(inputs))
     gb.output(stack_v, np.array(inputs))
@@ -864,7 +864,7 @@ def gen_print_test(test_name):
 def gen_hello_world_test(test_name):
     gb = onnx_script.GraphBuilder(test_name)
     hello = 'Hello, world!\n'
-    out_v = gb.ChainerSequenceCreate([])
+    out_v = gb.SequenceConstruct([])
     for ch in hello:
         ch_v = gb.const(ord(ch), dtype=np.uint8)
         out_v = gb.SequenceInsert([out_v, ch_v])

@@ -460,7 +460,7 @@ def convert_onnx_chainer_NStepBiLSTM(onnx_graph: 'ONNXGraph', node: 'nodes.NodeC
     out_size2 = oc.ONNXValue(onnx_graph, np.array(out_size * 2), [node, '/Outputs'])
 
     (sout_shape,) = onnx_graph.add_node(
-        "ChainerSequenceCreate", [sequence_length, minus1, out_size2], [None], str(node.lineprop),)
+        "SequenceConstruct", [sequence_length, minus1, out_size2], [None], str(node.lineprop),)
     sout_shape.onnx_type = oc.ONNXValueType.Sequence
 
     out_shape = sout_shape.create_tensor(node.lineprop)

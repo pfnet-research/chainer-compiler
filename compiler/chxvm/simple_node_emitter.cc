@@ -557,7 +557,7 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         std::vector<int> ins;
         for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
         EMIT(Print, ins);
-    } else if (node.op_type() == Node::kChainerSequenceCreate || node.op_type() == Node::kSequenceConstruct) {
+    } else if (node.op_type() == Node::kSequenceConstruct) {
         std::vector<int> ins;
         for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
         EMIT(SequenceCreate, out(0), ins);

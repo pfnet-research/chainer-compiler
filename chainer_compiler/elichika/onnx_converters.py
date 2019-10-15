@@ -1540,7 +1540,7 @@ class ONNXGenerator:
 
                 if node_.classtype == 'Tuple':
                     onnx_node = oh.make_node(
-                        "ChainerSequenceCreate",
+                        "SequenceConstruct",
                         [value2onnx_parameter[x].onnx_name for x in node.args],
                         [value2onnx_parameter[node.outputs[0]].onnx_name],
                         str(node.lineprop))
@@ -1548,7 +1548,7 @@ class ONNXGenerator:
 
                 if node_.classtype == 'List':
                     onnx_node = oh.make_node(
-                        "ChainerSequenceCreate",
+                        "SequenceConstruct",
                         [value2onnx_parameter[x].onnx_name for x in node.args],
                         [value2onnx_parameter[node.outputs[0]].onnx_name],
                         str(node.lineprop))

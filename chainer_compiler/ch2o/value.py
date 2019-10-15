@@ -121,7 +121,7 @@ class Value(object):
             if not isinstance(self.value, collections.Iterable):
                 raise TypeError('Expected a sequence: %s' % self.value)
             res = env.calc_seq(
-                "ChainerSequenceCreate",
+                "SequenceConstruct",
                 inputs=[],
             )
             for v in self.value:
