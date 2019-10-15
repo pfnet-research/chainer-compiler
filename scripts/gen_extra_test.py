@@ -1122,6 +1122,19 @@ def gen_convtranspose_bn(test_name):
     gb.gen_test()
 
 
+def gen_unsqueeze_negative_axis(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+
+    x = aranges(1, 2, 3, 5)
+    y = np.expand_dims(x, axis=-2)
+
+    x_v = gb.input('x', x)
+    y_v = gb.Unsqueeze([x_v], axes=[-2])
+
+    gb.output(y_v, y)
+    gb.gen_test()
+
+
 class TestCase(test_case.TestCase):
     def __init__(self, name, func, **kwargs):
         super(TestCase, self).__init__('out', name, **kwargs)
@@ -1257,6 +1270,10 @@ def get_tests():
     test('extra_test_abs_float16', gen_abs_test(np.float16))
 
     test('extra_test_convtranspose_bn', gen_convtranspose_bn)
+
+    # TODO(hamaji): ONNX's shape inference for Unsqueeze is probably broken.
+    test('extra_test_unsqueeze_negative_axis', gen_unsqueeze_negative_axis,
+         skip_shape_inference=True)
 
     tests += gen_chainercv_op_tests.get_tests()
 

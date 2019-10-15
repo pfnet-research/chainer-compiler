@@ -62,6 +62,7 @@ if(OpenCV_FOUND)
 endif()
 
 add_executable(run_onnx_menoh run_onnx.cpp menoh_chainer_compiler.cpp)
+add_dependencies(run_onnx_menoh menoh_chainer_compiler_cc_inc)
 target_include_directories(run_onnx_menoh PRIVATE
   "${CHAINER_COMPILER_ROOT_DIR}/third_party/json/include"
   "${CHAINER_COMPILER_ROOT_DIR}"

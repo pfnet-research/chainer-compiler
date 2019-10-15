@@ -243,7 +243,7 @@ chainerx::Array ScatterNDOp::RunImpl(
 }
 
 chainerx::Array GatherOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
-    return data.Take(indices.ToDevice(data.device()), axis);
+    return data.Take(indices.ToDevice(data.device()), axis, chainerx::IndexBoundsMode::kDefault);
 }
 
 chainerx::Array GatherElementsOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices_) {
@@ -298,9 +298,7 @@ chainerx::Array GatherGradOp::RunImpl(
     chainerx::Array out = chainerx::Zeros(shape, gy.dtype());
     // TODO(hamaji): Ineffcient. Update the TODO is removed in ChainerX:
     // https://github.com/chainer/chainer/pull/6789
-    // TODO(hamaji): AsContiguous is a workaround for SEGV in a complex
-    // situation which I'm failing to create a simple repro.
-    return chainerx::AddAt(out, indices.ToDevice(out.device()), axis, chainerx::AsContiguous(gy));
+    return chainerx::AddAt(out, indices.ToDevice(out.device()), axis, gy, chainerx::IndexBoundsMode::kDefault);
 }
 
 chainerx::Array SelectItemOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
@@ -310,7 +308,7 @@ chainerx::Array SelectItemOp::RunImpl(ChxVMState* st, const chainerx::Array& dat
     int64_t total_size = batch_size * num_classes;
     chainerx::Array take_indices =
             (indices + chainerx::Arange(0, total_size, num_classes, indices.dtype(), indices.device())).ToDevice(data.device());
-    return data.Reshape({total_size}).Take(take_indices, 0);
+    return data.Reshape({total_size}).Take(take_indices, 0, chainerx::IndexBoundsMode::kDefault);
 }
 
 chainerx::Array SelectItemGradOp::RunImpl(
@@ -324,7 +322,7 @@ chainerx::Array SelectItemGradOp::RunImpl(
             (indices + chainerx::Arange(0, total_size, num_classes, indices.dtype(), indices.device())).ToDevice(out.device());
     // TODO(hamaji): Ineffcient. Update the TODO is removed in ChainerX:
     // https://github.com/chainer/chainer/pull/6789
-    out = chainerx::AddAt(out, take_indices, 0, gy);
+    out = chainerx::AddAt(out, take_indices, 0, gy, chainerx::IndexBoundsMode::kDefault);
     return out.Reshape(shape);
 }
 
@@ -445,7 +443,7 @@ std::tuple<chainerx::Array, chainerx::Array> TopKOp::RunImpl(ChxVMState* st, con
     chainerx::Shape out_shape = in_shape;
     out_shape[axis] = k;
     if (k == 0) {
-        return std::make_tuple(chainerx::Full(out_shape, 0.f, x.device()), chainerx::Full(out_shape, 0L, x.device()));
+        return std::make_tuple(chainerx::Full(out_shape, 0.f, x.device()), chainerx::Full(out_shape, static_cast<int64_t>(0L), x.device()));
     }
 
     int64_t rows = 1;

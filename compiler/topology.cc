@@ -59,32 +59,42 @@ void ClassifyValues(
 }
 
 std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph) {
+    std::vector<Node*> sorted_nodes;
+    for (const std::pair<Node*, int>& p : SortTopologicallyWithDistance(nodes, inputs, is_full_graph)) {
+        sorted_nodes.push_back(p.first);
+    }
+    return sorted_nodes;
+}
+
+std::vector<std::pair<Node*, int>> SortTopologicallyWithDistance(
+        const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph) {
     // TODO(hamaji): Add a test for this function.
-    std::queue<Value*> q;
+    std::queue<std::pair<Value*, int>> q;
     for (Value* value : inputs) {
-        q.push(value);
+        q.push(std::make_pair(value, 0));
     }
     std::map<Node*, int> input_counts;
     for (Node* node : nodes) {
         input_counts[node] = node->GetNumActualInputs();
     }
 
-    std::vector<Node*> sorted_nodes;
-    auto add_sorted_node = [&sorted_nodes, &q](Node* node) {
-        sorted_nodes.push_back(node);
+    std::vector<std::pair<Node*, int>> sorted_nodes;
+    auto add_sorted_node = [&sorted_nodes, &q](Node* node, int distance) {
+        sorted_nodes.emplace_back(node, distance);
         for (Value* n : node->outputs()) {
-            q.push(n);
+            q.push(std::make_pair(n, distance + 1));
         }
     };
 
     for (const auto& p : input_counts) {
         if (p.second == 0) {
-            add_sorted_node(p.first);
+            add_sorted_node(p.first, 0);
         }
     }
 
     while (!q.empty()) {
-        Value* v = q.front();
+        Value* v = q.front().first;
+        const int distance = q.front().second;
         q.pop();
         for (Node* node : v->users()) {
             auto found = input_counts.find(node);
@@ -96,12 +106,23 @@ std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std:
                 }
             }
             if (--found->second == 0) {
-                add_sorted_node(node);
+                add_sorted_node(node, distance);
             }
         }
     }
     CHECK_GE(nodes.size(), sorted_nodes.size());
     return sorted_nodes;
+}
+
+std::vector<std::pair<Value*, int>> SortValuesTopologicallyWithDistance(
+        const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph) {
+    std::vector<std::pair<Value*, int>> sorted_values;
+    for (const std::pair<Node*, int>& p : SortTopologicallyWithDistance(nodes, inputs, is_full_graph)) {
+        for (Value* v : p.first->outputs()) {
+            sorted_values.emplace_back(v, p.second + 1);
+        }
+    }
+    return sorted_values;
 }
 
 }  // namespace chainer_compiler

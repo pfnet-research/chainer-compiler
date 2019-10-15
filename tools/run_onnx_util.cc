@@ -161,15 +161,31 @@ chainerx::Array StageArray(chainerx::Array a) {
     return a;
 }
 
-void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdline::parser& args, bool check_values, bool show_diff) {
+void VerifyOutputs(
+        const InOuts& outputs,
+        const TestCase& test_case,
+        const cmdline::parser& args,
+        bool check_values,
+        bool show_diff,
+        std::vector<std::string> ordered_output_names) {
+    if (ordered_output_names.empty()) {
+        for (const auto& p : test_case.outputs) {
+            const std::string key = p.first;
+            ordered_output_names.push_back(key);
+        }
+    }
+
     LOG() << "Verifying the result..." << std::endl;
     size_t ok_cnt = 0;
-    for (const auto& p : test_case.outputs) {
-        const std::string key = p.first;
-        ChxVMVar* expected = p.second.get();
-        auto found = outputs.find(key);
-        CHECK(found != outputs.end()) << "Output does not contain " << key;
-        ChxVMVar* actual = found->second.get();
+    for (const std::string& key : ordered_output_names) {
+        auto expected_found = test_case.outputs.find(key);
+        if (expected_found == test_case.outputs.end()) {
+            continue;
+        }
+        ChxVMVar* expected = expected_found->second.get();
+        auto actual_found = outputs.find(key);
+        CHECK(actual_found != outputs.end()) << "Output does not contain " << key;
+        ChxVMVar* actual = actual_found->second.get();
 
         auto array_str = [&args](const absl::optional<chainerx::Array>& a) {
             int size = a->GetTotalSize();
@@ -292,6 +308,29 @@ void SetupGlobals(const cmdline::parser& args) {
     g_compiler_log |= args.exist("trace") || args.exist("verbose");
     g_backend_name = args.get<std::string>("backend");
     g_quiet = args.exist("quiet");
+}
+
+std::vector<std::string> GetOrderedOutputNames(const Graph& graph) {
+    typedef std::pair<Value*, int> Pair;
+    std::vector<Pair> values = graph.GetTopologicallySortedValuesWithDistance();
+    std::sort(values.begin(), values.end(), [](const Pair& l, const Pair& r) {
+        if (l.second < r.second) {
+            return true;
+        } else if (l.second > r.second) {
+            return false;
+        }
+        Value* lv = l.first;
+        Value* rv = r.first;
+        return lv->name() < rv->name();
+    });
+
+    std::vector<std::string> ordered;
+    for (const Pair& p : values) {
+        if (p.first->IsOutput()) {
+            ordered.push_back(p.first->name());
+        }
+    }
+    return ordered;
 }
 
 }  // namespace runtime

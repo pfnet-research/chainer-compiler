@@ -178,7 +178,8 @@ int main(int argc, char** argv) {
             auto var = std::make_shared<chainer_compiler::runtime::ChxVMVar>(std::move(arr));
             outputs.emplace(p.first, std::move(var));
         }
-        VerifyOutputs(outputs, *test_case, args, !args.exist("no_check_values"), args.exist("always_show_diff"));
+        // TODO(hamaji): Set `ordered_output_names`.
+        VerifyOutputs(outputs, *test_case, args, !args.exist("no_check_values"), args.exist("always_show_diff"), {});
 
         int iterations = args.get<int>("iterations");
         if (iterations > 1) {

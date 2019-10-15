@@ -4,12 +4,13 @@
 
 Usage:
 
-$ PYTHONPATH=third_party/onnx-chainer python3 scripts/gen_resnet50.py
+$ PYTHONPATH=third_party/chainer python3 scripts/gen_resnet50.py
 """
 
 import argparse
 import os
 import random
+import shutil
 import sys
 
 import numpy as np
@@ -222,6 +223,7 @@ def main_impl(args, model_cls):
     onehot = chainer.Variable(onehot, name='onehot')
 
     chainer.disable_experimental_feature_warning = True
+    shutil.rmtree(out_dir, ignore_errors=True)
     onnx_chainer.export_testcase(model,
                                  (x, onehot),
                                  out_dir,

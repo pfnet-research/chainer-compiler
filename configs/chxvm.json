@@ -2,10 +2,14 @@
     "simplify_preproc": {
         "ReplaceChainerSelectItem": true,
         "ReplaceChainerSoftmaxCrossEntropy": true,
+        "ReplaceClip": true,
+        "ReplaceConcat": true,
         "ReplaceIdentity": true,
         "ReplaceScan": true,
         "ReplaceSequenceEmpty": true,
-        "ReplaceShape": true
+        "ReplaceShape": true,
+        "ReplaceTopK": true,
+        "ReplaceUpsample": true
     },
     "simplify": {
         "ExpandFunction": true,
@@ -30,7 +34,6 @@
         "ReplaceSlice": true,
         "ReplaceSoftsign": true,
         "ReplaceSum": true,
-        "ReplaceConcat": true,
         // These passes are workarounds for Chainer which does not
         // support pooling with imbalanced padding.
         "ReplaceMaxPool": true,
@@ -67,11 +70,14 @@
         "Cast": true,
         "Ceil": true,
         "ChainerAveragePoolGrad": true,
+        "ChainerBatchNormalizationExpandedStatsShape": true,
         "ChainerBatchNormalizationGrad": true,
         "ChainerConcatGrad": true,
         "ChainerConvGradWeight": true,
         "ChainerConvTransposeWithDynamicOutputShape": true,
         "ChainerDoSomething": true,
+        "ChainerDtype": true,
+        "ChainerDynamicCast": true,
         "ChainerDynamicSliceGrad": true,
         "ChainerFusionGroup": true,
         "ChainerGatherGrad": true,
@@ -131,6 +137,7 @@
         "ConvTranspose": true,
         "Cos": true,
         "Cosh": true,
+        "CumSum": true,
         "DepthToSpace": true,
         "DequantizeLinear": true,
         "Div": true,

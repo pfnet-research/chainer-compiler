@@ -147,6 +147,7 @@ NodeDef('Mean', None, 1)
 NodeDef('Max', None, 1)
 NodeDef('Min', None, 1)
 NodeDef('Clip', (1, 2, 3), 1, max=float('inf'), min=float('-inf'))
+NodeDef('CumSum', 2, 1, exclusive=0, reverse=0)
 
 NodeDef('ReduceSum', 1, 1, axes=[int], keepdims=True)
 NodeDef('ReduceSumSquare', 1, 1, axes=[int], keepdims=True)
@@ -166,7 +167,7 @@ NodeDef('Hardmax', 1, 1, axis=1)
 NodeDef('Dropout', 1, (1, 2), ratio=0.5)
 
 NodeDef('MatMul', 2, 1)
-NodeDef('Gemm', 3, 1, alpha=1.0, beta=1.0, transA=False, transB=False)
+NodeDef('Gemm', (2, 3), 1, alpha=1.0, beta=1.0, transA=False, transB=False)
 
 NodeDef('RNN', (3, 4, 5, 6), (0, 1, 2),
         activation_alpha=[float], activation_beta=[float],
@@ -211,9 +212,10 @@ NodeDef('MaxPool', 1, (1, 2, 3), **pool_attrs)
 NodeDef('AveragePool', 1, (1, 2), count_include_pad=False, **pool_attrs)
 NodeDef('GlobalMaxPool', 1, 1)
 NodeDef('GlobalAveragePool', 1, 1)
-NodeDef('Pad', 1, 1, mode='constant', pads=[int], value=0.0)
+# 1 input version is for Pad-2.
+NodeDef('Pad', (1, 2, 3), 1, mode='constant', pads=[int], value=0.0)
 NodeDef('Upsample', (1, 2), 1, mode='nearest',
-        width_scale=float, height_scale=float)
+        width_scale=float, height_scale=float, scales=[float])
 # TODO(take-cheeze): Handle opset 11 version with (3, 4)
 NodeDef('Resize', (2, 3, 4), 1, mode='nearest')
 
@@ -229,7 +231,7 @@ NodeDef('Scan', None, None, body=Graph,
         scan_output_axes=[int],
         scan_output_directions=[int])
 NodeDef('Where', 3, 1)
-NodeDef('TopK', 2, 2, axis=-1, largest=1, sorted=1)
+NodeDef('TopK', (1, 2), 2, axis=-1, largest=1, sorted=1, k=-1)
 NodeDef('NonMaxSuppression', (2, 3, 4, 5), 1, center_point_box=0)
 
 NodeDef('ImageScaler', 1, 1, scale=1.0, bias_list=[float])
@@ -302,6 +304,7 @@ NodeDef('ChainerDoSomething', None, None, function_name=Required(str))
 NodeDef('ChainerMaxPoolGrad', 2, 1, **pool_attrs)
 NodeDef('ChainerAveragePoolGrad', 2, 1, count_include_pad=False, **pool_attrs)
 NodeDef('ChainerResizeGrad', 2, 1)
+NodeDef('ChainerBatchNormalizationExpandedStatsShape', 1, 1)
 NodeDef('ChainerBatchNormalizationGrad', 2, 3)
 NodeDef('ChainerConvTransposeWithDynamicOutputShape', 3, 1, **conv_attrs)
 NodeDef('ChainerSoftmaxCrossEntropy', 2, 1)
@@ -314,6 +317,8 @@ NodeDef('ChainerConvGradWeight', 3, 1, **conv_attrs)
 NodeDef('ChainerGatherGrad', 3, 1, axis=0)
 NodeDef('ChainerConcatGrad', None, None, axis=0)
 NodeDef('ChainerDynamicSliceGrad', (4, 5, 6), 1)
+NodeDef('ChainerDtype', 1, 1)
+NodeDef('ChainerDynamicCast', 2, 1)
 NodeDef('ChainerFusionGroup', None, None, subgraph=Graph, fusion_type=str)
 
 # Numpy's advanced indexing.

@@ -196,14 +196,13 @@ ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:${LD_LIBRA
 
 FROM ci-base AS dev-base
 RUN git clone --recursive https://github.com/pfnet-research/chainer-compiler.git
-# TODO(take-cheeze): Update gast to 0.3.x
-RUN python3 -m pip install --user gast==0.2.2 packaging
+RUN python3 -m pip install --user gast==0.3.2 packaging
 RUN export CHAINER_VERSION=$(python3 -c "import imp;print(imp.load_source('_version','chainer-compiler/third_party/chainer/chainer/_version.py').__version__)") && \
     python3 -m pip install --user cupy-cuda101==$CHAINER_VERSION
 RUN CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j8 \
     CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
     python3 -m pip install --user chainer-compiler/third_party/chainer[test]
-RUN python3 -m pip install --user chainer-compiler/third_party/onnx-chainer[test-gpu]
+RUN python3 -m pip install --user 'pytest<5.0.0' 'chainercv>=0.11.0' onnxruntime==0.4.0
 RUN mkdir -p chainer-compiler/build && \
     cd chainer-compiler/build && \
     cmake .. \

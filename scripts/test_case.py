@@ -12,9 +12,11 @@ class TestCase(object):
                  rtol=None, atol=None, equal_nan=False, fail=False,
                  skip_shape_inference=False,
                  skip_runtime_type_check=False,
+                 fixed_batch_norm=False,
                  want_gpu=False,
                  prepare_func=None,
-                 backend=None):
+                 backend=None,
+                 opset_version=None):
         assert name is not None
         self.name = name
         if basedir is None:
@@ -30,6 +32,7 @@ class TestCase(object):
         self.fail = fail
         self.skip_shape_inference = skip_shape_inference
         self.skip_runtime_type_check = skip_runtime_type_check
+        self.fixed_batch_norm = fixed_batch_norm
         self.args = None
         self.is_backprop = 'backprop' in name
         self.is_backprop_two_phase = False
@@ -37,6 +40,7 @@ class TestCase(object):
         self.want_gpu = want_gpu
         self.prepare_func = prepare_func
         self.backend = backend
+        self.opset_version = opset_version
 
         self.log_dirname = self.test_dir
         if not (self.log_dirname.startswith('out') or

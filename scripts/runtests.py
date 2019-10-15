@@ -56,6 +56,10 @@ parser.add_argument('--computation_order', default=None,
 parser.add_argument('--cache', action='store_true', help='Enable model caching')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
+parser.add_argument('--target_opsets',
+                    help='Specify target opsets to run with comma separated string')
+parser.add_argument('--only_opset_targetable', action='store_true',
+                    help='Run test cases with opset_version is not None')
 args = parser.parse_args()
 
 
@@ -70,6 +74,12 @@ SIMPLE_TEST = os.path.join(ONNX_TEST_DATA, 'simple')
 
 # ChainerX does not support 1D conv/pool.
 fail_1d_conv_pool = args.use_gpu_all
+
+target_opsets = []
+if args.target_opsets is not None:
+    target_opsets = [int(o) for o in args.target_opsets.split(',')]
+if len(target_opsets) > 0:
+    print('Targeting opsets: {}'.format(target_opsets))
 
 TEST_CASES = [
     TestCase(NODE_TEST, 'test_identity'),
@@ -86,11 +96,10 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_div_bcast'),
     TestCase(NODE_TEST, 'test_div_example'),
     TestCase(NODE_TEST, 'test_mod_broadcast'),
-    # TODO(hamaji): Support fmod.
-    # TestCase(NODE_TEST, 'test_mod_int64_fmod'),
-    # TestCase(NODE_TEST, 'test_mod_mixed_sign_float16'),
-    # TestCase(NODE_TEST, 'test_mod_mixed_sign_float32'),
-    # TestCase(NODE_TEST, 'test_mod_mixed_sign_float64'),
+    TestCase(NODE_TEST, 'test_mod_int64_fmod'),
+    TestCase(NODE_TEST, 'test_mod_mixed_sign_float16'),
+    TestCase(NODE_TEST, 'test_mod_mixed_sign_float32'),
+    TestCase(NODE_TEST, 'test_mod_mixed_sign_float64'),
     TestCase(NODE_TEST, 'test_mod_mixed_sign_int16'),
     TestCase(NODE_TEST, 'test_mod_mixed_sign_int32'),
     TestCase(NODE_TEST, 'test_mod_mixed_sign_int64'),
@@ -269,9 +278,15 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_reshape_extended_dims'),
     TestCase(NODE_TEST, 'test_reshape_negative_dim'),
+    TestCase(NODE_TEST, 'test_reshape_negative_extended_dims'),
     TestCase(NODE_TEST, 'test_reshape_one_dim'),
     TestCase(NODE_TEST, 'test_reshape_reduced_dims'),
-    TestCase(NODE_TEST, 'test_reshape_reordered_dims'),
+    TestCase(NODE_TEST, 'test_reshape_reordered_all_dims'),
+    TestCase(NODE_TEST, 'test_reshape_reordered_last_dims'),
+    # TODO(hamaji): Support zero dims in reshape op.
+    TestCase(NODE_TEST, 'test_reshape_zero_dim', fail=True),
+    TestCase(NODE_TEST, 'test_reshape_zero_and_negative_dim', fail=True),
+
     TestCase(NODE_TEST, 'test_expand_dim_changed'),
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
     TestCase(NODE_TEST, 'test_squeeze'),
@@ -283,6 +298,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_unsqueeze_negative_axes'),
     TestCase(NODE_TEST, 'test_unsqueeze_two_axes'),
     TestCase(NODE_TEST, 'test_unsqueeze_three_axes'),
+    TestCase(NODE_TEST, 'test_unsqueeze_unsorted_axes'),
     TestCase(NODE_TEST, 'test_flatten_axis0'),
     TestCase(NODE_TEST, 'test_flatten_axis1'),
     TestCase(NODE_TEST, 'test_flatten_axis2'),
@@ -306,6 +322,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_gather_elements_0'),
     TestCase(NODE_TEST, 'test_gather_elements_1'),
     TestCase(NODE_TEST, 'test_gather_elements_negative_indices'),
+    TestCase(NODE_TEST, 'test_gather_negative_indices'),
     TestCase(NODE_TEST, 'test_gathernd_example_int32'),
     TestCase(NODE_TEST, 'test_gathernd_example_float32'),
     TestCase(NODE_TEST, 'test_scatter_with_axis'),
@@ -346,8 +363,17 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_depthtospace_dcr_mode'),
     TestCase(NODE_TEST, 'test_depthtospace_example'),
 
-    TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
-    TestCase(NODE_TEST, 'test_gemm_broadcast'),
+    TestCase(NODE_TEST, 'test_gemm_all_attributes'),
+    TestCase(NODE_TEST, 'test_gemm_alpha'),
+    TestCase(NODE_TEST, 'test_gemm_beta'),
+    TestCase(NODE_TEST, 'test_gemm_default_matrix_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_no_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_scalar_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_single_elem_vector_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_vector_bias'),
+    TestCase(NODE_TEST, 'test_gemm_default_zero_bias'),
+    TestCase(NODE_TEST, 'test_gemm_transposeA'),
+    TestCase(NODE_TEST, 'test_gemm_transposeB'),
 
     TestCase(NODE_TEST, 'test_rnn_seq_length'),
     TestCase(NODE_TEST, 'test_simple_rnn_defaults'),
@@ -398,6 +424,10 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_clip_inbounds'),
     TestCase(NODE_TEST, 'test_clip_outbounds'),
     TestCase(NODE_TEST, 'test_clip_splitbounds'),
+    TestCase(NODE_TEST, 'test_cumsum_1d'),
+    TestCase(NODE_TEST, 'test_cumsum_2d_axis_0'),
+    TestCase(NODE_TEST, 'test_cumsum_2d_axis_1'),
+    TestCase(NODE_TEST, 'test_cumsum_2d_negative_axis'),
 
     TestCase(NODE_TEST, 'test_argmax_default_axis_example'),
     TestCase(NODE_TEST, 'test_argmax_default_axis_random'),
@@ -564,6 +594,11 @@ TEST_CASES = [
     TestCase(SIMPLE_TEST, 'test_sequence_model5', skip_shape_inference=True),
     TestCase(SIMPLE_TEST, 'test_sequence_model6', skip_shape_inference=True),
     TestCase(SIMPLE_TEST, 'test_sequence_model7', skip_shape_inference=True),
+
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model1'),
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model2'),
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model3'),
+    TestCase(SIMPLE_TEST, 'test_expand_shape_model4'),
 ]
 
 TEST_CASES += [
@@ -688,35 +723,66 @@ TEST_PATHS = set()
 for test_case in TEST_CASES:
     TEST_PATHS.add(test_case.test_dir)
 
+opsets_blacklist = {
+    8: set([
+        # Fixed in https://github.com/onnx/onnx/pull/1437
+        'test_convtranspose_output_shape',
+    ]),
+}
 
 if args.all:
-    models = glob.glob(os.path.join(ONNX_TEST_DATA, '*/*/model.onnx'))
-    for onnx in sorted(models):
-        path = os.path.dirname(onnx)
-        if path not in TEST_PATHS:
-            case = TestCase(os.path.dirname(path), os.path.basename(path),
-                            fail=True)
-            TEST_CASES.append(case)
+    def extend_all_onnx_test_data(opset_version=None):
+        tests_dir = ONNX_TEST_DATA
+        if opset_version is not None:
+            tests_dir = tests_dir.replace(
+                'third_party/onnx/',
+                'third_party/onnx-{}/'.format(opset_version))
+        models = glob.glob(os.path.join(tests_dir, '*/*/model.onnx'))
+        for onnx in sorted(models):
+            path = os.path.dirname(onnx)
+            if path not in TEST_PATHS:
+                case = TestCase(os.path.dirname(path), os.path.basename(path),
+                                fail=True)
+                TEST_CASES.append(case)
+
+    extend_all_onnx_test_data()
+    for opset in target_opsets:
+        extend_all_onnx_test_data(opset)
+elif len(target_opsets) > 0:
+    print('Finding opset variants: {}'.format(target_opsets))
+    new_tcs = []
+    skip_tcs = {}
+    for opset in target_opsets:
+        for tc in TEST_CASES:
+            if opset in opsets_blacklist and tc.name in opsets_blacklist[opset]:
+                continue
+
+            var_test_dir = tc.test_dir.replace(
+                'third_party/onnx/',
+                'third_party/onnx-{}/'.format(opset))
+            if os.path.isdir(var_test_dir) is False:
+                if tc.name not in skip_tcs:
+                    skip_tcs[tc.name] = []
+                skip_tcs[tc.name].append(opset)
+                continue
+            new_tcs.append(TestCase(
+                name=tc.name, test_dir=var_test_dir,
+                rtol=tc.rtol, atol=tc.atol, equal_nan=tc.equal_nan,
+                fail=tc.fail, opset_version=opset))
+
+    for tc_name, opsets in skip_tcs.items():
+        print('Skipping {} for opsets: {}'.format(tc_name, opsets))
+    TEST_CASES.extend(new_tcs)
 
 num_official_onnx_tests = len(TEST_CASES)
 
 for backprop_test in gen_backprop_tests_oc.get_backprop_tests():
-    dirname = 'out'
-    name = 'backprop_test_oc_' + backprop_test.name
-    assert os.path.exists(os.path.join(dirname, name))
-    tc = TestCase(dirname, name)
-    tc.rtol = backprop_test.rtol
-    TEST_CASES.append(tc)
+    assert os.path.exists(backprop_test.test_dir)
+    TEST_CASES.append(backprop_test)
 
 for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
-    dirname = 'out'
-    name = 'backprop_test_pc_' + backprop_test.name
-    assert os.path.exists(os.path.join(dirname, name))
-    # TODO(hamaji): Do not skip shape inference.
-    skip_shape_inference = name.endswith('_embed')
-    TEST_CASES.append(TestCase(dirname, name, rtol=backprop_test.rtol,
-                               fail=backprop_test.fail,
-                               skip_shape_inference=skip_shape_inference))
+    assert os.path.exists(backprop_test.test_dir)
+    TEST_CASES.append(backprop_test)
 
 for test in gen_extra_test.get_tests():
     assert os.path.exists(test.test_dir), test.test_dir
@@ -735,7 +801,7 @@ TEST_CASES.extend(ch2o_tests.get())
 
 TEST_CASES.extend(elichika_tests.get())
 
-TEST_CASES.extend(onnx_chainer_tests.get())
+TEST_CASES.extend(onnx_chainer_tests.get(target_opsets))
 
 TEST_CASES.extend(onnx_real_tests.get())
 
@@ -759,6 +825,9 @@ for test in TEST_CASES:
 
     # TODO(hamaji): Unexpected shape will appear due to broadcast.
     if test.name.startswith('backprop_test_oc_pow_const'):
+        continue
+
+    if test.fixed_batch_norm:
         continue
 
     # computation_order is supported in limited test cases
@@ -832,6 +901,7 @@ if args.ngraph:
         'backprop_test_oc_mul_same_float64_two_phase',
         'backprop_test_oc_sigmoid_float64_two_phase',
         'extra_backprop_test_need_stack_loop_two_phase',
+        'test_gemm_default_no_bias',
     ]
     for test in TEST_CASES:
         if test.name in ngraph_blacklist:
@@ -964,6 +1034,13 @@ def main():
             not test_case.test_dir.startswith(NODE_TEST)):
             runner = run_onnx
 
+        if len(target_opsets) != 0:
+            if args.only_opset_targetable and test_case.opset_version is None:
+                continue
+            if not (test_case.opset_version in target_opsets):
+                continue
+
+        test_case.runner = run_onnx
         test_case.args = [runner, '--test', test_case.test_dir]
         test_case.args.append('--compiler_log')
         is_gpu = False
@@ -977,6 +1054,8 @@ def main():
             test_case.args.append('--skip_inference')
         if test_case.skip_runtime_type_check:
             test_case.args.append('--skip_runtime_type_check')
+        if test_case.fixed_batch_norm:
+            test_case.args.append('--fixed_batch_norm')
         if test_case.is_backprop_two_phase:
             test_case.args.append('--backprop_two_phase')
         elif test_case.is_backprop:

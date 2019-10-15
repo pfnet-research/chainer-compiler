@@ -3,6 +3,7 @@
 """An MNIST trainer which is exportable by ONNX-chainer."""
 
 import argparse
+import shutil
 
 import numpy as np
 
@@ -165,6 +166,7 @@ def main_impl(args):
     onehot = chainer.Variable(onehot, name='onehot')
 
     chainer.disable_experimental_feature_warning = True
+    shutil.rmtree(out_dir, ignore_errors=True)
     onnx_chainer.export_testcase(model,
                                  (x, onehot),
                                  out_dir,

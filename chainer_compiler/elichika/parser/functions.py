@@ -138,7 +138,7 @@ def generate_value_with_same_type(value: 'values.Value', is_dummy_value = False,
 
     elif isinstance(value, values.StrValue):
         ret = values.StrValue(None)
-            
+
     elif isinstance(value, values.BoolValue):
         ret = values.BoolValue(None)
 
@@ -222,7 +222,7 @@ class FunctionArgCollection():
     def __init__(self):
         self.args = {}  # Dict[str,FunctionArg]
         self.args_list = []
-        
+
     def add_arg(self, name, value):
 
         if isinstance(value, values.Value):
@@ -236,8 +236,7 @@ class FunctionArgCollection():
 
     def analyze_args(self, func):
         sig = inspect.signature(func)
-        # TODO: replace with https://docs.python.org/3.4/library/inspect.html#inspect.getfullargspec
-        argspec = inspect.getargspec(func)  # TODO: Doesn't support keyword only args.
+        argspec = inspect.getfullargspec(func)
 
         parameter_count = 0
         for k, v in sig.parameters.items():
@@ -246,10 +245,10 @@ class FunctionArgCollection():
                 continue
             parameter_count += 1
 
-        isSelfRemoved = parameter_count != len(argspec[0])
+        isSelfRemoved = parameter_count != len(argspec.args) + len(argspec.kwonlyargs)
 
         if isSelfRemoved:
-            self.add_arg(argspec[0][0], None)
+            self.add_arg(argspec.args[0], None)
 
         for k, v in sig.parameters.items():
             # TODO improve it
@@ -260,7 +259,7 @@ class FunctionArgCollection():
 
     def merge_inputs(self, self_Object, inputs: 'FunctionArgInput') -> 'FunctionArgInput':
         ret = FunctionArgInput()
-        
+
         for fa in self.get_args():
             ret.inputs.append(fa.obj)
             ret.keywords[fa.name] = fa.obj
@@ -452,7 +451,7 @@ class UserDefinedFunction(FunctionBase):
 
         context.stacktrace.append(line)
         with context.stacktrace:
-            
+
             func_field = values.Field()
             func_field.set_module(module)
 
@@ -531,14 +530,14 @@ class CheckAttributeValueFunction(FunctionBase):
 
         funcArgs = self.args.merge_inputs(inst ,args)
         vargs = funcArgs.get_value().inputs
-      
+
         if type(vargs[0]) != type(vargs[1]) or vargs[0].get_constant_value() != vargs[1].get_constant_value():
             raise Exception("Value must be {} : {} from {} in {}".format(
-                vargs[1].get_constant_value(), 
-                vargs[3].get_constant_value(), 
-                vargs[2].get_constant_value(), 
+                vargs[1].get_constant_value(),
+                vargs[3].get_constant_value(),
+                vargs[2].get_constant_value(),
                 context.stacktrace.lineprops[-1]))
-    
+
 class CheckAttributeScalarFunction(FunctionBase):
     def __init__(self):
         super().__init__()
@@ -546,16 +545,15 @@ class CheckAttributeScalarFunction(FunctionBase):
         self.args.add_arg('value', values.NoneValue())
         self.args.add_arg('func_name', values.NoneValue())
         self.args.add_arg('arg_name', values.NoneValue())
-        
+
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
                       context: 'VEvalContext' = None, line=-1):
-        
+
         funcArgs = self.args.merge_inputs(inst ,args)
         vargs = funcArgs.get_value().inputs
-              
+
         if not isinstance(vargs[0], values.NumberValue):
             raise Exception("A number is only supported {} : from {} in {}".format(
-                vargs[2].get_constant_value(), 
-                vargs[1].get_constant_value(), 
+                vargs[2].get_constant_value(),
+                vargs[1].get_constant_value(),
                 context.stacktrace.lineprops[-1]))
-        

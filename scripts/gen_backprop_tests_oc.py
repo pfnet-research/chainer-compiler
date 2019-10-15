@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
+import shutil
+
 import chainer
 import numpy as np
 import onnx_chainer
+
+from test_case import TestCase
 
 
 class AnyModel(chainer.Chain):
@@ -20,7 +24,7 @@ class AnyModel(chainer.Chain):
 
 
 def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
-    test_dir = 'out/backprop_test_oc_%s' % test_name
+    test_dir = 'out/%s' % test_name
 
     params = {}
     for name, value in kwargs.items():
@@ -28,6 +32,7 @@ def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
     model = AnyModel(fn, params)
 
     chainer.disable_experimental_feature_warning = True
+    shutil.rmtree(test_dir, ignore_errors=True)
     onnx_chainer.export_testcase(model,
                                  (),
                                  test_dir,
@@ -35,12 +40,13 @@ def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
                                  output_names='loss')
 
 
-class BackpropTest(object):
-    def __init__(self, name, fn, rtol=None, **kwargs):
-        self.name = name
+class BackpropTest(TestCase):
+    def __init__(self, name, fn, rtol=None, test_params=None, **kwargs):
+        name = 'backprop_test_oc_%s' % name
+        test_params = {} if test_params is None else test_params
+        super().__init__(basedir='out', name=name, rtol=rtol, **test_params)
         self.fn = fn
         self.kwargs = kwargs
-        self.rtol = rtol
 
     def generate(self):
         create_backprop_test(self.name, self.fn, **self.kwargs)
@@ -54,7 +60,8 @@ def get_backprop_tests():
         for dtype in (np.float16, np.float32, np.float64):
             test_name = '%s_%s' % (name, dtype.__name__)
             rtol = None if dtype != np.float16 else 0.02
-            tests.append(BackpropTest(test_name, fn, dtype=dtype, rtol=rtol, **kwargs))
+            tests.append(BackpropTest(test_name, fn, dtype=dtype, rtol=rtol,
+                                      **kwargs))
 
     def aranges(*shape):
         r = np.prod(shape)
@@ -74,6 +81,21 @@ def get_backprop_tests():
     test('relu', lambda m: F.relu(m.a), a=[-3, 3, 5])
     test('elu', lambda m: F.elu(m.a), a=[-3, 3, 5])
     test('reduce_sum', lambda m: F.sum(m.a, axis=0), a=[3, 5, 7])
+    test('reduce_sum_neg_axis', lambda m: F.sum(m.a, axis=-1),
+         a=aranges(2, 3, 5))
+    test('reduce_sum_keepdims',
+         lambda m: F.sum(m.a, axis=1, keepdims=True), a=aranges(2, 3, 5))
+    test('reduce_sum_multi_axes',
+         lambda m: F.sum(m.a, axis=(0, 2)), a=aranges(2, 3, 5))
+    test('reduce_mean', lambda m: F.mean(m.a, axis=0), a=[3, 5, 7])
+    test('reduce_mean_neg_axis', lambda m: F.mean(m.a, axis=-1),
+         a=aranges(2, 3, 5))
+    test('reduce_mean_keepdims',
+         lambda m: F.mean(m.a, axis=1, keepdims=True), a=aranges(2, 3, 5))
+    test('clip', lambda m: F.clip(m.a, -2.0, 4.0),
+         a=[-3.0, -2.0, 3.0, 4.0, 5.0])
+    test('reduce_mean_multi_axes',
+         lambda m: F.mean(m.a, axis=(0, 2)), a=aranges(2, 3, 5))
 
     test('mulconst', lambda m: m.a * 1.23, a=[3, 5])
     test('mulbcast', lambda m: m.a * m.b, a=[[1, 2, 3], [4, 5, 6]], b=[7, 8, 9])
@@ -183,6 +205,15 @@ def get_backprop_tests():
          g=aranges(5),
          b=aranges(5),
          r=aranges(2, 5) % 7)
+    test('fixed_batch_normalization',
+         lambda m: F.fixed_batch_normalization(m.x, m.g, m.b, m.m, m.v) * m.r,
+         x=aranges(2, 5, 3, 3) * 0.1,
+         g=aranges(5),
+         b=aranges(5),
+         m=aranges(5),
+         v=aranges(5),
+         r=aranges(2, 5, 3, 3) % 7,
+         test_params={'fixed_batch_norm': True})
 
     test('pad',
          lambda m: F.pad(m.x, 2, 'constant'),
@@ -228,6 +259,16 @@ def get_backprop_tests():
          x=aranges(2, 3, 2))
     test('split_2_axis_1',
          lambda m: sum(F.split_axis(m.x, 3, axis=1)),
+         x=aranges(2, 12, 2))
+
+    def get_item(m):
+        indices = aranges(5, 3).astype(np.int32) % 12
+        return m.x[:, indices] * m.r
+    test('get_item', get_item,
+         x=aranges(1, 12, 32), r=aranges(1, 5, 3, 32))
+
+    test('cast',
+         lambda m: F.cast(m.x, np.float64),
          x=aranges(2, 12, 2))
 
     return tests
