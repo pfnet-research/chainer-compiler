@@ -377,9 +377,6 @@ NodeDef('ChainerSequenceSeparate', 1, 1, axis=0)
 # Note the result of SequenceLengths can be used as the second argument.
 NodeDef('ChainerSequenceUnpad', 2, 1)
 
-# Returns the number of elements in a sequence: ([T]) -> (I)
-NodeDef('ChainerSequenceSize', 1, 1)
-
 # Returns lengths of elements in a sequence: ([T]) -> ([I])
 NodeDef('ChainerSequenceLengths', 1, 1)
 
@@ -392,7 +389,7 @@ NodeDef('ChainerSequenceGetSliceGrad', (2, 3, 4, 5), 1)
 
 # Equivalent to Python's __len__.
 # For tensors: Gather(Shape(input0), 0)
-# For sequences: ChainerSequenceSize(input0)
+# For sequences: SequenceLength(input0)
 NodeDef('ChainerGenericLen', 1, 1)
 
 # Equivalent to Python's __getitem__ for a scalar index.

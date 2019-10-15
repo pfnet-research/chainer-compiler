@@ -222,7 +222,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         }
 
         std::vector<Value*> loop_inputs;
-        Value* max_trips = gb.Op(Node::kChainerSequenceSize, {input_seqs.front()});
+        Value* max_trips = gb.Op(Node::kSequenceLength, {input_seqs.front()});
         loop_inputs.push_back(max_trips);
         loop_inputs.push_back(gb.Null());
 

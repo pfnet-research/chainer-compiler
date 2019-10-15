@@ -516,7 +516,7 @@ def gen_sequence_test(test_name):
         outputs=['concat2_result'],
         axis=0))
     nodes.append(onnx.helper.make_node(
-        'ChainerSequenceSize',
+        'SequenceLength',
         inputs=['seq3'],
         outputs=['stack3_size']))
 
@@ -652,7 +652,7 @@ def gen_sequence_range_test(test_name):
             input_vs.append(gb.input('input_%d' % num_inputs, arg))
             num_inputs += 1
         output_v = gb.ChainerSequenceRange(input_vs)
-        len_v = gb.ChainerSequenceSize([output_v])
+        len_v = gb.SequenceLength([output_v])
         expected = list(range(*args))
         gb.output(len_v, len(expected))
         if expected:
@@ -676,12 +676,12 @@ def gen_sequence_pop_test(test_name):
         gb.output(pop_v, inputs[-1-i])
 
     # This `seq_v` is used twice, so not-optimized pass will be tested.
-    len1_v = gb.ChainerSequenceSize(inputs=[seq_v])
+    len1_v = gb.SequenceLength(inputs=[seq_v])
     seq_v, _ = gb.ChainerSequencePop(
         inputs=[seq_v],
         outputs=['seq_final', 'pop_final'],
     )
-    len2_v = gb.ChainerSequenceSize(inputs=[seq_v])
+    len2_v = gb.SequenceLength(inputs=[seq_v])
     gb.output(gb.Add(inputs=[len1_v, len2_v]),
               (len(inputs) - pop_count) * 2 - 1)
 
@@ -802,7 +802,7 @@ def gen_generic_getslice_test(test_name):
             gb.output(gb.ConcatFromSequence([actual_v], axis=0, new_axis=1),
                       expected)
         else:
-            gb.output(gb.ChainerSequenceSize([actual_v]), 0)
+            gb.output(gb.SequenceLength([actual_v]), 0)
 
     add_test(slice(None))
     for i in range(4):

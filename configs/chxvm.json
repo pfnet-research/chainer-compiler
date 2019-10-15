@@ -116,7 +116,6 @@
         "ChainerSequencePop": true,
         "ChainerSequenceRange": true,
         "ChainerSequenceSeparate": true,
-        "ChainerSequenceSize": true,
         "ChainerSequenceSplitAxis": true,
         "ChainerSequenceUnpad": true,
         "ChainerSequenceUpdate": true,
