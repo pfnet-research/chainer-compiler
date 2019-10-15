@@ -326,9 +326,9 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
     } else if (node.op_type() == Node::kResize) {
         CHECK_EQ("nearest", node.mode()) << "Only nearest upsampling is supported";
         // TODO(take-cheeze): Handle Resize-11
-        CHECK_EQ(3UL, node.inputs().size());
+        CHECK(2UL <= node.inputs().size() && node.inputs().size() <= 3UL);
         CHECK_EQ(1UL, node.outputs().size());
-        EMIT(Resize, out(0), in(0), in(2));
+        EMIT(Resize, out(0), in(0), node.inputs().size() == 2 ? in(1) : in(2));
     } else if (node.op_type() == Node::kChainerResizeGrad) {
         EMIT(ResizeGrad, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kPad) {
