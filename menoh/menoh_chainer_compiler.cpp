@@ -626,6 +626,9 @@ menoh_error_code menoh_build_model(
         const char* backend_config,
         menoh_model_handle* dst_model_handle) {
     return check_error([&]() {
+        CHECK(!backend_name || std::string(backend_name) == "" || std::string(backend_name) == "chxvm")
+                << "backend_name must be chxvm or empty";
+
         auto cfg = nlohmann::json::parse(backend_config);
         auto compiler_j = value_or(cfg, "compiler", nlohmann::json::object_t{});
         auto runtime_j = value_or(cfg, "runtime", nlohmann::json::object_t{});
