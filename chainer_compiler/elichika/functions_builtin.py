@@ -705,7 +705,7 @@ class ConverterSplitAxis(BaseConverter):
         assert(parser.get('force_tuple') is True) # TODO(hamaji): Not supported yet.
 
         onnx_graph.add_node(
-            "ChainerSequenceSplitAxis",
+            "SplitToSequence",
             [parser.get('x'), parser.get('indices_or_sections').create_tensor(node.lineprop)],
             node.outputs,
             name=str(node.lineprop),

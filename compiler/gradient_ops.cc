@@ -1070,7 +1070,7 @@ void ConcatFromSequenceGradFn(GradientOpContext* gc) {
         GraphBuilder gb{gc->builder(0)};
         Node* node = gc->node();
         Value* indices = gc->AddOutput(Type(Dtype::kInt64));
-        gc->GradOp(Node::kChainerSequenceSplitAxis, 0, {gc->gy(0), indices})->producer()->set_axis(node->axis());
+        gc->GradOp(Node::kSplitToSequence, 0, {gc->gy(0), indices})->producer()->set_axis(node->axis());
     }
 }
 
@@ -1262,7 +1262,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kSequenceInsert, &SequenceInsertGradFn);
         register_grad_fn(Node::kSequenceLength, &DoNothingGradFn);
         register_grad_fn(Node::kChainerSequenceExtend, &SequenceExtendGradFn);
-        register_grad_fn(Node::kChainerSequenceSplitAxis, &SequenceSplitAxisGradFn);
+        register_grad_fn(Node::kSplitToSequence, &SequenceSplitAxisGradFn);
         register_grad_fn(Node::kChainerSequencePad, &SequencePadGradFn);
         register_grad_fn(Node::kChainerSequenceUnpad, &SequenceUnpadGradFn);
         register_grad_fn(Node::kChainerSequenceSeparate, &SequenceSeparateGradFn);

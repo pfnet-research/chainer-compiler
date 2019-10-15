@@ -609,8 +609,6 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         } else {
             EMIT(SequenceConcat, out(0), oout(1), in(0), node.axis());
         }
-    } else if (node.op_type() == Node::kChainerSequenceSplitAxis) {
-        EMIT(SequenceSplitAxis, out(0), in(0), in(1), node.axis());
     } else if (node.op_type() == Node::kChainerSequenceSeparate) {
         EMIT(SequenceSeparate, out(0), in(0), node.axis());
     } else if (node.op_type() == Node::kSplitToSequence) {

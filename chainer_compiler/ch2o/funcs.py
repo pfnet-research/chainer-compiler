@@ -412,7 +412,7 @@ class Function_SplitAxis(Callable):
     def call_impl(self, env, x, indices_or_sections, axis, force_tuple):
         assert force_tuple.value is True  # TODO(hamaji): Not supported yet.
         return env.calc_seq(
-            'ChainerSequenceSplitAxis',
+            'SplitToSequence',
             inputs=[x.to_tensor(env).name,
                     indices_or_sections.to_tensor(env).name],
             axis=axis.to_int()

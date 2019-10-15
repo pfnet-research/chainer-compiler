@@ -364,9 +364,6 @@ NodeDef('ChainerSequenceUpdate', 3, 1)
 # Equivalent to Python's __getitem__ for a slice: ([T], I, I, I) -> ([T])
 NodeDef('ChainerSequenceGetSlice', (1, 2, 3, 4), 1)
 
-# Splits a tensor to a sequence (like F.split_axis): (T, I) -> ([T])
-NodeDef('ChainerSequenceSplitAxis', 2, 1, axis=0)
-
 # Pads elements in a sequence: ([T]) -> (T)
 NodeDef('ChainerSequencePad', 1, 1, length=0, value=0.0)
 
