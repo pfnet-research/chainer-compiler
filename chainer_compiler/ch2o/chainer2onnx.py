@@ -395,7 +395,7 @@ def eval_for(nast, env):
     cnt = new_tensor()
     gtx = new_sequence()
     localenv.set_var(x, _value(localenv.calc(
-        "ChainerSequenceLookup",
+        "SequenceAt",
         inputs=[gtx.name, cnt.name],
     )))
     ty = eval_ast(nast.body, localenv)
@@ -621,12 +621,12 @@ def eval_binary_op(nast, env):
         out_state = new_tensor(name='seq_plus_out_state')
         nodes = []
         nodes.append(helper.make_node(
-            'ChainerSequenceLookup',
+            'SequenceAt',
             inputs=[rv.name, index.name],
             outputs=[elem.name]
         ))
         nodes.append(helper.make_node(
-            'ChainerSequenceAppend',
+            'SequenceInsert',
             inputs=[state.name, elem.name],
             outputs=[out_state.name]
         ))
@@ -677,8 +677,9 @@ def eval_attribute(nast, env):
                 npdtype=np.int64,
             )
             res = env.calc_seq(
-                'ChainerSequenceSeparate',
+                'SplitToSequence',
                 inputs=[res.name],
+                keepdims=False
             )
             return res
 
@@ -706,7 +707,7 @@ def eval_attribute(nast, env):
                 assert len(args) == 1
                 v = args[0].to_tensor(env)
                 env.set_var(na, _value(env.calc_seq(
-                    'ChainerSequenceAppend',
+                    'SequenceInsert',
                     inputs=[body.to_sequence(env).name, v.name],
                 )))
                 return None
@@ -847,7 +848,7 @@ def eval_subscript(nast, env):
         index = eval_ast(nast.slice.value, env).to_tensor(env)
         if vs.is_sequence():
             return env.calc(
-                'ChainerSequenceLookup',
+                'SequenceAt',
                 inputs=[vs.to_sequence(env).name, index.name]
             )
         else:
@@ -909,13 +910,13 @@ def eval_list(nast, env):
     # Sequenceにする
     vs = list(map(lambda x: eval_ast(x, env), nast.elts))
     res = env.calc_seq(
-        "ChainerSequenceCreate",
+        "SequenceConstruct",
         inputs=[],
     )
     for v in vs:
         v = v.to_tensor(env)
         res = env.calc_seq(
-            "ChainerSequenceAppend",
+            "SequenceInsert",
             inputs=[res.name, v.name],
         )
     return res
