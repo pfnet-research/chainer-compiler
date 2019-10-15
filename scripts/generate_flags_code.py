@@ -283,7 +283,7 @@ elif args.mode == 'menoh_chainer_compiler.json_args.inc':
             default = '0'
         elif info['type'] == 'std::string':
             default = '""'
-        res.append('chainer_compiler::g_{0} = value_or<{2}>(j, "{0}", {1});'.format(name, default, info['type']))
+        res.append('chainer_compiler::g_{0} = value_or<{2}>(compiler_j, "{0}", {1});'.format(name, default, info['type']))
     f.write('\n'.join(res))
 elif args.mode == 'menoh_chainer_compiler.args_json.inc':
     res = []
