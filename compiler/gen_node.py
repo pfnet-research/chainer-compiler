@@ -364,9 +364,6 @@ NodeDef('ChainerSequenceExtend', 2, 1)
 # Pops an element from a sequence: ([T]) -> ([T], T)
 NodeDef('ChainerSequencePop', 1, 2)
 
-# Looks up an element in a sequence: ([T], I) -> (T)
-NodeDef('ChainerSequenceLookup', 2, 1)
-
 # Sets an element to a sequence: ([T], I, T) -> ([T])
 NodeDef('ChainerSequenceUpdate', 3, 1)
 
@@ -396,7 +393,7 @@ NodeDef('ChainerSequenceLengths', 1, 1)
 NodeDef('ChainerSequenceRange', (1, 2, 3), 1)
 
 # The gradients of sequence related ops.
-NodeDef('ChainerSequenceLookupGrad', 3, 1)
+NodeDef('ChainerSequenceAtGrad', 3, 1)
 NodeDef('ChainerSequenceGetSliceGrad', (2, 3, 4, 5), 1)
 
 # Equivalent to Python's __len__.
@@ -406,7 +403,7 @@ NodeDef('ChainerGenericLen', 1, 1)
 
 # Equivalent to Python's __getitem__ for a scalar index.
 # For tensors: Gather(input0, input1)
-# For sequences: ChainerSequenceLookup(input0, input1)
+# For sequences: SequenceAt(input0, input1)
 # TODO(hamaji): Deprecate this op.
 NodeDef('ChainerGenericGetItem', 2, 1)
 

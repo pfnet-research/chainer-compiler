@@ -395,7 +395,7 @@ def eval_for(nast, env):
     cnt = new_tensor()
     gtx = new_sequence()
     localenv.set_var(x, _value(localenv.calc(
-        "ChainerSequenceLookup",
+        "SequenceAt",
         inputs=[gtx.name, cnt.name],
     )))
     ty = eval_ast(nast.body, localenv)
@@ -621,7 +621,7 @@ def eval_binary_op(nast, env):
         out_state = new_tensor(name='seq_plus_out_state')
         nodes = []
         nodes.append(helper.make_node(
-            'ChainerSequenceLookup',
+            'SequenceAt',
             inputs=[rv.name, index.name],
             outputs=[elem.name]
         ))
@@ -847,7 +847,7 @@ def eval_subscript(nast, env):
         index = eval_ast(nast.slice.value, env).to_tensor(env)
         if vs.is_sequence():
             return env.calc(
-                'ChainerSequenceLookup',
+                'SequenceAt',
                 inputs=[vs.to_sequence(env).name, index.name]
             )
         else:

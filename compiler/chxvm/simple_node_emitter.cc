@@ -595,13 +595,13 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
                 EMIT(SequencePop, out(1), o0.id());
             }
         }
-    } else if (node.op_type() == Node::kChainerSequenceLookup || node.op_type() == Node::kSequenceAt) {
+    } else if (node.op_type() == Node::kSequenceAt) {
         EMIT(SequenceLookup, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kChainerSequenceUpdate) {
         EMIT(SequenceUpdate, out(0), in(0), in(1), in(2));
     } else if (node.op_type() == Node::kChainerSequenceGetSlice) {
         EMIT(SequenceGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
-    } else if (node.op_type() == Node::kChainerSequenceLookupGrad) {
+    } else if (node.op_type() == Node::kChainerSequenceAtGrad) {
         EMIT(SequenceLookupGrad, out(0), in(0), in(1), in(2));
     } else if (node.op_type() == Node::kChainerSequenceGetSliceGrad) {
         EMIT(SequenceGetSliceGrad, out(0), in(0), in(1), oin(2), oin(3), oin(4));

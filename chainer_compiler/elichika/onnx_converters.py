@@ -1210,7 +1210,7 @@ class ONNXGenerator:
 
                     if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.TupleValue) or isinstance(node_.target, values.RangeValue):
                         onnx_node = oh.make_node(
-                            'ChainerSequenceLookup',
+                            'SequenceAt',
                             [value2onnx_parameter[node_.target].onnx_name,
                                 value2onnx_parameter[node_.indexes[0]].onnx_name],
                             [value2onnx_parameter[node.outputs[0]].onnx_name])
@@ -1358,7 +1358,7 @@ class ONNXGenerator:
                 # get value from sequence with index
                 if isinstance(node_.iter_value, values.ListValue) or isinstance(node_.iter_value, values.TupleValue) or isinstance(node_.iter_value, values.RangeValue):
                     onnx_node = oh.make_node(
-                        'ChainerSequenceLookup',
+                        'SequenceAt',
                         [value2onnx_parameter[node_.iter_value].onnx_name,
                             value2onnx_parameter[node_.counter_value].onnx_name],
                         [value2onnx_parameter[node_.outputs[0]].onnx_name])

@@ -490,7 +490,7 @@ def gen_sequence_test(test_name):
     nodes.append(make_constant_node(
         'index', onnx.TensorProto.INT64, [index_value]))
     nodes.append(onnx.helper.make_node(
-        'ChainerSequenceLookup',
+        'SequenceAt',
         inputs=['seq3', 'index'],
         outputs=['lookup_result']))
     nodes.append(onnx.helper.make_node(
@@ -551,7 +551,7 @@ def gen_sequence_pad_test(test_name):
 
     index_value = 1
     index_v = gb.const([index_value])
-    gb.ChainerSequenceLookup(
+    gb.SequenceAt(
         inputs=['seq3', index_v],
         outputs=['lookup_result'])
     gb.ChainerSequencePad(
@@ -610,13 +610,13 @@ def gen_sequence_split_test(test_name):
     for i in range(4):
         index_v = gb.const([i], name='index_%d' % i)
         if i < 3:
-            gb.output(gb.ChainerSequenceLookup(
+            gb.output(gb.SequenceAt(
                 inputs=[seq_v, index_v],
                 outputs=['split_result_%d' % i]), inputs[i])
-            gb.output(gb.ChainerSequenceLookup(
+            gb.output(gb.SequenceAt(
                 inputs=[unpadded_v, index_v],
                 outputs=['unpad_result_%d' % i]), inputs[i][:lengths[i]])
-        gb.output(gb.ChainerSequenceLookup(
+        gb.output(gb.SequenceAt(
             inputs=[seq_a1_v, index_v],
             outputs=['split_a1_result_%d' % i]), inputs[:, i])
 

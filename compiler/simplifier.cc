@@ -186,7 +186,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
 
             Value* input_in = new Value(gb.GenName(), Type(), Value::Kind::kInput);
             Value* input_out = new Value(gb.GenName(), Type(), Value::Kind::kOutput);
-            gb.Op(Node::kChainerSequenceLookup, {input_in, iter}, orig_input);
+            gb.Op(Node::kSequenceAt, {input_in, iter}, orig_input);
             gb.Op(Node::kIdentity, {input_in}, input_out);
 
             new_loop_inputs.push_back(input_in);
