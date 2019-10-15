@@ -61,8 +61,7 @@ chainerx::Array ModOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const c
 }
 
 chainerx::Array FmodOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
-    CHECK(false) << "Mod(fmod=1) is not supported yet";
-    return a % b;
+    return chainerx::Fmod(a, b);
 }
 
 chainerx::Array PowOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
