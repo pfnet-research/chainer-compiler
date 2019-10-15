@@ -134,8 +134,9 @@ class Value(object):
             self.is_py = False
         elif self.is_tensor():
             self.value = env.calc_seq(
-                'ChainerSequenceSeparate',
-                inputs=[self.value.name]
+                'SplitToSequence',
+                inputs=[self.value.name],
+                keepdims=False
             )
 
         assert self.is_sequence()

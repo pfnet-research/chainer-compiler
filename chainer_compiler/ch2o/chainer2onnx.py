@@ -677,8 +677,9 @@ def eval_attribute(nast, env):
                 npdtype=np.int64,
             )
             res = env.calc_seq(
-                'ChainerSequenceSeparate',
+                'SplitToSequence',
                 inputs=[res.name],
+                keepdims=False
             )
             return res
 

@@ -598,14 +598,17 @@ def gen_sequence_split_test(test_name):
     inputs_v = gb.input('input', inputs)
     lengths_v = gb.input('lengths', lengths)
 
-    seq_v = gb.ChainerSequenceSeparate(inputs=[inputs_v], outputs=['seq'])
-    lengths_seq_v = gb.ChainerSequenceSeparate(inputs=[lengths_v],
-                                           outputs=['lengths_seq'])
+    seq_v = gb.SplitToSequence(inputs=[inputs_v], outputs=['seq'],
+                               keepdims=False)
+    lengths_seq_v = gb.SplitToSequence(inputs=[lengths_v],
+                                       outputs=['lengths_seq'],
+                                       keepdims=False)
     unpadded_v = gb.ChainerSequenceUnpad(inputs=[inputs_v, lengths_seq_v],
-                                        outputs=['unpadded'])
-    seq_a1_v = gb.ChainerSequenceSeparate(inputs=[inputs_v],
-                                      outputs=['seq_a1'],
-                                      axis=1)
+                                         outputs=['unpadded'])
+    seq_a1_v = gb.SplitToSequence(inputs=[inputs_v],
+                                  outputs=['seq_a1'],
+                                  axis=1,
+                                  keepdims=False)
 
     for i in range(4):
         index_v = gb.const([i], name='index_%d' % i)
@@ -631,7 +634,7 @@ def gen_sequence_io_test(test_name):
     input_v = gb.input('input', input)
     input_seq_v = gb.input('input_seq', Seq(input_seq))
 
-    split_v = gb.ChainerSequenceSeparate([input_v])
+    split_v = gb.SplitToSequence([input_v], keepdims=False)
     stack_v = gb.ConcatFromSequence([input_seq_v], axis=0, new_axis=1)
 
     gb.output(gb.Identity([input_v]), input)
@@ -666,7 +669,7 @@ def gen_sequence_pop_test(test_name):
 
     inputs_v = gb.input('input', inputs)
 
-    seq_v = gb.ChainerSequenceSeparate(inputs=[inputs_v])
+    seq_v = gb.SplitToSequence(inputs=[inputs_v], keepdims=False)
     pop_count = 3
     for i in range(pop_count):
         seq_v, pop_v = gb.ChainerSequencePop(
@@ -717,8 +720,8 @@ def gen_sequence_extend_test(test_name):
 
     input1_v = gb.input('input1', input1)
     input2_v = gb.input('input2', input2)
-    seq1_v = gb.ChainerSequenceSeparate([input1_v])
-    seq2_v = gb.ChainerSequenceSeparate([input2_v])
+    seq1_v = gb.SplitToSequence([input1_v], keepdims=False)
+    seq2_v = gb.SplitToSequence([input2_v], keepdims=False)
 
     gb.output(gb.ChainerSequenceExtend([seq1_v, seq2_v]), Seq(seq1 + seq2))
 
@@ -743,7 +746,7 @@ def gen_generic_len_test(test_name):
     len0_v = gb.ChainerGenericLen([input_v])
     reduced_v = gb.ReduceSum([input_v], axes=[0], keepdims=False)
     len1_v = gb.ChainerGenericLen([reduced_v])
-    seq_v = gb.ChainerSequenceSeparate(inputs=[input_v])
+    seq_v = gb.SplitToSequence(inputs=[input_v], keepdims=False)
     len_seq_v = gb.ChainerGenericLen([seq_v])
 
     gb.output(len0_v, input.shape[0])
@@ -760,7 +763,7 @@ def gen_generic_getitem_test(test_name):
 
     input_v = gb.input('input', input)
     reduced_v = gb.ReduceSum([input_v], axes=[0], keepdims=False)
-    seq_v = gb.ChainerSequenceSeparate(inputs=[input_v])
+    seq_v = gb.SplitToSequence(inputs=[input_v], keepdims=False)
 
     for i in range(-2, 4):
         index_v = gb.const([i])
@@ -778,7 +781,7 @@ def gen_generic_getslice_test(test_name):
 
     input_v = gb.input('input', input)
     reduced_v = gb.ReduceSum([input_v], axes=[0], keepdims=False)
-    seq_v = gb.ChainerSequenceSeparate(inputs=[input_v])
+    seq_v = gb.SplitToSequence(inputs=[input_v], keepdims=False)
 
     def get_slice(input_v, s):
         ins = [input_v]
@@ -839,8 +842,8 @@ def gen_generic_add_test(test_name):
 
     input1_v = gb.input('input1', input1)
     input2_v = gb.input('input2', input2)
-    seq1_v = gb.ChainerSequenceSeparate([input1_v])
-    seq2_v = gb.ChainerSequenceSeparate([input2_v])
+    seq1_v = gb.SplitToSequence([input1_v], keepdims=False)
+    seq2_v = gb.SplitToSequence([input2_v], keepdims=False)
 
     gb.output(gb.ChainerGenericAdd([input1_v, input2_v]), input1 + input2)
     gb.output(gb.ChainerGenericAdd([seq1_v, seq2_v]), Seq(seq1 + seq2))

@@ -401,10 +401,11 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
         onnx_graph.nodes.append(onnx_node)
 
         onnx_node = oh.make_node(
-            "ChainerSequenceSeparate",
+            "SplitToSequence",
             [op_shape_temp.name],
             [value2onnx_parameter[node.outputs[0]].onnx_name],
-            str(node.lineprop))
+            str(node.lineprop),
+            keepdims=False)
 
         onnx_graph.nodes.append(onnx_node)
 
@@ -742,10 +743,11 @@ class ONNXValue:
         elif self.onnx_type == ONNXValueType.Tensor:
 
             (ret,) = self.onnx_graph.add_node(
-                "ChainerSequenceSeparate",
+                "SplitToSequence",
                 [self],
                 [None],
-                str('create_sequence'))
+                str('create_sequence'),
+                keepdims=False)
             return ret
 
         else:
@@ -1412,10 +1414,11 @@ class ONNXGenerator:
 
                     elif isinstance(node_.value, values.TensorValue):
                         onnx_node = oh.make_node(
-                            "ChainerSequenceSeparate",
+                            "SplitToSequence",
                             [value2onnx_parameter[node.inputs[0]].onnx_name],
                             [value2onnx_parameter[node.outputs[0]].onnx_name],
-                            str(node.lineprop))
+                            str(node.lineprop),
+                            keepdims=False)
 
                         onnx_graph.nodes.append(onnx_node)
                     else:

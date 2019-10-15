@@ -629,11 +629,12 @@ class ConverterSeparate(BaseConverter):
         parser = self.parse_args(onnx_graph, node)
 
         onnx_graph.add_node(
-            "ChainerSequenceSeparate",
+            "SplitToSequence",
             [parser.get('x').create_tensor(node.lineprop)],
             node.outputs,
             name=str(node.lineprop),
-            axis=parser.get('axis'))
+            axis=parser.get('axis'),
+            keepdims=False)
 
 
 class ConverterSqueeze(BaseConverter):

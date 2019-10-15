@@ -115,7 +115,6 @@
         "ChainerSequencePad": true,
         "ChainerSequencePop": true,
         "ChainerSequenceRange": true,
-        "ChainerSequenceSeparate": true,
         "ChainerSequenceUnpad": true,
         "ChainerSequenceUpdate": true,
         "Clip": true,

@@ -367,9 +367,6 @@ NodeDef('ChainerSequenceGetSlice', (1, 2, 3, 4), 1)
 # Pads elements in a sequence: ([T]) -> (T)
 NodeDef('ChainerSequencePad', 1, 1, length=0, value=0.0)
 
-# Splits a tensor to a sequence (like F.separate): (T) -> ([T])
-NodeDef('ChainerSequenceSeparate', 1, 1, axis=0)
-
 # Strips paddings in a tensor and returns a sequence: (T, [I]) -> ([T])
 # Note the result of SequenceLengths can be used as the second argument.
 NodeDef('ChainerSequenceUnpad', 2, 1)
