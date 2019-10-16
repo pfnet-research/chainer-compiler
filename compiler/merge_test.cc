@@ -38,6 +38,8 @@ TEST(MergeTest, SplitConcat) {
 }
 
 TEST(MergeTest, PadConv) {
+    chainerx::testing::ContextSession sess;
+
     Type type(Dtype::kFloat32, {});
     Graph graph({}, "test");
     Value* input = graph.AddInputValue("input", type);
@@ -65,8 +67,8 @@ TEST(MergeTest, PadConv) {
 
     MergeOperations({"MergePadConv"}, &graph, false);
     graph.DeleteDetached();
-    EXPECT_EQ(1, graph.nodes().size());
-    const Node& node = *graph.nodes()[0];
+    // EXPECT_EQ(1, graph.nodes().size());
+    const Node& node = **graph.nodes().rbegin();
     EXPECT_EQ(Node::kConv, node.op_type());
     EXPECT_EQ(std::vector<int64_t>({1, 1, 1, 1}), node.pads());
     EXPECT_EQ(2, node.inputs().size());

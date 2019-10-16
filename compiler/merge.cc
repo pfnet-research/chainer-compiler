@@ -59,11 +59,21 @@ bool MaybeMergeSplitConcat(Graph* graph, Node* node) {
 }
 
 bool MaybeMergePadConv(Graph* graph, Node* pad) {
+    if (pad->inputs().size() == 3 && chainerx::AsScalar(pad->input(2)->GetConstTensor()->chx()) != 0) {
+        return false;
+    }
     if (pad->value() != 0.0 || pad->mode() != "constant") {
         return false;
     }
 
-    std::vector<int64_t> const& pads = pad->pads();
+    std::vector<int64_t> pads;
+    if (pad->OpVersion() >= 11) {
+        chainerx::Array ary = chainerx::AsContiguous(pad->input(1)->GetConstTensor()->chx().AsType(chainerx::Dtype::kInt64));
+        const int64_t* ptr = reinterpret_cast<const int64_t*>(ary.raw_data());
+        pads.assign(ptr, ptr + ary.GetTotalSize());
+    } else {
+        pads = pad->pads();
+    }
 
     // Padding for non-spatial dims can't be merged.
     if (pads.size() < 4) {
@@ -99,7 +109,7 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
 
     // Replace Pad+Conv with merged Conv.
     GraphBuilder gb(graph, "MergePadConv", pad->input(0));
-    std::vector<Value*> new_in = pad->inputs();
+    std::vector<Value*> new_in = {pad->input(0)};
     std::copy(conv->inputs().begin() + 1, conv->inputs().end(), std::back_inserter(new_in));
     Node* n = gb.MOp(Node::kConv, new_in, conv->outputs());
     n->set_dilations(conv->dilations())
