@@ -456,6 +456,8 @@ std::tuple<chainerx::Array, chainerx::Array> TopKOp::RunImpl(ChxVMState* st, con
         reduced_cols *= out_shape[i];
     }
 
+    chainerx::Array x_mat = x.Reshape({rows, x.GetTotalSize() / rows});
+
     const int64_t block_slice = reduced_cols / k;
 
     struct ValueCmp {
@@ -482,7 +484,7 @@ std::tuple<chainerx::Array, chainerx::Array> TopKOp::RunImpl(ChxVMState* st, con
             std::priority_queue<std::pair<float, int64_t>, std::vector<std::pair<float, int64_t>>, ValueCmp> min_heap(cmp);
 
             for (int64_t l = 0; l < in_shape[axis]; ++l) {
-                const float value = static_cast<float>(chainerx::AsScalar(x.At({i, l * block_slice + j})));
+                const float value = static_cast<float>(chainerx::AsScalar(x_mat.At({i, l * block_slice + j})));
                 if (min_heap.size() < k || base_cmp(value, min_heap.top().first)) {
                     min_heap.push({value, l});
                 }
