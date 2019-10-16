@@ -220,6 +220,10 @@ std::string Node::ToString() const {
     return oss.str();
 }
 
+int Node::OpVersion() const {
+    return GetOpsetVersion(opset_import_, domain_);
+}
+
 std::ostream& operator<<(std::ostream& os, Node::OpType op_type) {
     os << Node::OpTypeToString(op_type);
     return os;

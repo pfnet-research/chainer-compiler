@@ -80,6 +80,8 @@ public:
         return opset_import_;
     }
 
+    int OpVersion() const;
+
 private:
     std::vector<Value*> inputs_;
     std::vector<Value*> outputs_;

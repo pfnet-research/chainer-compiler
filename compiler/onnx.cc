@@ -11,7 +11,8 @@ int GetOpsetVersion(const OpsetList& list, const std::string& domain) {
             return i.version();
         }
     }
-    CHECK(false) << "domain not found: " << domain;
+    CHECK_EQ(onnx::ONNX_DOMAIN, domain) << "domain not found: " << domain;
+    return DEFAULT_OPSET_VERSION;
 }
 
 std::unordered_map<std::string, int> DefaultOpsetImports() {

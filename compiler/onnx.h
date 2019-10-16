@@ -13,7 +13,7 @@ constexpr int DEFAULT_OPSET_VERSION = 11;
 
 using OpsetList = std::vector<onnx::OperatorSetIdProto>;
 
-int GetOpsetVersion(const OpsetList& list, const std::string& domain);
+int GetOpsetVersion(const OpsetList& list, const std::string& domain = onnx::ONNX_DOMAIN);
 std::unordered_map<std::string, int> DefaultOpsetImports();
 
 }  // namespace chainer_compiler
