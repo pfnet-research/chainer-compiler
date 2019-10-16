@@ -256,6 +256,8 @@ private:
         for (const Node* node : nodes) {
             if (!emitted_.emplace(node).second) continue;
 
+            CheckCanonicalized(node->domain(), node->OpVersion());
+
             if (!in_loop) {
                 for (const Value* value : node->inputs()) {
                     if (!value->IsInput()) continue;

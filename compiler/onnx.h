@@ -16,4 +16,6 @@ using OpsetList = std::vector<onnx::OperatorSetIdProto>;
 int GetOpsetVersion(const OpsetList& list, const std::string& domain = onnx::ONNX_DOMAIN);
 std::unordered_map<std::string, int> DefaultOpsetImports();
 
+void CheckCanonicalized(const std::string& domain, int version);
+
 }  // namespace chainer_compiler
