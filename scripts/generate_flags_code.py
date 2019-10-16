@@ -301,6 +301,6 @@ elif args.mode == 'menoh_example_default_config.json':
         elif info['type'] == 'std::string':
             default = ''
         config[name] = default
-    f.write(json.dumps(config, indent=2, sort_keys=True))
+    f.write(json.dumps({'compiler': config}, indent=2, sort_keys=True))
 else:
     raise('Invalid mode: {}'.format(args.mode))

@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     // Please use [Netron](https://github.com/lutzroeder/Netron)
     // See Menoh tutorial for more information.
     const std::string conv1_1_in_name = "Input_0";
-    const std::string fc6_out_name = "LinearFunction_0";
+    // const std::string fc6_out_name = "LinearFunction_0";
     const std::string softmax_out_name = "Softmax_0";
 
     const int batch_size = 1;
@@ -103,12 +103,13 @@ int main(int argc, char** argv) {
     // dims of output is automatically calculated later
     menoh::variable_profile_table_builder vpt_builder;
     vpt_builder.add_input_profile(conv1_1_in_name, menoh::dtype_t::float_, {batch_size, channel_num, height, width});
-    vpt_builder.add_output_name(fc6_out_name);
+    // vpt_builder.add_output_name(fc6_out_name);
     vpt_builder.add_output_name(softmax_out_name);
 
     std::cout << "Build VPT..." << std::endl;
     // Build variable_profile_table and get variable dims (if needed)
     auto vpt = vpt_builder.build_variable_profile_table(model_data);
+    /*
     auto fc6_dims = vpt.get_variable_profile(fc6_out_name).dims;
     std::cout << "(";
     for (auto d : fc6_dims) {
@@ -116,6 +117,7 @@ int main(int argc, char** argv) {
     }
     std::cout << ")" << std::endl;
     std::vector<float> fc6_out_data(std::accumulate(fc6_dims.begin(), fc6_dims.end(), 1, std::multiplies<int32_t>()));
+    */
 
     // Make model_builder and attach extenal memory buffer
     // Variables which are not attached external memory buffer here are attached
@@ -123,7 +125,7 @@ int main(int argc, char** argv) {
     std::cout << "Prepare model builder..." << std::endl;
     menoh::model_builder model_builder(vpt);
     model_builder.attach_external_buffer(conv1_1_in_name, static_cast<void*>(image_data.data()));
-    model_builder.attach_external_buffer(fc6_out_name, static_cast<void*>(fc6_out_data.data()));
+    // model_builder.attach_external_buffer(fc6_out_name, static_cast<void*>(fc6_out_data.data()));
 
     std::cout << "Build model..." << std::endl;
     // Build model
@@ -138,9 +140,11 @@ int main(int argc, char** argv) {
     std::cout << "Model run..." << std::endl;
     model.run();
     std::cout << "Finish!" << std::endl;
+    /*
     for (size_t i = 0; i < 10; ++i) {
         std::cout << fc6_out_data.at(i) << " ";
     }
+    */
     auto softmax_output_var = model.get_variable(softmax_out_name);
     float* softmax_output_buff = static_cast<float*>(softmax_output_var.buffer_handle);
     std::cout << "\n";
