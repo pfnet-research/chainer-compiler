@@ -79,7 +79,7 @@ if(OpenCV_FOUND)
     #   SHOW_PROGRESS
     #   )
     file(
-      DOWNLOAD "https://preferredjp.box.com/shared/static/x4k1pya1w1vuvpfk77pp6ma8oaye8syb.onnx"
+      DOWNLOAD "https://preferredjp.box.com/shared/static/o2xip23e3f0knwc5ve78oderuglkf2wt.onnx"
       "${CMAKE_CURRENT_BINARY_DIR}/vgg16.onnx"
       EXPECTED_HASH SHA256=4ad7c87a7afd57a7951540fe1fd43c6020e8aec6925854b27bedce720b655cbf
       SHOW_PROGRESS
