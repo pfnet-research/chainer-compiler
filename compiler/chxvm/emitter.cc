@@ -249,17 +249,12 @@ private:
             num_users.emplace(value, value->users().size());
         }
 
-        CHECK_EQ(graph.MinVersion(onnx::ONNX_DOMAIN), DEFAULT_OPSET_VERSION);
-        CHECK(graph.MaxVersion(onnx::ONNX_DOMAIN) > DEFAULT_OPSET_VERSION);
-
         std::set<const Value*> staged_inputs;
         std::set<const Value*> todo_outputs(output_values.begin(), output_values.end());
 
         std::vector<const Node*> nodes(graph.GetComputationSequence());
         for (const Node* node : nodes) {
             if (!emitted_.emplace(node).second) continue;
-
-            CheckCanonicalized(node->domain(), node->OpVersion());
 
             if (!in_loop) {
                 for (const Value* value : node->inputs()) {
