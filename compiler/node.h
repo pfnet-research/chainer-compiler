@@ -30,7 +30,7 @@ public:
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
 
-    void ToONNX(onnx::NodeProto* xnode) const;
+    void ToONNX(onnx::NodeProto* xnode, bool validate = true) const;
     std::string DebugString() const;
 
     void Validate() const;
@@ -81,6 +81,8 @@ public:
     }
 
     int OpVersion() const;
+
+    bool ValidateWithSchema(const OpsetList& opsets = {}, std::string* message = nullptr) const;
 
 private:
     std::vector<Value*> inputs_;

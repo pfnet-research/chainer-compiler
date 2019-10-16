@@ -644,7 +644,14 @@ bool ReplaceSplit(Graph* graph, Node* node) {
     for (size_t i = 0; i < node->outputs().size(); ++i) {
         int64_t end = start + split[i];
         Value* output = node->output(i);
-        gb.Op(Node::kSlice, {input}, output)->producer()->set_axes({axis})->set_starts({start})->set_ends({end});
+        gb.Op(Node::kSlice,
+              {
+                      input,
+                      gb.Const(ArrayBuilder({1}).WithData<int64_t>({start}).Build()),
+                      gb.Const(ArrayBuilder({1}).WithData<int64_t>({end}).Build()),
+                      gb.Const(ArrayBuilder({1}).WithData<int64_t>({axis}).Build()),
+              },
+              output);
         start = end;
     }
     return true;
@@ -885,7 +892,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     if (simplifier_names.count("ExpandFunction")) {
         for (const std::string& fn : bc.GetExpandingFunctions()) {
             Node::OpType op_enum = Node::StringToOpType(fn);
-            const onnx::OpSchema* schema = onnx::OpSchemaRegistry::Schema(fn);
+            const onnx::OpSchema* schema = onnx::OpSchemaRegistry::Schema(fn, DEFAULT_OPSET_VERSION);
             CHECK(schema) << "unregistered onnx function: " << fn;
 
             auto simplifier = Simplifier("ExpandFunction", FunctionExpander(fn, schema));

@@ -64,7 +64,10 @@ TEST(FlopsTest, ConvTranspose) {
 }
 
 TEST(FlopsTest, ConvGradWeight) {
-    Graph graph({}, "test");
+    onnx::OperatorSetIdProto chainer_domain;
+    chainer_domain.set_domain(CHAINER_ONNX_DOMAIN);
+    chainer_domain.set_version(CHAINER_OPSET_VERSION);
+    Graph graph({chainer_domain}, "test");
     Value* w = graph.AddInputValue("w", Type(Dtype::kFloat32, {4, 6, 3, 2}));
     Value* x = graph.AddInputValue("x", Type(Dtype::kFloat32, {2, 6, 7, 8}));
     Value* gy = graph.AddInputValue("gy", Type(Dtype::kFloat32, {2, 12, 7, 8}));
@@ -72,7 +75,7 @@ TEST(FlopsTest, ConvGradWeight) {
     auto make_conv_grad_weight = [&](int group, int dilation) {
         GraphBuilder gb(&graph, "test", w);
         Value* out = graph.AddOutputValue("y", Type(Dtype::kFloat32, {2, 12, 5, 6}));
-        Value* y = gb.Op(Node::kChainerConvGradWeight, {w, x, gy}, out);
+        Value* y = gb.Op(Node::kChainerConvGradWeight, {w, x, gy}, out, CHAINER_ONNX_DOMAIN);
         y->producer()->set_group(group)->set_dilations({dilation, dilation});
         return y->producer();
     };

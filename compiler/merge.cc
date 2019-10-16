@@ -59,7 +59,8 @@ bool MaybeMergeSplitConcat(Graph* graph, Node* node) {
 }
 
 bool MaybeMergePadConv(Graph* graph, Node* pad) {
-    if (pad->inputs().size() == 3 && chainerx::AsScalar(pad->input(2)->GetConstTensor()->chx()) != 0) {
+    if (pad->inputs().size() == 3 &&
+        (!pad->input(2)->GetConstTensor() || chainerx::AsScalar(pad->input(2)->GetConstTensor()->chx()) != 0)) {
         return false;
     }
     if (pad->value() != 0.0 || pad->mode() != "constant") {

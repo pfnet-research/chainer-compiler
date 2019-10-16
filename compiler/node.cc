@@ -7,9 +7,11 @@
 #include <common/strutil.h>
 #include <compiler/dtype.h>
 #include <compiler/graph.h>
+#include <compiler/log.h>
 #include <compiler/serializer_util.h>
 #include <compiler/tensor.h>
 #include <compiler/value.h>
+#include <onnx/defs/schema.h>
 
 namespace chainer_compiler {
 
@@ -51,7 +53,11 @@ Node::Node(
 Node::~Node() {
 }
 
-void Node::ToONNX(onnx::NodeProto* xnode) const {
+void Node::ToONNX(onnx::NodeProto* xnode, bool validate) const {
+    if (validate) {
+        CHECK(ValidateWithSchema());
+    }
+
     for (const auto& value : inputs_) {
         xnode->add_input(value->name());
     }
@@ -222,6 +228,57 @@ std::string Node::ToString() const {
 
 int Node::OpVersion() const {
     return GetOpsetVersion(opset_import_, domain_);
+}
+
+bool Node::ValidateWithSchema(const OpsetList& opsets_, std::string* message) const {
+    const OpsetList& opset = opsets_.empty() ? opset_import_ : opsets_;
+    const int version = GetOpsetVersion(opset, domain_);
+    const onnx::OpSchema* schema = onnx::OpSchemaRegistry::Schema(OpTypeToString(op_type()), version, domain_);
+
+    // TODO(take-cheeze): Return false when schema not found
+    if (!schema) {
+        CLOG() << "schema of " << op_type() << "-" << version << " (" << domain_ << ") not found";
+        return true;
+    }
+
+    std::ostringstream oss;
+    oss << "Failed validation of " << op_type() << ", ";
+
+#define output_error_message()     \
+    if (message) {                 \
+        *message = oss.str();      \
+    } else {                       \
+        CHECK(false) << oss.str(); \
+    }                              \
+    return false
+
+    // TODO(take-cheeze): Input/output dtype check
+    if (inputs().size() < schema->min_input() || schema->max_input() < inputs().size()) {
+        oss << "Invalid input count: " << inputs().size() << " (min: " << schema->min_input() << ", max: " << schema->max_input() << ")";
+        output_error_message();
+    }
+    if (outputs().size() < schema->min_output() || schema->max_output() < outputs().size()) {
+        oss << "Invalid output count: " << outputs().size() << " (min: " << schema->min_output() << ", max: " << schema->max_output()
+            << ")";
+        output_error_message();
+    }
+
+    onnx::NodeProto xnode;
+    ToONNX(&xnode, false);
+
+    for (const auto& attr_sch : schema->attributes()) {
+        auto a_it = std::find_if(xnode.attribute().begin(), xnode.attribute().end(), [&attr_sch](const onnx::AttributeProto& a) {
+            return attr_sch.second.name == a.name();
+        });
+        if (attr_sch.second.required && a_it == xnode.attribute().end()) {
+            oss << "Required attribute not set: " << attr_sch.second.name;
+            output_error_message();
+        }
+    }
+
+#undef output_error_message
+
+    return true;
 }
 
 std::ostream& operator<<(std::ostream& os, Node::OpType op_type) {
