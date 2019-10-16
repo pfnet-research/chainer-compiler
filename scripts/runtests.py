@@ -1037,7 +1037,7 @@ def main():
         if len(target_opsets) != 0:
             if args.only_opset_targetable and test_case.opset_version is None:
                 continue
-            if not (test_case.opset_version in target_opsets):
+            if test_case.opset_version is not None and not (test_case.opset_version in target_opsets):
                 continue
 
         test_case.runner = run_onnx
