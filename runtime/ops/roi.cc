@@ -144,7 +144,7 @@ public:
         contiguous_bottom_data = chainerx::AsContiguous(bottom_data);
         contiguous_bottom_roi_indices = chainerx::AsContiguous(bottom_roi_indices);
         contiguous_bottom_rois = chainerx::AsContiguous(bottom_rois);
-        top_data = chainerx::Empty(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
+        top_data = chainerx::Empty(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype()).ToNative();
         bottom_ptr = static_cast<float*>(RawStartPtr(contiguous_bottom_data));
         top_ptr = static_cast<float*>(RawStartPtr(top_data));
     }
@@ -429,22 +429,26 @@ private:
 
 chainerx::Array ROIMaxPool2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    return ROIPool2D(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, chainerx::AMax).ToDevice(x.device());
+    return ROIPool2D(x.ToNative(), rois.ToNative(), roi_indices.ToNative(), output_shape, spatial_scale, chainerx::AMax)
+            .ToDevice(x.device());
 }
 
 chainerx::Array ROIAveragePool2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    return ROIPool2D(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, chainerx::Mean).ToDevice(x.device());
+    return ROIPool2D(x.ToNative(), rois.ToNative(), roi_indices.ToNative(), output_shape, spatial_scale, chainerx::Mean)
+            .ToDevice(x.device());
 }
 
 chainerx::Array ROIMaxAlign2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    return ROIAlign2D<ReduceByMax>(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, sampling_ratio).ToDevice(x.device());
+    return ROIAlign2D<ReduceByMax>(x.ToNative(), rois.ToNative(), roi_indices.ToNative(), output_shape, spatial_scale, sampling_ratio)
+            .ToDevice(x.device());
 }
 
 chainerx::Array ROIAverageAlign2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    return ROIAlign2D<ReduceByAverage>(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, sampling_ratio).ToDevice(x.device());
+    return ROIAlign2D<ReduceByAverage>(x.ToNative(), rois.ToNative(), roi_indices.ToNative(), output_shape, spatial_scale, sampling_ratio)
+            .ToDevice(x.device());
 }
 
 }  // namespace runtime
