@@ -53,9 +53,9 @@ Node::Node(
 Node::~Node() {
 }
 
-void Node::ToONNX(onnx::NodeProto* xnode, bool validate) const {
+void Node::ToONNX(onnx::NodeProto* xnode, const OpsetList& opsets, bool validate) const {
     if (validate) {
-        CHECK(ValidateWithSchema());
+        CHECK(ValidateWithSchema(opsets));
     }
 
     for (const auto& value : inputs_) {
@@ -75,7 +75,7 @@ void Node::ToONNX(onnx::NodeProto* xnode, bool validate) const {
 
 std::string Node::DebugString() const {
     onnx::NodeProto xnode;
-    ToONNX(&xnode);
+    ToONNX(&xnode, {}, false);
     return xnode.DebugString();
 }
 
@@ -264,7 +264,7 @@ bool Node::ValidateWithSchema(const OpsetList& opsets_, std::string* message) co
     }
 
     onnx::NodeProto xnode;
-    ToONNX(&xnode, false);
+    ToONNX(&xnode, opsets_, false);
 
     for (const auto& attr_sch : schema->attributes()) {
         auto a_it = std::find_if(xnode.attribute().begin(), xnode.attribute().end(), [&attr_sch](const onnx::AttributeProto& a) {

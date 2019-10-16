@@ -768,7 +768,7 @@ SimplifierFn FunctionExpander(const std::string& fn, const onnx::OpSchema* schem
 
         GraphBuilder gb(graph, "Expand" + fn, fn_nd->output(0));
         onnx::NodeProto onnx_fn_nd;
-        fn_nd->ToONNX(&onnx_fn_nd);
+        fn_nd->ToONNX(&onnx_fn_nd, {});
 
         for (const onnx::NodeProto& src_nd : schema->GetFunction()->node()) {
             // Map inputs/outputs

@@ -37,7 +37,7 @@ GraphBuilder::~GraphBuilder() {
 
         onnx::GraphProto xgraph;
         for (Node* node : nodes) {
-            node->ToONNX(xgraph.add_node());
+            node->ToONNX(xgraph.add_node(), {});
         }
         for (Value* value : inputs) {
             value->ToONNX(xgraph.add_input());

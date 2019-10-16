@@ -30,7 +30,7 @@ public:
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
 
-    void ToONNX(onnx::NodeProto* xnode, bool validate = true) const;
+    void ToONNX(onnx::NodeProto* xnode, const OpsetList& opsets, bool validate = true) const;
     std::string DebugString() const;
 
     void Validate() const;

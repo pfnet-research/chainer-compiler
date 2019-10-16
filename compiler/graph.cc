@@ -122,7 +122,7 @@ void Graph::ToONNX(onnx::GraphProto* xgraph, bool serialize_initializers) const 
 
     for (const Node* node : nodes_) {
         onnx::NodeProto* xnode = xgraph->add_node();
-        node->ToONNX(xnode);
+        node->ToONNX(xnode, opset_import_);
     }
 }
 
