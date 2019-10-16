@@ -118,6 +118,9 @@ public:
         return opset_import_;
     }
 
+    int MinVersion(const std::string& domain) const;
+    int MaxVersion(const std::string& domain) const;
+
 private:
     std::string GenSym(const std::string& base = "");
     std::string MakeUnique(const std::string& name);

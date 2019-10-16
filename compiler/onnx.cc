@@ -25,7 +25,7 @@ std::unordered_map<std::string, int> DefaultOpsetImports() {
 
 void CheckCanonicalized(const std::string& domain, int version) {
     if (domain == onnx::ONNX_DOMAIN) {
-        CHECK_EQ(DEFAULT_OPSET_VERSION, version);
+        CHECK(DEFAULT_OPSET_VERSION <= version);
     } else if (domain == CHAINER_ONNX_DOMAIN) {
         CHECK_EQ(CHAINER_OPSET_VERSION, version);
     } else {

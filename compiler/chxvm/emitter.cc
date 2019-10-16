@@ -249,6 +249,9 @@ private:
             num_users.emplace(value, value->users().size());
         }
 
+        CHECK_EQ(graph.MinVersion(onnx::ONNX_DOMAIN), DEFAULT_OPSET_VERSION);
+        CHECK(graph.MaxVersion(onnx::ONNX_DOMAIN) > DEFAULT_OPSET_VERSION);
+
         std::set<const Value*> staged_inputs;
         std::set<const Value*> todo_outputs(output_values.begin(), output_values.end());
 

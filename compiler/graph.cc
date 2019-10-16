@@ -449,4 +449,30 @@ void Graph::DumpONNXOnFailure(const std::string& filename) const {
     std::cerr << "Failed graph is stored in " << fn << std::endl;
 }
 
+int Graph::MinVersion(const std::string& domain) const {
+    int min = 1000;
+    for (const Node* n : nodes_) {
+        if (n->detached() || n->domain() != domain) {
+            continue;
+        }
+        if (n->OpVersion() < min) {
+            min = n->OpVersion();
+        }
+    }
+    return min;
+}
+
+int Graph::MaxVersion(const std::string& domain) const {
+    int max = -1;
+    for (const Node* n : nodes_) {
+        if (n->detached() || n->domain() != domain) {
+            continue;
+        }
+        if (n->OpVersion() > max) {
+            max = n->OpVersion();
+        }
+    }
+    return max;
+}
+
 }  // namespace chainer_compiler
