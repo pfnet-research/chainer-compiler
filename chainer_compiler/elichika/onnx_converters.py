@@ -366,7 +366,7 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
     if isinstance(node.func, functions_list.AppendFunction):
         # append
         onnx_graph.add_node(
-            "ChainerSequenceAppend",
+            "SequenceInsert",
             node.inputs,
             node.outputs,
             str(node.lineprop))
@@ -401,10 +401,11 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
         onnx_graph.nodes.append(onnx_node)
 
         onnx_node = oh.make_node(
-            "ChainerSequenceSeparate",
+            "SplitToSequence",
             [op_shape_temp.name],
             [value2onnx_parameter[node.outputs[0]].onnx_name],
-            str(node.lineprop))
+            str(node.lineprop),
+            keepdims=False)
 
         onnx_graph.nodes.append(onnx_node)
 
@@ -742,10 +743,11 @@ class ONNXValue:
         elif self.onnx_type == ONNXValueType.Tensor:
 
             (ret,) = self.onnx_graph.add_node(
-                "ChainerSequenceSeparate",
+                "SplitToSequence",
                 [self],
                 [None],
-                str('create_sequence'))
+                str('create_sequence'),
+                keepdims=False)
             return ret
 
         else:
@@ -759,10 +761,12 @@ class ONNXValue:
                             self.name, '/tensor'])
 
             self.onnx_graph.add_node(
-                "ChainerSequenceStack",
+                "ConcatFromSequence",
                 [value],
                 [ret],
-                str('create_tensor'))
+                str('create_tensor'),
+                axis=0,
+                new_axis=True)
             return ret
 
         elif(isinstance(self.value, values.ListValue)):
@@ -772,10 +776,12 @@ class ONNXValue:
                             self.name, '/tensor'])
 
             self.onnx_graph.add_node(
-                "ChainerSequenceStack",
+                "ConcatFromSequence",
                 [value],
                 [ret],
-                str('create_tensor'))
+                str('create_tensor'),
+                axis=0,
+                new_axis=True)
             return ret
 
         elif(isinstance(self.value, values.TensorValue)):
@@ -790,10 +796,12 @@ class ONNXValue:
                             self.name, '/tensor'])
 
             self.onnx_graph.add_node(
-                "ChainerSequenceStack",
+                "ConcatFromSequence",
                 [self],
                 [ret],
-                str('create_tensor'))
+                str('create_tensor'),
+                axis=0,
+                new_axis=True)
             return ret
         elif(isinstance(self.value, values.Value)):
             value = self.value  # type:values.Value
@@ -1204,7 +1212,7 @@ class ONNXGenerator:
 
                     if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.TupleValue) or isinstance(node_.target, values.RangeValue):
                         onnx_node = oh.make_node(
-                            'ChainerSequenceLookup',
+                            'SequenceAt',
                             [value2onnx_parameter[node_.target].onnx_name,
                                 value2onnx_parameter[node_.indexes[0]].onnx_name],
                             [value2onnx_parameter[node.outputs[0]].onnx_name])
@@ -1352,7 +1360,7 @@ class ONNXGenerator:
                 # get value from sequence with index
                 if isinstance(node_.iter_value, values.ListValue) or isinstance(node_.iter_value, values.TupleValue) or isinstance(node_.iter_value, values.RangeValue):
                     onnx_node = oh.make_node(
-                        'ChainerSequenceLookup',
+                        'SequenceAt',
                         [value2onnx_parameter[node_.iter_value].onnx_name,
                             value2onnx_parameter[node_.counter_value].onnx_name],
                         [value2onnx_parameter[node_.outputs[0]].onnx_name])
@@ -1406,10 +1414,11 @@ class ONNXGenerator:
 
                     elif isinstance(node_.value, values.TensorValue):
                         onnx_node = oh.make_node(
-                            "ChainerSequenceSeparate",
+                            "SplitToSequence",
                             [value2onnx_parameter[node.inputs[0]].onnx_name],
                             [value2onnx_parameter[node.outputs[0]].onnx_name],
-                            str(node.lineprop))
+                            str(node.lineprop),
+                            keepdims=False)
 
                         onnx_graph.nodes.append(onnx_node)
                     else:
@@ -1454,18 +1463,22 @@ class ONNXGenerator:
                     if isinstance(node.inputs[0], values.ListValue) or isinstance(node.inputs[0], values.TupleValue):
                         if dtype is None:
                             onnx_node = onnx_graph.add_node(
-                                "ChainerSequenceStack",
+                                "ConcatFromSequence",
                                 [value],
                                 [o],
-                                str(node.lineprop))
+                                str(node.lineprop),
+                                axis=0,
+                                new_axis=True)
                         else:
                             casting_name = value2onnx_parameter[node.outputs[0]
                                                                 ].onnx_name + '/Cast'
                             onnx_node = onnx_graph.add_node(
-                                "ChainerSequenceStack",
+                                "ConcatFromSequence",
                                 [value],
                                 [casting_name],
-                                str(node.lineprop))
+                                str(node.lineprop),
+                                axis=0,
+                                new_axis=True)
 
                             onnx_node = onnx_graph.add_node(
                                 "Cast",
@@ -1530,7 +1543,7 @@ class ONNXGenerator:
 
                 if node_.classtype == 'Tuple':
                     onnx_node = oh.make_node(
-                        "ChainerSequenceCreate",
+                        "SequenceConstruct",
                         [value2onnx_parameter[x].onnx_name for x in node.args],
                         [value2onnx_parameter[node.outputs[0]].onnx_name],
                         str(node.lineprop))
@@ -1538,7 +1551,7 @@ class ONNXGenerator:
 
                 if node_.classtype == 'List':
                     onnx_node = oh.make_node(
-                        "ChainerSequenceCreate",
+                        "SequenceConstruct",
                         [value2onnx_parameter[x].onnx_name for x in node.args],
                         [value2onnx_parameter[node.outputs[0]].onnx_name],
                         str(node.lineprop))

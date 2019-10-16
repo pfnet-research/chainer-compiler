@@ -186,7 +186,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
 
             Value* input_in = new Value(gb.GenName(), Type(), Value::Kind::kInput);
             Value* input_out = new Value(gb.GenName(), Type(), Value::Kind::kOutput);
-            gb.Op(Node::kChainerSequenceLookup, {input_in, iter}, orig_input);
+            gb.Op(Node::kSequenceAt, {input_in, iter}, orig_input);
             gb.Op(Node::kIdentity, {input_in}, input_out);
 
             new_loop_inputs.push_back(input_in);
@@ -201,7 +201,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
 
             Value* output_in = new Value(gb.GenName(), Type(), Value::Kind::kInput);
             Value* output_out = new Value(gb.GenName(), Type(), Value::Kind::kOutput);
-            gb.Op(Node::kChainerSequenceAppend, {output_in, orig_output}, output_out);
+            gb.Op(Node::kSequenceInsert, {output_in, orig_output}, output_out);
 
             new_loop_inputs.push_back(output_in);
             new_loop_outputs.push_back(output_out);
@@ -216,13 +216,13 @@ bool ReplaceScan(Graph* graph, Node* scan) {
 
         std::vector<Value*> input_seqs;
         for (Value* v : scan_inputs) {
-            Value* inputs = gb.Op(Node::kChainerSequenceSeparate, {v});
-            inputs->producer()->set_axis(input_axis);
+            Value* inputs = gb.Op(Node::kSplitToSequence, {v});
+            inputs->producer()->set_axis(input_axis)->set_keepdims(false);
             input_seqs.push_back(inputs);
         }
 
         std::vector<Value*> loop_inputs;
-        Value* max_trips = gb.Op(Node::kChainerSequenceSize, {input_seqs.front()});
+        Value* max_trips = gb.Op(Node::kSequenceLength, {input_seqs.front()});
         loop_inputs.push_back(max_trips);
         loop_inputs.push_back(gb.Null());
 
@@ -234,7 +234,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         }
         for (Value* v : scan_outputs) {
             (void)v;
-            loop_inputs.push_back(gb.Op(Node::kChainerSequenceCreate, {}));
+            loop_inputs.push_back(gb.Op(Node::kSequenceConstruct, {}));
         }
 
         std::vector<Value*> loop_outputs;
@@ -248,7 +248,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         for (Value* v : scan_outputs) {
             Value* outputs = gb.Temp();
             loop_outputs.push_back(outputs);
-            gb.Op(Node::kChainerSequenceStack, {outputs}, v)->producer()->set_axis(output_axis);
+            gb.Op(Node::kConcatFromSequence, {outputs}, v)->producer()->set_axis(output_axis)->set_new_axis(true);
         }
 
         Node* loop = gb.MOp(Node::kLoop, loop_inputs, loop_outputs);
@@ -709,7 +709,7 @@ bool ReplaceResizeForDldt(Graph* graph, Node* node) {
 
 bool ReplaceSequenceEmpty(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySequenceEmpty", node->output(0));
-    gb.Op(Node::kChainerSequenceCreate, {}, node->output(0));
+    gb.Op(Node::kSequenceConstruct, {}, node->output(0));
     return true;
 }
 
