@@ -275,8 +275,8 @@ NodeDef('SequenceErase', (1, 2), 1)
 
 NodeDef('SequenceAt', 2, 1)
 
-# The second argument for the gradient context.
-NodeDef('ConcatFromSequence', (1, 2), 1, axis=Required(int), new_axis=0)
+# The second output is for the gradient context.
+NodeDef('ConcatFromSequence', 1, (1, 2), axis=Required(int), new_axis=0)
 NodeDef('SplitToSequence', (1, 2), 1, axis=0, keepdims=True)
 
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
@@ -352,20 +352,11 @@ NodeDef('ChainerNullConstant', 0, 1)
 # Creates a constant sequence: () -> ([T])
 NodeDef('ChainerSequenceConstants', 0, 1, tensor_values=[Tensor])
 
-# Creates a new sequence: (T...) -> ([T])
-NodeDef('ChainerSequenceCreate', None, 1)
-
-# Appends an element to a sequence: ([T], T) -> ([T])
-NodeDef('ChainerSequenceAppend', 2, 1)
-
 # Extends a sequence to another sequence: ([T], [T]) -> ([T])
 NodeDef('ChainerSequenceExtend', 2, 1)
 
 # Pops an element from a sequence: ([T]) -> ([T], T)
 NodeDef('ChainerSequencePop', 1, 2)
-
-# Looks up an element in a sequence: ([T], I) -> (T)
-NodeDef('ChainerSequenceLookup', 2, 1)
 
 # Sets an element to a sequence: ([T], I, T) -> ([T])
 NodeDef('ChainerSequenceUpdate', 3, 1)
@@ -373,28 +364,12 @@ NodeDef('ChainerSequenceUpdate', 3, 1)
 # Equivalent to Python's __getitem__ for a slice: ([T], I, I, I) -> ([T])
 NodeDef('ChainerSequenceGetSlice', (1, 2, 3, 4), 1)
 
-# Stacks elements in a sequence: ([T]) -> (T)
-NodeDef('ChainerSequenceStack', 1, 1, axis=0)
-
-# Concatenates elements in a sequence: ([T]) -> (T)
-# The second output is for backward context.
-NodeDef('ChainerSequenceConcat', 1, (1, 2), axis=0)
-
-# Splits a tensor to a sequence (like F.split_axis): (T, I) -> ([T])
-NodeDef('ChainerSequenceSplitAxis', 2, 1, axis=0)
-
 # Pads elements in a sequence: ([T]) -> (T)
 NodeDef('ChainerSequencePad', 1, 1, length=0, value=0.0)
-
-# Splits a tensor to a sequence (like F.separate): (T) -> ([T])
-NodeDef('ChainerSequenceSeparate', 1, 1, axis=0)
 
 # Strips paddings in a tensor and returns a sequence: (T, [I]) -> ([T])
 # Note the result of SequenceLengths can be used as the second argument.
 NodeDef('ChainerSequenceUnpad', 2, 1)
-
-# Returns the number of elements in a sequence: ([T]) -> (I)
-NodeDef('ChainerSequenceSize', 1, 1)
 
 # Returns lengths of elements in a sequence: ([T]) -> ([I])
 NodeDef('ChainerSequenceLengths', 1, 1)
@@ -403,17 +378,17 @@ NodeDef('ChainerSequenceLengths', 1, 1)
 NodeDef('ChainerSequenceRange', (1, 2, 3), 1)
 
 # The gradients of sequence related ops.
-NodeDef('ChainerSequenceLookupGrad', 3, 1)
+NodeDef('ChainerSequenceAtGrad', 3, 1)
 NodeDef('ChainerSequenceGetSliceGrad', (2, 3, 4, 5), 1)
 
 # Equivalent to Python's __len__.
 # For tensors: Gather(Shape(input0), 0)
-# For sequences: ChainerSequenceSize(input0)
+# For sequences: SequenceLength(input0)
 NodeDef('ChainerGenericLen', 1, 1)
 
 # Equivalent to Python's __getitem__ for a scalar index.
 # For tensors: Gather(input0, input1)
-# For sequences: ChainerSequenceLookup(input0, input1)
+# For sequences: SequenceAt(input0, input1)
 # TODO(hamaji): Deprecate this op.
 NodeDef('ChainerGenericGetItem', 2, 1)
 

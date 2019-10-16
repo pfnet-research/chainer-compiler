@@ -307,6 +307,20 @@ set(ONNX_CHAINER_DEPS
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/onnx_chainer/functions/pooling.py
   )
 
+set(CH2O_FILES
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/builtin_funcs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/callable.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/chainer2onnx.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/funcs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/initializer.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/links.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/test_args.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/testcasegen.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/utils.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/value.py
+  )
+
 set(ABSEIL_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/abseil)
 include_directories(${ABSEIL_INCLUDE_DIRS})
 
@@ -339,20 +353,6 @@ add_custom_target(
   onnx_chainer_test
   ALL
   DEPENDS onnx_chainer_test_stamp
-  )
-
-set(CH2O_FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/__init__.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/builtin_funcs.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/callable.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/chainer2onnx.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/funcs.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/initializer.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/links.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/test_args.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/testcasegen.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/utils.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/value.py
   )
 
 function(gen_ch2o_test dir ch2o_test all)
