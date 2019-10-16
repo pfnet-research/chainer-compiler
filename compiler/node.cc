@@ -13,13 +13,19 @@
 
 namespace chainer_compiler {
 
-Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& name)
-    : NodeBase(xnode, inputs, outputs),
+Node::Node(
+        const OpsetList& opsets,
+        const onnx::NodeProto& xnode,
+        const std::vector<Value*>& inputs,
+        const std::vector<Value*>& outputs,
+        const std::string& name)
+    : NodeBase(opsets, xnode, inputs, outputs),
       inputs_(inputs),
       outputs_(outputs),
       name_(name.empty() ? xnode.name() : name),
       domain_(xnode.domain()),
-      doc_string_(xnode.doc_string()) {
+      doc_string_(xnode.doc_string()),
+      opset_import_(opsets) {
     // TODO(take-cheeze): Handle Resize-11
     if (op_type_ == Node::kResize && inputs_.size() == 2) {
         inputs_.push_back(inputs_[1]);
@@ -35,8 +41,9 @@ Node::Node(
         OpType op_type,
         const std::vector<Value*>& inputs,
         const std::vector<Value*>& outputs,
-        const std::string& domain)
-    : NodeBase(op_type), inputs_(inputs), outputs_(outputs), name_(name), domain_(domain) {
+        const std::string& domain,
+        const OpsetList& opsets)
+    : NodeBase(op_type), inputs_(inputs), outputs_(outputs), name_(name), domain_(domain), opset_import_(opsets) {
     ValidateNumInputsOutputs(inputs, outputs);
     SetDefaultAttributeValues();
 }

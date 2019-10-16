@@ -20,7 +20,7 @@
 
 namespace chainer_compiler {
 
-Graph::Graph(const onnx::GraphProto& xgraph) {
+Graph::Graph(const OpsetList& opsets, const onnx::GraphProto& xgraph) : opset_import_(opsets) {
     Construct(xgraph);
 }
 
@@ -80,12 +80,12 @@ void Graph::Construct(const onnx::GraphProto& xgraph) {
             outputs.push_back(get_value(name));
         }
 
-        Node* node = new Node(xnode, inputs, outputs);
+        Node* node = new Node(opset_import_, xnode, inputs, outputs);
         AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     }
 }
 
-Graph::Graph(const std::string name) : name_(name) {
+Graph::Graph(const OpsetList& opsets, const std::string name) : name_(name), opset_import_(opsets) {
 }
 
 Graph::~Graph() {
@@ -215,15 +215,22 @@ Node* Graph::AddNode(
         const std::vector<Value*>& inputs,
         const std::vector<Value*>& outputs,
         const std::string& base,
-        const std::string& domain) {
-    Node* node = new Node(GenSym(base.empty() ? Node::OpTypeToString(op_type) : base), op_type, inputs, outputs, domain);
+        const std::string& domain,
+        const OpsetList& opsets) {
+    Node* node = new Node(
+            GenSym(base.empty() ? Node::OpTypeToString(op_type) : base),
+            op_type,
+            inputs,
+            outputs,
+            domain,
+            opsets.empty() ? opset_import_ : opsets);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     return node;
 }
 
 Node* Graph::AddNode(
         const onnx::NodeProto& base, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& name) {
-    Node* node = new Node(base, inputs, outputs, name);
+    Node* node = new Node(opset_import_, base, inputs, outputs, name);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     return node;
 }
@@ -345,13 +352,15 @@ void Graph::InferShapes() {
     all_values_.clear();
     nodes_.clear();
     nodes_buf_.clear();
-    // TODO(hamaji): Probably, we can remove this try-catch by passing
-    // appropriate opset_imports.
-    try {
-        onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
-    } catch (std::runtime_error e) {
-        std::cerr << "WARNING: Error during shape inference: " << e.what() << std::endl;
+    std::unordered_map<std::string, int> opset_imports;
+    if (opset_import_.empty()) {
+        opset_imports = DefaultOpsetImports();
+    } else {
+        for (const auto& i : opset_import_) {
+            opset_imports.insert(std::make_pair(i.domain(), i.version()));
+        }
     }
+    onnx::shape_inference::InferShapes(&xgraph, opset_imports);
     Construct(xgraph);
 }
 

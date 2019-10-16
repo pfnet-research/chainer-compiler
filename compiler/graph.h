@@ -17,8 +17,8 @@ class Type;
 
 class Graph {
 public:
-    explicit Graph(const onnx::GraphProto& xgraph);
-    explicit Graph(const std::string name);
+    explicit Graph(const OpsetList& opsets, const onnx::GraphProto& xgraph);
+    explicit Graph(const OpsetList& opsets, const std::string name);
     ~Graph();
 
     Graph(const Graph&) = delete;
@@ -70,7 +70,8 @@ public:
             const std::vector<Value*>& inputs,
             const std::vector<Value*>& outputs,
             const std::string& base = "",
-            const std::string& domain = onnx::ONNX_DOMAIN);
+            const std::string& domain = onnx::ONNX_DOMAIN,
+            const OpsetList& opsets = {});
     Node* AddNode(
             const onnx::NodeProto& base,
             const std::vector<Value*>& inputs,
@@ -113,6 +114,10 @@ public:
 
     void AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 
+    const OpsetList& opset_imports() const {
+        return opset_import_;
+    }
+
 private:
     std::string GenSym(const std::string& base = "");
     std::string MakeUnique(const std::string& name);
@@ -127,6 +132,7 @@ private:
     std::vector<std::unique_ptr<Node>> nodes_buf_;
     std::string name_;
     std::string doc_string_;
+    OpsetList opset_import_;
 
     // A monotonically increasing ID to generate unique symbols.
     std::map<std::string, int> ids_;

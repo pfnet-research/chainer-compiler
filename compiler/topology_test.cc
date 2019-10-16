@@ -11,7 +11,7 @@ namespace {
 
 TEST(TopologyTest, ClassifyValues) {
     Type type(Dtype::kFloat32, {});
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* input = graph.AddInputValue("input", type);
     Value* output = graph.AddOutputValue("output", type);
     GraphBuilder gb(&graph, "test", output);

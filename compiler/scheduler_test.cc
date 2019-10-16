@@ -24,7 +24,7 @@ int LookupIntAttribute(const onnx::NodeProto& xnode, const std::string& name, in
 }
 
 TEST_P(SchedulerTest, Basic) {
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* out = graph.AddValue("out", Value::Kind::kOutput);
     Value* tmp = graph.AddValue("tmp");
     Value* unused1 = graph.AddValue("unused1");
@@ -56,7 +56,7 @@ TEST_P(SchedulerTest, Basic) {
 }
 
 TEST_P(SchedulerTest, MultipleTimes) {
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* out = graph.AddValue("out", Value::Kind::kOutput);
     Value* tmp = graph.AddValue("tmp");
     Value* other1 = graph.AddValue("other1");

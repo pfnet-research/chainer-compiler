@@ -9,7 +9,7 @@ namespace chainer_compiler {
 namespace {
 
 TEST(FlopsTest, Conv) {
-    Graph graph("test");
+    Graph graph({}, "test");
     int64_t const bsize = 2;
     int64_t const ichan = 6;
     int64_t const kw = 3;
@@ -36,7 +36,7 @@ TEST(FlopsTest, Conv) {
 }
 
 TEST(FlopsTest, ConvTranspose) {
-    Graph graph("test");
+    Graph graph({}, "test");
     int64_t const bsize = 2;
     int64_t const ichan = 6;
     int64_t const kw = 3;
@@ -64,7 +64,7 @@ TEST(FlopsTest, ConvTranspose) {
 }
 
 TEST(FlopsTest, ConvGradWeight) {
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* w = graph.AddInputValue("w", Type(Dtype::kFloat32, {4, 6, 3, 2}));
     Value* x = graph.AddInputValue("x", Type(Dtype::kFloat32, {2, 6, 7, 8}));
     Value* gy = graph.AddInputValue("gy", Type(Dtype::kFloat32, {2, 12, 7, 8}));
@@ -83,7 +83,7 @@ TEST(FlopsTest, ConvGradWeight) {
 }
 
 TEST(FlopsTest, Gemm) {
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {2, 6}));
     Value* b = graph.AddInputValue("b", Type(Dtype::kFloat32, {6, 2}));
     Value* c = graph.AddInputValue("c", Type(Dtype::kFloat32, {4, 2}));
@@ -112,7 +112,7 @@ TEST(FlopsTest, Gemm) {
 }
 
 TEST(FlopsTest, IntegralMultipleOfOutputSize) {
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* in = graph.AddInputValue("input", Type(Dtype::kFloat32, {2, 6}));
 
     auto run_test = [&](Node::OpType op, int mul) {
@@ -134,7 +134,7 @@ TEST(FlopsTest, IntegralMultipleOfOutputSize) {
 }
 
 TEST(FlopsTest, Reduce) {
-    Graph graph("test");
+    Graph graph({}, "test");
     std::vector<Value*> ins = {
             graph.AddInputValue("input0", Type(Dtype::kFloat32, {2, 6})),
             graph.AddInputValue("input1", Type(Dtype::kFloat32, {2, 6})),
@@ -160,7 +160,7 @@ TEST(FlopsTest, Reduce) {
 }
 
 TEST(FlopsTest, MaxPool) {
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* in = graph.AddInputValue("input", Type(Dtype::kFloat32, {1, 1, 4, 4}));
 
     Node* n;
@@ -178,7 +178,7 @@ TEST(FlopsTest, MaxPool) {
 }
 
 TEST(FlopsTest, AveragePool) {
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* in = graph.AddInputValue("input", Type(Dtype::kFloat32, {1, 1, 4, 4}));
 
     Node* n;
@@ -200,7 +200,7 @@ TEST(FlopsTest, Softmax) {
     // https://github.com/onnx/onnx/pull/2281#discussion_r324964453
     WARN_ONCE("FlopsTest.Softmax is disabled for now");
 #if 0
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* in = graph.AddInputValue("input", Type(Dtype::kFloat32, {1, 2, 3}));
 
     Node* n;

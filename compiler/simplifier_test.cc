@@ -12,7 +12,7 @@ namespace {
 
 std::vector<Node::OpType> TestSimplify(
         const std::string& name, Node::OpType op_type, const std::vector<Type>& input_types, const std::vector<Type>& output_types) {
-    Graph graph("test");
+    Graph graph({}, "test");
     std::vector<Value*> inputs;
     for (const auto& type : Enumerate(input_types)) {
         inputs.push_back(graph.AddInputValue(StrCat("input", type.index), type.value));

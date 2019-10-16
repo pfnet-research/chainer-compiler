@@ -17,7 +17,7 @@ TEST(EvaluatorTest, Eval) {
     chainerx::testing::ContextSession sess;
 
     Value dummy_for_test("test");
-    Graph graph("test");
+    Graph graph({}, "test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);
     Value* a = gb.Const(ArrayBuilder({2}).WithData<int32_t>({3, 10}).Build());
     Value* b = gb.Const(ArrayBuilder({2}).WithData<int32_t>({7, 32}).Build());
@@ -40,7 +40,7 @@ TEST(EvaluatorTest, EvalWithFeeds) {
     chainerx::testing::ContextSession sess;
 
     Value dummy_for_test("test");
-    Graph graph("test");
+    Graph graph({}, "test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);
     Value* a = gb.Const(ArrayBuilder({2}).WithData<int32_t>({0, 0}).Build());
     Value* b = gb.Const(ArrayBuilder({2}).WithData<int32_t>({0, 0}).Build());

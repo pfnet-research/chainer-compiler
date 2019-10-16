@@ -618,7 +618,7 @@ public:
     std::vector<onnx::AttributeProto> unknown_attributes_;
 
     explicit NodeBase(OpType op_type);
-    NodeBase(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+    NodeBase(const OpsetList& opsets, const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 };
 
 }  // namespace chainer_compiler
@@ -642,7 +642,9 @@ def gen_gen_node_base_cc():
     lines.append('}')
 
     lines.append('NodeBase::NodeBase(OpType op_type) : op_type_(op_type) {}')
-    lines.append('NodeBase::NodeBase(const onnx::NodeProto& xnode, '
+    lines.append('NodeBase::NodeBase('
+                 'const OpsetList& opsets, '
+                 'const onnx::NodeProto& xnode, '
                  'const std::vector<Value*>& inputs, '
                  'const std::vector<Value*>& outputs) {')
     lines.append('op_type_ = StringToOpType(xnode.op_type());')
@@ -687,7 +689,7 @@ def gen_gen_node_base_cc():
             elif attr.type == Tensor:
                 blines.append('set_%s(new Tensor(xattr.t()));' % (attr.c_name))
             elif attr.type == Graph:
-                blines.append('set_%s(new Graph(xattr.g()));' % (attr.c_name))
+                blines.append('set_%s(new Graph(opsets, xattr.g()));' % (attr.c_name))
             else:
                 raise RuntimeError('Unknown attribute type: %s' % attr.type)
             blines.append('was_%s_set_ = true;' % (attr.c_name))

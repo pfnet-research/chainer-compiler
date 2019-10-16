@@ -14,12 +14,17 @@ class Value;
 
 class Node : public NodeBase {
 public:
-    Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& name = "");
+    Node(const OpsetList& opset,
+         const onnx::NodeProto& xnode,
+         const std::vector<Value*>& inputs,
+         const std::vector<Value*>& outputs,
+         const std::string& name = "");
     Node(const std::string& name,
          OpType op_type,
          const std::vector<Value*>& inputs,
          const std::vector<Value*>& outputs,
-         const std::string& domain);
+         const std::string& domain,
+         const OpsetList& opsets);
     ~Node();
 
     Node(const Node&) = delete;
@@ -71,12 +76,17 @@ public:
 
     std::string ToString() const;
 
+    const OpsetList& opset_imports() const {
+        return opset_import_;
+    }
+
 private:
     std::vector<Value*> inputs_;
     std::vector<Value*> outputs_;
     std::string name_;
     std::string domain_;
     std::string doc_string_;
+    OpsetList opset_import_;
 
     bool detached_ = false;
 };

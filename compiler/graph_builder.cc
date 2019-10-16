@@ -48,13 +48,15 @@ GraphBuilder::~GraphBuilder() {
         for (Value* value : temps) {
             value->ToONNX(xgraph.add_value_info());
         }
-        // TODO(hamaji): Probably, we can remove this try-catch by passing
-        // appropriate opset_imports.
-        try {
-            onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
-        } catch (std::runtime_error e) {
-            std::cerr << "WARNING: Error during shape inference: " << e.what() << std::endl;
+        std::unordered_map<std::string, int> opset_imports;
+        if (graph_->opset_imports().empty()) {
+            opset_imports = DefaultOpsetImports();
+        } else {
+            for (const auto& i : graph_->opset_imports()) {
+                opset_imports.insert(std::make_pair(i.domain(), i.version()));
+            }
         }
+        onnx::shape_inference::InferShapes(&xgraph, opset_imports);
 
         for (size_t i = 0; i < outputs.size(); ++i) {
             if (xgraph.output(i).type().has_tensor_type()) outputs[i]->set_type(new Type(xgraph.output(i).type()));

@@ -20,7 +20,7 @@ void TestInference(
         std::function<void(Node*)> attr_fn,
         Dtype expected_dtype,
         const std::vector<int64_t>& expected_dims) {
-    Graph graph("test");
+    Graph graph({}, "test");
     std::vector<Value*> inputs;
     for (const auto& type : Enumerate(input_types)) {
         inputs.push_back(graph.AddInputValue(StrCat("input", type.index), type.value));
@@ -60,7 +60,7 @@ TEST(ShapeInferenceTest, Linear) {
 TEST(ShapeInferenceTest, ReduceSumTo) {
     RegisterCustomOnnxOperatorSetSchema();
     chainerx::testing::ContextSession sess;
-    Graph graph("test");
+    Graph graph({}, "test");
     Node* node = nullptr;
     std::vector<Value*> inputs;
     inputs.push_back(graph.AddInputValue("input", Type(Dtype::kFloat32, {3, 4, 2, 5})));

@@ -344,7 +344,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     // node for recomputation.
                     onnx::NodeProto xnode;
                     node->ToONNX(&xnode);
-                    Node* new_node = new Node(xnode, inputs, outputs);
+                    Node* new_node = new Node({}, xnode, inputs, outputs);
                     bwd_graph->AddNodeImpl(std::unique_ptr<Node>(new_node), inputs, outputs);
                     schedule_recompute(new_node, node);
                     if (node->op_type() == Node::kBatchNormalization) {

@@ -21,7 +21,7 @@ TEST(GradientTest, Basic) {
     dummy_input.set_data_type(onnx::TensorProto::FLOAT);
     dummy_input.add_float_data(1.0);
 
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* out = graph.AddOutputValue("out", Type(Dtype::kFloat32, {1}));
     Value* in0 = graph.AddInputValue("in0", Type(Dtype::kFloat32, {1}));
     in0->ResetInitializer(std::make_unique<Tensor>(dummy_input));

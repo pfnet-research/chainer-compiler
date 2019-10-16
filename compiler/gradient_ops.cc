@@ -836,7 +836,7 @@ void LoopGradFn(GradientOpContext* gc) {
         }
     }
 
-    auto grad_graph = std::make_unique<Graph>("Grad_" + body->name());
+    auto grad_graph = std::make_unique<Graph>(graph->opset_imports(), "Grad_" + body->name());
     std::map<Value*, Value*> retained;
     {
         GraphBuilder gb(grad_graph.get(), "lg@", ys[0]);
@@ -956,8 +956,8 @@ void IfGradFn(GradientOpContext* gc) {
     }
     if (gy_indices.empty()) return;
 
-    auto then_grad_graph = std::make_unique<Graph>("ThenGrad_" + then_graph->name());
-    auto else_grad_graph = std::make_unique<Graph>("ElseGrad_" + else_graph->name());
+    auto then_grad_graph = std::make_unique<Graph>(then_graph->opset_imports(), "ThenGrad_" + then_graph->name());
+    auto else_grad_graph = std::make_unique<Graph>(else_graph->opset_imports(), "ElseGrad_" + else_graph->name());
     Graph* grad_graphs[2] = {then_grad_graph.get(), else_grad_graph.get()};
     std::map<Value*, Value*> retained[2];
     std::vector<size_t> gx_indices;
