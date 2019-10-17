@@ -72,26 +72,16 @@ if(OpenCV_FOUND)
       EXPECTED_HASH SHA256=fb13d3a43ef3299d2198a7de7b16e9ee8f0939cd41c33bcd26995c22699ed273
       SHOW_PROGRESS
       )
-    # file(
-    #   DOWNLOAD "https://preferredjp.box.com/shared/static/x4k1pya1w1vuvpfk77pp6ma8oaye8syb.onnx"
-    #   "${CMAKE_CURRENT_BINARY_DIR}/resnet50.onnx"
-    #   EXPECTED_HASH SHA256=42916ba7e64f211e1c67aa146e147a01ecd40eaf6b87426dbcd1b7fd9ac8d5d7
-    #   SHOW_PROGRESS
-    #   )
-    file(
-      DOWNLOAD "https://preferredjp.box.com/shared/static/o2xip23e3f0knwc5ve78oderuglkf2wt.onnx"
-      "${CMAKE_CURRENT_BINARY_DIR}/vgg16.onnx"
-      EXPECTED_HASH SHA256=4ad7c87a7afd57a7951540fe1fd43c6020e8aec6925854b27bedce720b655cbf
-      SHOW_PROGRESS
-      )
     add_test(
       NAME menoh_example_test
       COMMAND
         menoh_example
         --config "${MENOH_EXAMPLE_JSON}"
-        --model "${CMAKE_CURRENT_BINARY_DIR}/vgg16.onnx"
+        --model "${CMAKE_CURRENT_SOURCE_DIR}/../data/shufflenet/model.onnx"
         --synset_words "${CMAKE_CURRENT_BINARY_DIR}/synset_words.txt"
         --input_image "${CMAKE_CURRENT_BINARY_DIR}/Light_sussex_hen.jpg"
+        --input_name "gpu_0/data_0" --output_name "gpu_0/softmax_1"
+        --preprocess onnx --top_category "n01514859 hen"
       DEPENDS menoh_example menoh_example_default_config
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 endif()
