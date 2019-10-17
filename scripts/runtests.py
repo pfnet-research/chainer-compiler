@@ -795,6 +795,8 @@ for name, _, _, kwargs in gen_large_tests_oc.get_large_tests():
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
 TEST_CASES.append(TestCase('data', 'shufflenet', want_gpu=True))
+TEST_CASES.append(TestCase('data', 'squeezenet1.1', want_gpu=True))
+TEST_CASES.append(TestCase('data', 'mobilenetv2-1.0', want_gpu=True, rtol=1e-2))
 TEST_CASES.append(TestCase('data', 'mnist'))
 
 TEST_CASES.extend(ch2o_tests.get())

@@ -67,6 +67,23 @@ chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     return array;
 }
 
+std::string OnnxPathFromTestDir(const std::string& test_dir) {
+    std::ifstream ifs(test_dir + "/model.onnx");
+    if (ifs) {
+        return test_dir + "/model.onnx";
+    }
+
+    std::string candidate_onnx;
+    for (const std::string& fn : ListDir(test_dir)) {
+        if (HasSuffix(fn, ".onnx")) {
+            CHECK(candidate_onnx.empty()) << "Multiple onnx files detected: " << candidate_onnx << ", " << fn << ", ...";
+            candidate_onnx = fn;
+            continue;
+        }
+    }
+    return candidate_onnx;
+}
+
 void ReadTestDir(
         const std::string& test_path,
         const std::vector<std::string>& input_names,
