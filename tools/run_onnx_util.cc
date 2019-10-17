@@ -84,6 +84,8 @@ void ReadTestDir(
         std::vector<std::tuple<std::string, std::string, chainerx::Array>> all_tensors;
         for (const std::string& tensor_pb : ListDir(data_set_dir)) {
             if (!HasSuffix(tensor_pb, ".pb")) continue;
+            // Ignore some files for test data like MobileNet v2
+            if (HasPrefix(*SplitString(tensor_pb, "/").rbegin(), "._")) continue;
             onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
             chainerx::Array tensor(MakeArrayFromONNX(xtensor));
             all_tensors.emplace_back(Basename(tensor_pb), xtensor.name(), tensor);

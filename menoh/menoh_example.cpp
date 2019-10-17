@@ -60,9 +60,9 @@ int main(int argc, char** argv) {
     // Aliases to onnx's node input and output tensor name
     // Please use [Netron](https://github.com/lutzroeder/Netron)
     // See Menoh tutorial for more information.
-    const std::string conv1_1_in_name = "Input_0";
+    // const std::string conv1_1_in_name = "Input_0";
     // const std::string fc6_out_name = "LinearFunction_0";
-    const std::string softmax_out_name = "Softmax_0";
+    // const std::string softmax_out_name = "Softmax_0";
 
     const int batch_size = 1;
     const int channel_num = 3;
@@ -70,6 +70,8 @@ int main(int argc, char** argv) {
     const int width = 224;
 
     cmdline::parser a;
+    a.add<std::string>("input_name", 'I', "input value name", false, "Input_0");
+    a.add<std::string>("output_name", 'O', "output value name", false, "Softmax_0");
     a.add<std::string>("input_image", 'i', "input image path", false, "../data/Light_sussex_hen.jpg");
     a.add<std::string>("model", 'm', "onnx model path", false, "../data/vgg16.onnx");
     a.add<std::string>("synset_words", 's', "synset words path", false, "../data/synset_words.txt");
@@ -81,6 +83,8 @@ int main(int argc, char** argv) {
     auto input_image_path = a.get<std::string>("input_image");
     auto onnx_model_path = a.get<std::string>("model");
     auto synset_words_path = a.get<std::string>("synset_words");
+    auto input_name = a.get<std::string>("input_name");
+    auto output_name = a.get<std::string>("output_name");
 
     cv::Mat image_mat = cv::imread(input_image_path.c_str(), cv::IMREAD_COLOR);
     if (!image_mat.data) {
@@ -102,9 +106,9 @@ int main(int argc, char** argv) {
     // Define input profile (name, dtype, dims) and output profile (name, dtype)
     // dims of output is automatically calculated later
     menoh::variable_profile_table_builder vpt_builder;
-    vpt_builder.add_input_profile(conv1_1_in_name, menoh::dtype_t::float_, {batch_size, channel_num, height, width});
+    vpt_builder.add_input_profile(input_name, menoh::dtype_t::float_, {batch_size, channel_num, height, width});
     // vpt_builder.add_output_name(fc6_out_name);
-    vpt_builder.add_output_name(softmax_out_name);
+    vpt_builder.add_output_name(output_name);
 
     std::cout << "Build VPT..." << std::endl;
     // Build variable_profile_table and get variable dims (if needed)
@@ -124,7 +128,7 @@ int main(int argc, char** argv) {
     // internal memory buffers which are automatically allocated
     std::cout << "Prepare model builder..." << std::endl;
     menoh::model_builder model_builder(vpt);
-    model_builder.attach_external_buffer(conv1_1_in_name, static_cast<void*>(image_data.data()));
+    model_builder.attach_external_buffer(output_name, static_cast<void*>(image_data.data()));
     // model_builder.attach_external_buffer(fc6_out_name, static_cast<void*>(fc6_out_data.data()));
 
     std::cout << "Build model..." << std::endl;
@@ -145,7 +149,7 @@ int main(int argc, char** argv) {
         std::cout << fc6_out_data.at(i) << " ";
     }
     */
-    auto softmax_output_var = model.get_variable(softmax_out_name);
+    auto softmax_output_var = model.get_variable(output_name);
     float* softmax_output_buff = static_cast<float*>(softmax_output_var.buffer_handle);
     std::cout << "\n";
     auto categories = load_category_list(synset_words_path);
