@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
         QFAIL() << "Unknown extra arguments specified";
     }
     if (onnx_path.empty()) {
-        onnx_path = test_path + "/model.onnx";
+        onnx_path = chainer_compiler::runtime::OnnxPathFromTestDir(test_path);
     }
     LOG() << "Loading model..." << std::endl;
     menoh::model_data model_data = menoh::make_model_data_from_onnx(onnx_path);

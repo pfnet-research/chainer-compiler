@@ -359,7 +359,7 @@ void RunMain(const std::vector<std::string>& argv) {
     int64_t initial_used_bytes = GetUsedMemory();
 
     if (onnx_path.empty()) {
-        onnx_path = test_path + "/model.onnx";
+        onnx_path = OnnxPathFromTestDir(test_path);
     }
 
     LOG() << "Loading model..." << std::endl;

@@ -34,7 +34,9 @@ chainerx::Array ReshapeOp::RunImpl(ChxVMState* st, const chainerx::Array& data, 
     int to_minus_one_index = -1;
     for (int i = 0; i < s.size(); ++i) {
         int d = s[i];
-        CHECK_NE(0, d) << s;
+        if (d == 0) {
+            d = s[i] = data.shape()[i];
+        }
         if (d < 0) {
             to_minus_one_index = i;
         } else {

@@ -21,6 +21,8 @@ struct TestCase {
     InOuts outputs;
 };
 
+std::string OnnxPathFromTestDir(const std::string& test_dir);
+
 void ReadTestDir(
         const std::string& test_path,
         const std::vector<std::string>& input_names,

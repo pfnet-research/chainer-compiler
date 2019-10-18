@@ -23,6 +23,7 @@ namespace fs = std::experimental::filesystem;
 #include <chainerx/native/data_type.h>
 #include <chainerx/numeric.h>
 
+#include <common/strutil.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
 #include <runtime/chainerx_util.h>
@@ -155,13 +156,16 @@ std::vector<std::string> ListDir(const std::string& dirname) {
     fs::directory_iterator iter(dirname);
 
     for (auto it : iter) {
-        filenames.push_back(it.path().generic_string());
+        const std::string s = it.path().generic_string();
+        if (HasPrefix(Basename(s), "._")) continue;
+        filenames.push_back(s);
     }
 #else
     DIR* dir = opendir(dirname.c_str());
     CHECK(dir) << "Failed to open directory: " << dirname << ": " << strerror(errno);
     struct dirent* ent;
     while ((ent = readdir(dir)) != nullptr) {
+        if (HasPrefix(ent->d_name, "._")) continue;
         filenames.push_back(dirname + "/" + ent->d_name);
     }
     closedir(dir);
