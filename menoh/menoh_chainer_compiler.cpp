@@ -626,13 +626,18 @@ menoh_error_code menoh_build_model(
         const char* backend_config,
         menoh_model_handle* dst_model_handle) {
     return check_error([&]() {
-        auto j = nlohmann::json::parse(backend_config);
+        CHECK(!backend_name || std::string(backend_name) == "" || std::string(backend_name) == "chxvm")
+                << "backend_name must be chxvm or empty";
+
+        auto cfg = nlohmann::json::parse(backend_config);
+        auto compiler_j = value_or(cfg, "compiler", nlohmann::json::object_t{});
+        auto runtime_j = value_or(cfg, "runtime", nlohmann::json::object_t{});
 
 #include <menoh/json_args.inc>  // initialize global flags with `j`
 
         auto ctx = std::make_unique<chainerx::Context>();
         chainerx::ContextScope context_scope(*ctx);
-        const std::string device_spec = value_or(j, "device", std::string(""));
+        const std::string device_spec = value_or(runtime_j, "device", std::string(""));
         chainerx::Device* device = nullptr;
         if (device_spec.empty()) {
             device = &chainerx::GetDefaultDevice();
@@ -686,11 +691,11 @@ menoh_error_code menoh_build_model(
             }
 
             chainer_compiler::runtime::ChxVMOptions chxvm_opts;
-            chxvm_opts.trace_level = value_or(j, "trace_level", 0);
-            chxvm_opts.is_training = value_or(j, "is_training", false);
-            chxvm_opts.check_types = value_or(j, "check_types", false);
-            chxvm_opts.check_nans = value_or(j, "check_nans", false);
-            chxvm_opts.check_infs = value_or(j, "check_infs", false);
+            chxvm_opts.trace_level = value_or(runtime_j, "trace_level", 0);
+            chxvm_opts.is_training = value_or(runtime_j, "is_training", false);
+            chxvm_opts.check_types = value_or(runtime_j, "check_types", false);
+            chxvm_opts.check_nans = value_or(runtime_j, "check_nans", false);
+            chxvm_opts.check_infs = value_or(runtime_j, "check_infs", false);
 
             std::unordered_map<std::string, menoh_impl::array_profile> variable_profiles(
                     builder->input_profile_table.begin(), builder->input_profile_table.end());

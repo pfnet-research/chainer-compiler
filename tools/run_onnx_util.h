@@ -41,5 +41,9 @@ void VerifyOutputs(
 
 std::vector<std::string> GetOrderedOutputNames(const Graph& graph);
 
+void ParseArgs(cmdline::parser* args, int argc, char** argv);
+void ParseArgs(cmdline::parser* args, const std::vector<std::string>& argv);
+void SetupGlobals(const cmdline::parser& args);
+
 }  // namespace runtime
 }  // namespace chainer_compiler

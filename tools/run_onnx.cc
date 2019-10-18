@@ -288,7 +288,6 @@ private:
 void RunMain(const std::vector<std::string>& argv) {
     cmdline::parser args;
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
-    args.add<std::string>("backend", '\0', "The name of the backend", false, "chxvm");
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
     args.add<std::string>("device", 'd', "ChainerX device to be used", false);
@@ -313,16 +312,9 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add("backprop_two_phase", '\0', "Backprop using different graphs for forward and backward");
     args.add("skip_shape_inference", '\0', "Skip shape inference");
     args.add("strip_chxvm", '\0', "Strip ChxVM proto");
-    args.add("trace", 't', "Tracing mode");
-    args.add("verbose", 'v', "Verbose mode");
     args.add<std::string>("verbose_ops", '\0', "Show verbose outputs for specific ops", false);
-    args.add("quiet", 'q', "Quiet mode");
-    AddCompilerFlags(&args);
-    args.parse_check(argv);
-    ApplyCompilerFlags(args);
-    g_compiler_log |= args.exist("trace") || args.exist("verbose");
-    g_backend_name = args.get<std::string>("backend");
-    g_quiet = args.exist("quiet");
+    ParseArgs(&args, argv);
+    SetupGlobals(args);
 
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
