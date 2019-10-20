@@ -120,10 +120,14 @@ public:
                 backprop_ins_.push_back(value->name());
             }
             flops_ += CalculateTotalFlops(backprop_model.graph(), &num_unknown_ops_);
+
+            // TODO(hamaji): Set `ordered_output_names_` in two-phase mode.
         } else {
             LOG() << "Constructing model..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), args_.exist("backprop"));
             CompileModel(model.get(), &chxvm_);
+
+            ordered_output_names_ = GetOrderedOutputNames(model->graph());
         }
         flops_ += CalculateTotalFlops(model->graph(), &num_unknown_ops_);
 
@@ -249,6 +253,10 @@ public:
         return num_unknown_ops_ ? 0 : flops_;
     }
 
+    const std::vector<std::string>& ordered_output_names() const {
+        return ordered_output_names_;
+    }
+
 private:
     int trace_level() const {
         return args_.exist("verbose") ? 2 : args_.exist("trace") ? 1 : 0;
@@ -274,12 +282,12 @@ private:
     std::vector<std::string> backprop_ins_;
     int64_t flops_{0};
     int num_unknown_ops_{0};
+    std::vector<std::string> ordered_output_names_;
 };
 
 void RunMain(const std::vector<std::string>& argv) {
     cmdline::parser args;
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
-    args.add<std::string>("backend", '\0', "The name of the backend", false, "chxvm");
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
     args.add<std::string>("device", 'd', "ChainerX device to be used", false);
@@ -304,16 +312,9 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add("backprop_two_phase", '\0', "Backprop using different graphs for forward and backward");
     args.add("skip_shape_inference", '\0', "Skip shape inference");
     args.add("strip_chxvm", '\0', "Strip ChxVM proto");
-    args.add("trace", 't', "Tracing mode");
-    args.add("verbose", 'v', "Verbose mode");
     args.add<std::string>("verbose_ops", '\0', "Show verbose outputs for specific ops", false);
-    args.add("quiet", 'q', "Quiet mode");
-    AddCompilerFlags(&args);
-    args.parse_check(argv);
-    ApplyCompilerFlags(args);
-    g_compiler_log |= args.exist("trace") || args.exist("verbose");
-    g_backend_name = args.get<std::string>("backend");
-    g_quiet = args.exist("quiet");
+    ParseArgs(&args, argv);
+    SetupGlobals(args);
 
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
@@ -358,7 +359,7 @@ void RunMain(const std::vector<std::string>& argv) {
     int64_t initial_used_bytes = GetUsedMemory();
 
     if (onnx_path.empty()) {
-        onnx_path = test_path + "/model.onnx";
+        onnx_path = OnnxPathFromTestDir(test_path);
     }
 
     LOG() << "Loading model..." << std::endl;
@@ -449,7 +450,13 @@ void RunMain(const std::vector<std::string>& argv) {
             }
         } else {
             test_cnt++;
-            VerifyOutputs(outputs, *test_case, args, !args.exist("no_check_values") && iterations == 1, args.exist("always_show_diff"));
+            VerifyOutputs(
+                    outputs,
+                    *test_case,
+                    args,
+                    !args.exist("no_check_values") && iterations == 1,
+                    args.exist("always_show_diff"),
+                    model_runner.ordered_output_names());
         }
 
         chainerx::GetDefaultDevice().Synchronize();

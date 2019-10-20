@@ -48,7 +48,13 @@ GraphBuilder::~GraphBuilder() {
         for (Value* value : temps) {
             value->ToONNX(xgraph.add_value_info());
         }
-        onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
+        // TODO(hamaji): Probably, we can remove this try-catch by passing
+        // appropriate opset_imports.
+        try {
+            onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
+        } catch (const std::runtime_error& e) {
+            std::cerr << "WARNING: Error during shape inference: " << e.what() << std::endl;
+        }
 
         for (size_t i = 0; i < outputs.size(); ++i) {
             if (xgraph.output(i).type().has_tensor_type()) outputs[i]->set_type(new Type(xgraph.output(i).type()));
@@ -87,28 +93,10 @@ Node* GraphBuilder::MOp(const onnx::NodeProto& base, const std::vector<Value*>& 
 
 Value* GraphBuilder::Const(const chainerx::Array& ary, Value* value) {
     Value* v = value ? Op(Node::kConstant, {}, {value}) : Op(Node::kConstant, {});
-    v->producer()->set_tensor_value(new Tensor(v->name(), ary));
+    v->producer()->set_tensor_value(new Tensor(v->name(), ary.ToNative()));
     v->set_type(new Type(Dtype(ary.dtype()), std::vector<int64_t>(ary.shape().begin(), ary.shape().end())));
     return v;
 }
-
-template <typename T>
-Value* GraphBuilder::Const(const Type& type, const std::vector<T>& data, Value* value) {
-    Value* v;
-    if (value == nullptr) {
-        v = Op(Node::kConstant, {});
-    } else {
-        v = Op(Node::kConstant, {}, {value});
-    }
-    v->producer()->set_tensor_value(new Tensor(v->name(), type.dtype(), type.dims(), data));
-    v->set_type(new Type(type));
-    return v;
-}
-
-template Value* GraphBuilder::Const(const Type& type, const std::vector<double>& data, Value* value);
-template Value* GraphBuilder::Const(const Type& type, const std::vector<float>& data, Value* value);
-template Value* GraphBuilder::Const(const Type& type, const std::vector<int>& data, Value* value);
-template Value* GraphBuilder::Const(const Type& type, const std::vector<int64_t>& data, Value* value);
 
 Value* GraphBuilder::Param(const chainerx::Array& ary, Value* base_value) {
     const std::string& name = GenName(base_value);

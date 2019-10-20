@@ -441,7 +441,7 @@ class ConverterConcat(BaseConverter):
         parser = self.parse_args(onnx_graph, node)
 
         onnx_graph.add_node(
-            "ChainerSequenceConcat",
+            "ConcatFromSequence",
             [parser.get('xs').create_sequence()],
             node.outputs,
             str(node.lineprop),
@@ -607,7 +607,7 @@ class ConverterVstack(BaseConverter):
         parser = self.parse_args(onnx_graph, node)
 
         onnx_graph.add_node(
-            "ChainerSequenceConcat",
+            "ConcatFromSequence",
             [parser.get('xs').create_sequence()],
             node.outputs,
             name=str(node.lineprop),
@@ -623,7 +623,7 @@ class ConverterHstack(BaseConverter):
         parser = self.parse_args(onnx_graph, node)
 
         onnx_graph.add_node(
-            "ChainerSequenceConcat",
+            "ConcatFromSequence",
             [parser.get('xs').create_sequence()],
             node.outputs,
             name=str(node.lineprop),
@@ -640,11 +640,12 @@ class ConverterStack(BaseConverter):
         parser = self.parse_args(onnx_graph, node)
 
         onnx_graph.add_node(
-            "ChainerSequenceStack",
+            "ConcatFromSequence",
             [parser.get('xs').create_sequence()],
             node.outputs,
             name=str(node.lineprop),
-            axis=parser.get('axis'))
+            axis=parser.get('axis'),
+            new_axis=True)
 
 
 class ConverterSeparate(BaseConverter):
@@ -657,11 +658,12 @@ class ConverterSeparate(BaseConverter):
         parser = self.parse_args(onnx_graph, node)
 
         onnx_graph.add_node(
-            "ChainerSequenceSeparate",
+            "SplitToSequence",
             [parser.get('x').create_tensor(node.lineprop)],
             node.outputs,
             name=str(node.lineprop),
-            axis=parser.get('axis'))
+            axis=parser.get('axis'),
+            keepdims=False)
 
 
 class ConverterSqueeze(BaseConverter):
@@ -733,7 +735,7 @@ class ConverterSplitAxis(BaseConverter):
         assert(parser.get('force_tuple') is True) # TODO(hamaji): Not supported yet.
 
         onnx_graph.add_node(
-            "ChainerSequenceSplitAxis",
+            "SplitToSequence",
             [parser.get('x'), parser.get('indices_or_sections').create_tensor(node.lineprop)],
             node.outputs,
             name=str(node.lineprop),

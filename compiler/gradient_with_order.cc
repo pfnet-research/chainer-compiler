@@ -24,13 +24,16 @@ namespace chainer_compiler {
 
 namespace {
 
+using chainerx::testing::array_detail::ArrayBuilder;
+
 // TODO(mkusumoto): Re-organize dup code.
 void SetInitialGradients(Graph* graph) {
     CHECK_EQ(1UL, graph->output_values().size());
     for (Value* value : graph->output_values()) {
         GraphBuilder gb(graph, "GradIn", value);
         std::vector<float> data(value->type().NumElements(), 1.0);
-        Value* grad = gb.Const(value->type(), data);
+        Value* grad =
+                gb.Const(ArrayBuilder(chainerx::Shape(value->type().dims())).WithData(data).Build().AsType(value->type().dtype().chx()));
         CHECK(value->grad() == nullptr);
         value->set_grad(grad);
     }
@@ -56,7 +59,9 @@ void ExposeParamGradsAsOutputs(Graph* graph, Graph* dest_graph, const std::set<V
         CHECK(false);
     }
 
-    graph->ResetGradients();
+    // TODO(hamaji): Better to give pretty names even in two-phase mode.
+    const bool reset_grad_names = graph == dest_graph;
+    graph->ResetGradients(reset_grad_names);
 }
 
 // TODO(mkusumoto): Re-organize dup code.
@@ -448,8 +453,10 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
         ExposeParamGradsAsOutputs(fwd_graph, bwd_graph, GetParamValues(fwd_graph));
     }
 
-    fwd_graph->ResetGradients();
-    bwd_graph->ResetGradients();
+    // TODO(hamaji): Better to give pretty names even in two-phase mode.
+    const bool reset_grad_names = false;
+    fwd_graph->ResetGradients(reset_grad_names);
+    bwd_graph->ResetGradients(reset_grad_names);
 
     return true;
 }

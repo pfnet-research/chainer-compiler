@@ -34,7 +34,9 @@ chainerx::Array ReshapeOp::RunImpl(ChxVMState* st, const chainerx::Array& data, 
     int to_minus_one_index = -1;
     for (int i = 0; i < s.size(); ++i) {
         int d = s[i];
-        CHECK_NE(0, d) << s;
+        if (d == 0) {
+            d = s[i] = data.shape()[i];
+        }
         if (d < 0) {
             to_minus_one_index = i;
         } else {
@@ -51,7 +53,8 @@ chainerx::Array ReshapeOp::RunImpl(ChxVMState* st, const chainerx::Array& data, 
 }
 
 chainerx::Array ExpandOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Shape& shape) {
-    return chainerx::BroadcastTo(data, shape);
+    chainerx::Shape dst_shape = chainerx::internal::BroadcastShapes(data.shape(), shape);
+    return chainerx::BroadcastTo(data, dst_shape);
 }
 
 chainerx::Array SqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
@@ -61,7 +64,7 @@ chainerx::Array SqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) 
 chainerx::Array UnsqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     chainerx::Shape shape = data.shape();
     for (int d : axes) {
-        d = d < 0 ? shape.size() + d : d;
+        d = d < 0 ? shape.size() + axes.size() + d : d;
         CHECK_LE(d, shape.size()) << "Unsqueezing axis out of bound: " << d;
         shape.insert(shape.begin() + d, 1);
     }
@@ -103,7 +106,9 @@ chainerx::Array TransposeOp::RunImpl(ChxVMState* st, const chainerx::Array& data
     return chainerx::Transpose(data, axes);
 }
 
-chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
+namespace {
+
+chainerx::Array Pad(const chainerx::Array& data, const Int64StackVector& pads, chainerx::Scalar value) {
     CHECK_EQ(data.ndim() * 2, pads.size());
     const chainerx::Shape shape = data.shape();
     chainerx::Shape new_shape = data.shape();
@@ -130,8 +135,31 @@ chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     return result;
 }
 
+}  // namespace
+
+chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
+    return Pad(data, pads, value);
+}
+
+chainerx::Array DynamicPadOp::RunImpl(
+        ChxVMState* st, const chainerx::Array& data, const chainerx::Shape& pads, const absl::optional<StrictScalar>& value) {
+    chainerx::Scalar v(0.0, chainerx::GetKind(data.dtype()));
+    if (value.has_value()) {
+        v = chainerx::Scalar(*value);
+    }
+    return Pad(data, pads, v);
+}
+
+StrictScalar DtypeOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
+    return StrictScalar(chainerx::Dtype::kInt64, static_cast<int64_t>(input.dtype()), true);
+}
+
 chainerx::Array CastOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
     return CastTo(input, static_cast<chainerx::Dtype>(to));
+}
+
+chainerx::Array DynamicCastOp::RunImpl(ChxVMState* st, const chainerx::Array& input, const StrictScalar& to) {
+    return CastTo(input, static_cast<chainerx::Dtype>(static_cast<int64_t>(to)));
 }
 
 chainerx::Array PadBatchSizeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {

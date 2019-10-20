@@ -31,7 +31,8 @@ void FuseSNPEOperations(Graph* graph) {
             Node::kSigmoid,
             Node::kSoftmax,
             Node::kSum,
-            Node::kTanh,
+            // TODO(take-cheeze): Attribute bug in snpe-onnx-to-dlc
+            // Node::kTanh,
             // TODO(take-cheeze): Removed in latest ONNX spec
             // Node::kScaledTanh,
             Node::kClip,
@@ -39,7 +40,7 @@ void FuseSNPEOperations(Graph* graph) {
             Node::kConstant,
             Node::kFlatten,
             Node::kGather,
-            // Node::kPad,
+            Node::kPad,
             Node::kReshape,
             Node::kShape,
             Node::kSlice,
@@ -59,13 +60,40 @@ void FuseSNPEOperations(Graph* graph) {
         }
 
         switch (node.op_type()) {
+            case Node::kMul:
+            case Node::kAdd:
+                if (!node.input(1)->initializer()) {
+                    return false;
+                }
+                break;
+            case Node::kMaxPool:
+                if (node.auto_pad() != "NOTSET") {
+                    return false;
+                }
+                break;
+            case Node::kRNN:
+                if (!node.input(1)->initializer()) {
+                    return false;
+                }
+                break;
             case Node::kConv:
-                if (!node.input(1)->initializer() || node.auto_pad() == "NOTSET") {
+                if (!node.input(1)->initializer() || node.auto_pad() != "NOTSET") {
+                    return false;
+                }
+                if (node.inputs().size() == 3 && !node.input(2)->initializer()) {
+                    return false;
+                }
+                break;
+            case Node::kMatMul:
+                if (!node.input(1)->initializer()) {
                     return false;
                 }
                 break;
             case Node::kConvTranspose:
                 if (!node.input(1)->initializer()) {
+                    return false;
+                }
+                if (node.inputs().size() == 3 && !node.input(2)->initializer()) {
                     return false;
                 }
                 break;

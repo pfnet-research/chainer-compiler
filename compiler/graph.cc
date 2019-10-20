@@ -248,6 +248,10 @@ void Graph::SortNodesTopologically() {
     nodes_.swap(next_nodes);
 }
 
+std::vector<std::pair<Value*, int>> Graph::GetTopologicallySortedValuesWithDistance() const {
+    return SortValuesTopologicallyWithDistance(GetLiveNodes(), input_values(), true);
+}
+
 std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Value*>& output_values) const {
     std::queue<Node*> q;
     for (const Value* value : output_values) {
@@ -341,13 +345,22 @@ void Graph::InferShapes() {
     all_values_.clear();
     nodes_.clear();
     nodes_buf_.clear();
-    onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
+    // TODO(hamaji): Probably, we can remove this try-catch by passing
+    // appropriate opset_imports.
+    try {
+        onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
+    } catch (const std::runtime_error& e) {
+        std::cerr << "WARNING: Error during shape inference: " << e.what() << std::endl;
+    }
     Construct(xgraph);
 }
 
-void Graph::ResetGradients() {
+void Graph::ResetGradients(bool reset_grad_names) {
     for (const auto& v : all_values()) {
         if (Value* gv = v->grad()) {
+            if (reset_grad_names && v->IsTemp()) {
+                gv->ResetName("grad@" + v->name());
+            }
             gv->set_type(new Type(v->type()));
             v->set_grad(nullptr);
         }

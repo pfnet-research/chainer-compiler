@@ -347,7 +347,7 @@ def TyChainerVariable(dtype, ndim=None, shape=None):
     return TyTensor(dtype, TensorKind.chainer_variable, ndim=ndim, shape=shape)
 
 
-# ------------------------ TypeChecker internal types --------------------------
+# ---------------------- InferenceEngine internal types ------------------------
 
 var_counter = 0
 

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <chainerx/array.h>
+#include <chainerx/testing/array.h>
 #include <compiler/node.h>
 #include <compiler/onnx.h>
 
@@ -43,13 +44,10 @@ public:
     Node* MOp(const onnx::NodeProto& base, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 
     Value* Const(const chainerx::Array& ary, Value* value = nullptr);
-
     template <class T>
-    Value* Const(const Type& type, const std::vector<T>& data, Value* value = nullptr);
-
-    template <class T>
-    Value* Const(const Type& type, const std::initializer_list<T>& data, Value* value = nullptr) {
-        return Const(type, std::vector<T>{data}, value);
+    Value* ScalarConst(const T& v, const Dtype& t, Value* value = nullptr) {
+        using chainerx::testing::array_detail::ArrayBuilder;
+        return Const(ArrayBuilder({}).WithData<T>({v}).Build().AsType(t.chx()), value);
     }
 
     Value* Param(const chainerx::Array& ary, Value* base_value);

@@ -1,6 +1,7 @@
 #include "compiler/chxvm/simple_node_emitter.h"
 
 #include <common/log.h>
+#include <common/strutil.h>
 #include <compiler/chxvm/chxvm_value.h>
 #include <compiler/chxvm/value_id_manager.h>
 #include <compiler/flops.h>
@@ -298,15 +299,21 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
     } else if (node.op_type() == Node::kUnsqueeze) {
         CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
-        EMIT(Unsqueeze, out(0), in(0), node.axes());
+        std::vector<int64_t> axes = node.axes();
+        if (!axes.empty()) {
+            std::sort(axes.begin(), axes.end());
+            if (axes.front() < 0 && axes.back() > 0) {
+                CHECK(false) << "Unsqueeze with negative/positive axes mixed is not supported: " << JoinString(node.axes());
+            }
+        }
+        EMIT(Unsqueeze, out(0), in(0), axes);
     } else if (node.op_type() == Node::kMatMul) {
         CHECK_EQ(2UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
         EMIT(MatMul, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kGemm) {
-        CHECK_EQ(3UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
-        EMIT(Gemm, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
+        EMIT(Gemm, out(0), in(0), in(1), oin(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
     } else if (node.op_type() == Node::kLRN) {
         EMIT(LRN, out(0), oout(1), in(0), node.alpha(), node.beta(), node.bias(), node.size());
     } else if (node.op_type() == Node::kChainerLRNGrad) {
@@ -319,16 +326,21 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
     } else if (node.op_type() == Node::kResize) {
         CHECK_EQ("nearest", node.mode()) << "Only nearest upsampling is supported";
         // TODO(take-cheeze): Handle Resize-11
-        CHECK_EQ(3UL, node.inputs().size());
+        CHECK(2UL <= node.inputs().size() && node.inputs().size() <= 3UL);
         CHECK_EQ(1UL, node.outputs().size());
-        EMIT(Resize, out(0), in(0), in(2));
+        EMIT(Resize, out(0), in(0), node.inputs().size() == 2 ? in(1) : in(2));
     } else if (node.op_type() == Node::kChainerResizeGrad) {
         EMIT(ResizeGrad, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kPad) {
-        CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
-        CHECK_EQ("constant", node.mode()) << "Only constant padding is supported";
-        EMIT(Pad, out(0), in(0), node.pads(), node.value());
+        if (node.inputs().size() == 1) {
+            CHECK_EQ("constant", node.mode()) << "Only constant padding is supported";
+            EMIT(Pad, out(0), in(0), node.pads(), node.value());
+        } else {
+            CHECK_EQ(0, node.pads().size());
+            CHECK_EQ(0.0, node.value());
+            EMIT(DynamicPad, out(0), in(0), in(1), oin(2));
+        }
     } else if (node.op_type() == Node::kMaxPool) {
         CHECK_EQ(1UL, node.inputs().size());
         if (node.outputs().size() != 1) {
@@ -400,6 +412,10 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
         EMIT(Cast, out(0), in(0), node.to());
+    } else if (node.op_type() == Node::kChainerDynamicCast) {
+        EMIT(DynamicCast, out(0), in(0), in(1));
+    } else if (node.op_type() == Node::kChainerDtype) {
+        EMIT(Dtype, out(0), in(0));
     } else if (node.op_type() == Node::kOneHot) {
         EMIT(OneHot, out(0), in(0), in(1), in(2), node.axis());
     } else if (node.op_type() == Node::kConstantFill) {
@@ -541,17 +557,15 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         std::vector<int> ins;
         for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
         EMIT(Print, ins);
-    } else if (node.op_type() == Node::kChainerSequenceCreate || node.op_type() == Node::kSequenceConstruct) {
+    } else if (node.op_type() == Node::kSequenceConstruct) {
         std::vector<int> ins;
         for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
         EMIT(SequenceCreate, out(0), ins);
-    } else if (node.op_type() == Node::kChainerSequenceSize) {
-        EMIT(SequenceSize, out(0), in(0));
     } else if (node.op_type() == Node::kSequenceLength) {
         EMIT(SequenceSize, out(0), in(0));
     } else if (node.op_type() == Node::kChainerSequenceLengths) {
         EMIT(SequenceLengths, out(0), in(0));
-    } else if (node.op_type() == Node::kChainerSequenceAppend || node.op_type() == Node::kSequenceInsert) {
+    } else if (node.op_type() == Node::kSequenceInsert) {
         ChxVMValue o(out(0));
         if (node.inputs().size() == 3) {
             EMIT(SequenceInsert, o, in(0), in(1), in(2));
@@ -579,30 +593,22 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
                 EMIT(SequencePop, out(1), o0.id());
             }
         }
-    } else if (node.op_type() == Node::kChainerSequenceLookup || node.op_type() == Node::kSequenceAt) {
+    } else if (node.op_type() == Node::kSequenceAt) {
         EMIT(SequenceLookup, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kChainerSequenceUpdate) {
         EMIT(SequenceUpdate, out(0), in(0), in(1), in(2));
     } else if (node.op_type() == Node::kChainerSequenceGetSlice) {
         EMIT(SequenceGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
-    } else if (node.op_type() == Node::kChainerSequenceLookupGrad) {
+    } else if (node.op_type() == Node::kChainerSequenceAtGrad) {
         EMIT(SequenceLookupGrad, out(0), in(0), in(1), in(2));
     } else if (node.op_type() == Node::kChainerSequenceGetSliceGrad) {
         EMIT(SequenceGetSliceGrad, out(0), in(0), in(1), oin(2), oin(3), oin(4));
-    } else if (node.op_type() == Node::kChainerSequenceStack) {
-        EMIT(SequenceStack, out(0), in(0), node.axis());
-    } else if (node.op_type() == Node::kChainerSequenceConcat) {
-        EMIT(SequenceConcat, out(0), oout(1), in(0), node.axis());
     } else if (node.op_type() == Node::kConcatFromSequence) {
         if (node.new_axis()) {
             EMIT(SequenceStack, out(0), in(0), node.axis());
         } else {
             EMIT(SequenceConcat, out(0), oout(1), in(0), node.axis());
         }
-    } else if (node.op_type() == Node::kChainerSequenceSplitAxis) {
-        EMIT(SequenceSplitAxis, out(0), in(0), in(1), node.axis());
-    } else if (node.op_type() == Node::kChainerSequenceSeparate) {
-        EMIT(SequenceSeparate, out(0), in(0), node.axis());
     } else if (node.op_type() == Node::kSplitToSequence) {
         if (node.keepdims()) {
             EMIT(SequenceSplitAxis, out(0), in(0), oin(1), node.axis());
@@ -693,6 +699,12 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
         EMIT(Flatten, out(0), in(0), node.axis());
+    } else if (node.op_type() == Node::kChainerBatchNormalizationExpandedStatsShape) {
+        EMIT(BatchNormalizationExpandedStatsShape, out(0), in(0));
+    } else if (node.op_type() == Node::kCumSum) {
+        CHECK_EQ(0, node.exclusive());
+        CHECK_EQ(0, node.reverse());
+        EMIT(CumSum, out(0), in(0), oin(1));
     } else {
         CHECK(false) << "Unsupported op: " << node.op_type();
     }

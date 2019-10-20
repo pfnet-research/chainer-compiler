@@ -219,10 +219,10 @@ onnx::ModelProto load_model_proto(const uint8_t* onnx_data, int64_t size) {
 
 }  // namespace
 
-menoh_error_code menoh_make_model_data_from_onnx_data_on_memory(const uint8_t* onnx_data, int64_t size, menoh_model_data_handle* dst_handle) {
+menoh_error_code menoh_make_model_data_from_onnx_data_on_memory(
+        const uint8_t* onnx_data, int64_t size, menoh_model_data_handle* dst_handle) {
     return check_error([&]() {
-            *dst_handle =
-                    std::make_unique<menoh_model_data>(menoh_model_data{load_model_proto(onnx_data, size).graph()}).release();
+        *dst_handle = std::make_unique<menoh_model_data>(menoh_model_data{load_model_proto(onnx_data, size).graph()}).release();
         return menoh_error_code_success;
     });
 }
@@ -491,7 +491,8 @@ menoh_error_code menoh_build_variable_profile_table(
             auto xgraph_ptr = std::make_unique<onnx::GraphProto>();
             graph->ToONNX(xgraph_ptr.get());
             *dst_handle = std::make_unique<menoh_variable_profile_table>(
-                                  menoh_variable_profile_table{std::move(xgraph_ptr), builder->input_profiles, std::move(output_profiles), is_dynamic})
+                                  menoh_variable_profile_table{
+                                          std::move(xgraph_ptr), builder->input_profiles, std::move(output_profiles), is_dynamic})
                                   .release();
         }
         return menoh_error_code_success;
@@ -625,13 +626,18 @@ menoh_error_code menoh_build_model(
         const char* backend_config,
         menoh_model_handle* dst_model_handle) {
     return check_error([&]() {
-        auto j = nlohmann::json::parse(backend_config);
+        CHECK(!backend_name || std::string(backend_name) == "" || std::string(backend_name) == "chxvm")
+                << "backend_name must be chxvm or empty";
+
+        auto cfg = nlohmann::json::parse(backend_config);
+        auto compiler_j = value_or(cfg, "compiler", nlohmann::json::object_t{});
+        auto runtime_j = value_or(cfg, "runtime", nlohmann::json::object_t{});
 
 #include <menoh/json_args.inc>  // initialize global flags with `j`
 
         auto ctx = std::make_unique<chainerx::Context>();
         chainerx::ContextScope context_scope(*ctx);
-        const std::string device_spec = value_or(j, "device", std::string(""));
+        const std::string device_spec = value_or(runtime_j, "device", std::string(""));
         chainerx::Device* device = nullptr;
         if (device_spec.empty()) {
             device = &chainerx::GetDefaultDevice();
@@ -685,11 +691,11 @@ menoh_error_code menoh_build_model(
             }
 
             chainer_compiler::runtime::ChxVMOptions chxvm_opts;
-            chxvm_opts.trace_level = value_or(j, "trace_level", 0);
-            chxvm_opts.is_training = value_or(j, "is_training", false);
-            chxvm_opts.check_types = value_or(j, "check_types", false);
-            chxvm_opts.check_nans = value_or(j, "check_nans", false);
-            chxvm_opts.check_infs = value_or(j, "check_infs", false);
+            chxvm_opts.trace_level = value_or(runtime_j, "trace_level", 0);
+            chxvm_opts.is_training = value_or(runtime_j, "is_training", false);
+            chxvm_opts.check_types = value_or(runtime_j, "check_types", false);
+            chxvm_opts.check_nans = value_or(runtime_j, "check_nans", false);
+            chxvm_opts.check_infs = value_or(runtime_j, "check_infs", false);
 
             std::unordered_map<std::string, menoh_impl::array_profile> variable_profiles(
                     builder->input_profile_table.begin(), builder->input_profile_table.end());

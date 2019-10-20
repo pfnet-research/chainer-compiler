@@ -1,7 +1,7 @@
-#include <chrono>
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <chrono>
 
 #include <algorithm>
 #include <chrono>
@@ -63,7 +63,6 @@ int main(int argc, char** argv) {
 
     cmdline::parser args;
     // args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
-    args.add<std::string>("backend", '\0', "The name of the backend", false, "chxvm");
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
     args.add<std::string>("device", 'd', "ChainerX device to be used", false);
@@ -96,16 +95,9 @@ int main(int argc, char** argv) {
     args.add("skip_shape_inference", '\0', "Skip shape inference");
     args.add("strip_chxvm", '\0', "Strip ChxVM proto");
     */
-    args.add("trace", 't', "Tracing mode");
-    args.add("verbose", 'v', "Verbose mode");
     args.add<std::string>("verbose_ops", '\0', "Show verbose outputs for specific ops", false);
-    args.add("quiet", 'q', "Quiet mode");
-    chainer_compiler::runtime::AddCompilerFlags(&args);
-    args.parse_check(argc, argv);
-    chainer_compiler::runtime::ApplyCompilerFlags(args);
-    chainer_compiler::g_compiler_log |= args.exist("trace") || args.exist("verbose");
-    chainer_compiler::g_backend_name = args.get<std::string>("backend");
-    chainer_compiler::runtime::g_quiet = args.exist("quiet");
+    chainer_compiler::runtime::ParseArgs(&args, argc, argv);
+    chainer_compiler::runtime::SetupGlobals(args);
 
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
@@ -129,7 +121,7 @@ int main(int argc, char** argv) {
         QFAIL() << "Unknown extra arguments specified";
     }
     if (onnx_path.empty()) {
-        onnx_path = test_path + "/model.onnx";
+        onnx_path = chainer_compiler::runtime::OnnxPathFromTestDir(test_path);
     }
     LOG() << "Loading model..." << std::endl;
     menoh::model_data model_data = menoh::make_model_data_from_onnx(onnx_path);
@@ -186,7 +178,8 @@ int main(int argc, char** argv) {
             auto var = std::make_shared<chainer_compiler::runtime::ChxVMVar>(std::move(arr));
             outputs.emplace(p.first, std::move(var));
         }
-        VerifyOutputs(outputs, *test_case, args, !args.exist("no_check_values"), args.exist("always_show_diff"));
+        // TODO(hamaji): Set `ordered_output_names`.
+        VerifyOutputs(outputs, *test_case, args, !args.exist("no_check_values"), args.exist("always_show_diff"), {});
 
         int iterations = args.get<int>("iterations");
         if (iterations > 1) {

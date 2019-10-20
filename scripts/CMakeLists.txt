@@ -4,7 +4,7 @@ set(CHAINER_COMPILER_TOOLS_DIR ${CHAINER_COMPILER_ROOT_DIR}/tools)
 function(gen_onnx_by_onnx_chainer_ name_)
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${name_}_stamp
-  COMMAND ${ENV_SET} PYTHONPATH=third_party/onnx-chainer ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen_${name_}.py && ${TOUCH} ${CMAKE_CURRENT_BINARY_DIR}/${name_}_stamp
+  COMMAND ${ENV_SET} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen_${name_}.py && ${TOUCH} ${CMAKE_CURRENT_BINARY_DIR}/${name_}_stamp
   MAIN_DEPENDENCY gen_${name_}.py
   DEPENDS ${ONNX_CHAINER_DEPS}
   WORKING_DIRECTORY ${CHAINER_COMPILER_ROOT_DIR}

@@ -29,7 +29,7 @@ chainerx::Array HardmaxOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     }
     chainerx::Array r = chainerx::ArgMax(chainerx::Reshape(x, shape), 1);
     chainerx::Array e = chainerx::Eye(shape[1], absl::nullopt, absl::nullopt, x.dtype());
-    return chainerx::Reshape(chainerx::Take(e, r, 0), x.shape());
+    return chainerx::Reshape(chainerx::Take(e, r, 0, chainerx::IndexBoundsMode::kDefault), x.shape());
 }
 
 }  // namespace runtime

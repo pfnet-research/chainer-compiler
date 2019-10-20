@@ -8,6 +8,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <compiler/flags.h>
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
@@ -236,7 +237,7 @@ void PowGradFn(GradientOpContext* gc) {
     Value* y = gc->y(0);
     Value* x0 = gc->x(0);
     Value* x1 = gc->x(1);
-    Value* one = gb.Const(Type(GetFloatDtype(gc->NoRetainX(0)), {}), {1.0});
+    Value* one = gb.ScalarConst(1.0, GetFloatDtype(gc->NoRetainX(0)));
     Value* tmp;
 
     // gx1 = x1 * (x0 ** (x1 - one)) * gy
@@ -254,7 +255,7 @@ void PowGradFn(GradientOpContext* gc) {
 void SigmoidGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* gy = gc->gy(0);
-    Value* one = gb.Const(Type(GetFloatDtype(gc->NoRetainX(0)), {}), {1.0});
+    Value* one = gb.ScalarConst(1.0, GetFloatDtype(gc->NoRetainX(0)));
     Value* t0 = gb.Op(Node::kMul, {gy, gc->y(0)});
     Value* t1 = gb.Op(Node::kSub, {one, gc->y(0)});
     gc->GradOp(Node::kMul, 0, {t0, t1});
@@ -268,13 +269,45 @@ void EluGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* y = gc->y(0);
     Value* gy = gc->gy(0);
-    Value* zero = gb.Const(Type(GetFloatDtype(y), {}), {0.0});
+    Value* zero = gb.ScalarConst(0.0, GetFloatDtype(y));
     Value* cond = gb.Op(Node::kGreater, {gc->x(0), zero});
-    Value* alpha = gb.Const(Type(GetFloatDtype(y), {}), {gc->node()->alpha()});
+    Value* alpha = gb.ScalarConst(gc->node()->alpha(), GetFloatDtype(y));
 
     Value* tmp = gb.Op(Node::kAdd, {y, alpha});
     tmp = gb.Op(Node::kMul, {tmp, gy});
     gc->GradOp(Node::kWhere, 0, {cond, gy, tmp});
+}
+
+void ClipGradFn(GradientOpContext* gc) {
+    CHECK_NE(1, gc->node()->inputs().size()) << "Clip must be upgraded to Clip-11";
+    GraphBuilder gb{gc->builder(0)};
+    Value* x = gc->x(0);
+    Value* cond = nullptr;
+    if (gc->node()->inputs().size() > 1 && !gc->node()->input(1)->IsNull()) {
+        cond = gb.Op(Node::kGreater, {gc->x(1), x});
+    }
+    if (gc->node()->inputs().size() > 2 && !gc->node()->input(2)->IsNull()) {
+        Value* c = gb.Op(Node::kGreater, {x, gc->x(2)});
+        if (cond) {
+            cond = gb.Op(Node::kOr, {cond, c});
+        } else {
+            cond = c;
+        }
+    }
+
+    CHECK(cond);
+    Value* tmp = gb.Op(Node::kNot, {cond});
+    tmp = gb.Op(Node::kCast, {tmp});
+    Dtype dtype = x->type().dtype();
+    CHECK_NE(Dtype::kUnknown, dtype);
+    tmp->producer()->set_to(dtype);
+    gc->GradOp(Node::kMul, 0, {gc->gy(0), tmp});
+}
+
+void CastGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* dtype = gb.Op(Node::kChainerDtype, {gc->x(0)});
+    gc->GradOp(Node::kChainerDynamicCast, 0, {gc->gy(0), dtype});
 }
 
 void SqrtGradFn(GradientOpContext* gc) {
@@ -285,7 +318,7 @@ void SqrtGradFn(GradientOpContext* gc) {
 
 void TanhGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* one = gb.Const(Type(GetFloatDtype(gc->NoRetainX(0)), {}), {1.0});
+    Value* one = gb.ScalarConst(1.0f, GetFloatDtype(gc->NoRetainX(0)));
     Value* gy = gc->gy(0);
     Value* t0 = gb.Op(Node::kMul, {gc->y(0), gc->y(0)});
     Value* t1 = gb.Op(Node::kSub, {one, t0});
@@ -311,7 +344,7 @@ void SelectItemGradFn(GradientOpContext* gc) {
 void GatherGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* t0 = gb.Op(Node::kShape, {gc->x(0)});
-    gc->GradOp(Node::kChainerGatherGrad, 0, {gc->gy(0), gc->x(1), t0});
+    gc->GradOp(Node::kChainerGatherGrad, 0, {gc->gy(0), gc->x(1), t0})->producer()->set_axis(gc->node()->axis());
 }
 
 void ExpandGradFn(GradientOpContext* gc) {
@@ -377,16 +410,29 @@ void ReduceSumGradFn(GradientOpContext* gc) {
 
 void ReduceMeanGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = gc->gy(0);
     Value* shape = gb.Op(Node::kShape, {gc->x(0)});
-    Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
-    zero->producer()->set_chainer_host(true);
-    Value* batch_size_int = gb.Op(Node::kGather, {shape, zero});
-    Value* batch_size = gb.Op(Node::kCast, {batch_size_int});
-    batch_size->producer()->set_to(Dtype::kFloat32);
-    Value* divided = gb.Op(Node::kDiv, {gy, batch_size});
-    gc->GradOp(Node::kExpand, 0, {divided, shape});
+
+    Value* num_elements = nullptr;
+    for (int axis_value : gc->node()->axes()) {
+        Value* axis = gb.ScalarConst(axis_value, Dtype::kInt64);
+        axis->producer()->set_chainer_host(true);
+        Value* dim = gb.Op(Node::kGather, {shape, axis});
+        if (num_elements) {
+            num_elements = gb.Op(Node::kMul, {num_elements, dim});
+        } else {
+            num_elements = dim;
+        }
+    }
+
+    Dtype dtype = gc->NoRetainX(0)->type().dtype();
+    CHECK_NE(Dtype::kUnknown, dtype);
+    num_elements = gb.Op(Node::kCast, {num_elements});
+    num_elements->producer()->set_to(dtype);
+    Value* divided = gb.Op(Node::kDiv, {gy, num_elements});
+
+    gy = ReduceGrad(gc->node(), &gb, divided);
+    gc->GradOp(Node::kExpand, 0, {gy, shape});
 }
 
 void GemmGradFn(GradientOpContext* gc) {
@@ -624,12 +670,52 @@ void SoftmaxGradFn(GradientOpContext* gc) {
 
 void BatchNormalizationGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
+    if (!g_fixed_batch_norm) {
+        Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
+        Value* gy = gc->gy(0);
+        Value* gx0 = gc->AddGradValue(0);
+        Value* gx1 = gc->AddGradValue(1);
+        Value* gx2 = gc->AddGradValue(2);
+        gb.MOp(Node::kChainerBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2});
+        return;
+    }
+
+    Value* x = gc->x(0);
+    Value* gamma = gc->x(1);
+    Value* mean = gc->x(3);
+    Value* var = gc->x(4);
     Value* gy = gc->gy(0);
-    Value* gx0 = gc->AddGradValue(0);
-    Value* gx1 = gc->AddGradValue(1);
-    Value* gx2 = gc->AddGradValue(2);
-    gb.MOp(Node::kChainerBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2});
+
+    Value* original_shape = gb.Op(Node::kShape, {gamma});
+    Value* expanded_shape = gb.Op(Node::kChainerBatchNormalizationExpandedStatsShape, {x});
+
+    gamma = gb.Op(Node::kReshape, {gamma, expanded_shape});
+    mean = gb.Op(Node::kReshape, {mean, expanded_shape});
+    var = gb.Op(Node::kReshape, {var, expanded_shape});
+
+    Value* eps = gb.ScalarConst(gc->node()->epsilon(), x->type().dtype());
+    Value* inv_var = gb.Op(Node::kReciprocal, {gb.Op(Node::kAdd, {var, eps})});
+    Value* inv_std = gb.Op(Node::kSqrt, {inv_var});
+    Value* gamma_over_std = gb.Op(Node::kMul, {gamma, inv_std});
+
+    Value* x_hat = gb.Op(Node::kMul, {gb.Op(Node::kSub, {x, mean}), inv_std});
+
+    gc->GradOp(Node::kMul, 0, {gamma_over_std, gy});
+
+    Value* ggamma = gb.Op(Node::kChainerReduceSumTo, {gb.Op(Node::kMul, {x_hat, gy}), expanded_shape});
+    gc->GradOp(Node::kReshape, 1, {ggamma, original_shape});
+
+    Value* gbeta = gb.Op(Node::kChainerReduceSumTo, {gy, expanded_shape});
+    gc->GradOp(Node::kReshape, 2, {gbeta, original_shape});
+
+    Value* gmean = gb.Op(Node::kNeg, {gb.Op(Node::kMul, {gamma_over_std, gbeta})});
+    gc->GradOp(Node::kReshape, 3, {gmean, original_shape});
+
+    Value* tmp = gb.ScalarConst(-0.5, x->type().dtype());
+    tmp = gb.Op(Node::kMul, {tmp, inv_var});
+    tmp = gb.Op(Node::kMul, {tmp, gamma});
+    Value* gvar = gb.Op(Node::kMul, {tmp, ggamma});
+    gc->GradOp(Node::kReshape, 4, {gvar, original_shape});
 }
 
 void LRNGradFn(GradientOpContext* gc) {
@@ -687,7 +773,7 @@ void OutputIterationCount(Graph* graph, Node* loop) {
 
     {
         GraphBuilder gb(graph, "LoopGradIterCnt", loop->output(0));
-        Value* input_iter = gb.Const(Type(Dtype::kInt64, {}), {0});
+        Value* input_iter = gb.ScalarConst(0, Dtype::kInt64);
         loop->AddInput(input_iter);
         Value* output_iter = graph->AddValue(gb.GenName());
         loop->AddOutput(output_iter, num_states);
@@ -696,7 +782,7 @@ void OutputIterationCount(Graph* graph, Node* loop) {
     {
         Graph* body = loop->body().get();
         GraphBuilder gb(body, "LoopGradIterCntBody", loop->output(0));
-        Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
+        Value* one = gb.ScalarConst(1, Dtype::kInt64);
         Value* input_cnt = body->AddInputValue(gb.GenName(), Type(Dtype::kInt64, {}));
         Value* output_cnt = body->AddOutputValue(gb.GenName(), Type(Dtype::kInt64, {}));
         gb.Op(Node::kAdd, {input_cnt, one}, {output_cnt});
@@ -771,7 +857,7 @@ void LoopGradFn(GradientOpContext* gc) {
         GenerateGradientNodes(body, grad_graph.get(), input_values, ys, &retained);
 
         Value* output_cond = grad_graph->AddOutputValue(gb.GenName(), Type(Dtype::kBool, {}));
-        gb.Const(Type(Dtype::kBool, {}), {1}, output_cond);
+        gb.ScalarConst(true, Dtype::kBool, output_cond);
 
         for (int i = 0; i < num_states; ++i) {
             Value* x = body->input_values()[i + 2];
@@ -797,7 +883,7 @@ void LoopGradFn(GradientOpContext* gc) {
             Value* rv = p.first;
             Value* in = body->AddInputValue("bp_push_i@" + rv->name(), Type(Type::Kind::kSequence));
             Value* out = body->AddOutputValue("bp_push_o@" + rv->name(), Type(Type::Kind::kSequence));
-            gb.Op(Node::kChainerSequenceAppend, {in, rv}, out);
+            gb.Op(Node::kSequenceInsert, {in, rv}, out);
         }
     }
 
@@ -806,7 +892,7 @@ void LoopGradFn(GradientOpContext* gc) {
     {
         GraphBuilder gb{gc->src_builder(0)};
         for (size_t i = 0; i < num_retained; ++i) {
-            Value* stack_in = gb.Op(Node::kChainerSequenceCreate, {});
+            Value* stack_in = gb.Op(Node::kSequenceConstruct, {});
             loop->AddInput(stack_in);
         }
         for (size_t i = 0; i < num_retained; ++i) {
@@ -846,7 +932,9 @@ void LoopGradFn(GradientOpContext* gc) {
         backward_loop->set_body(grad_graph.release());
     }
 
-    body->ResetGradients();
+    // TODO(hamaji): Better to give pretty names even in subgraphs.
+    const bool reset_grad_names = false;
+    body->ResetGradients(reset_grad_names);
 }
 
 void IfGradFn(GradientOpContext* gc) {
@@ -967,28 +1055,39 @@ void IfGradFn(GradientOpContext* gc) {
         backward_cond->set_else_branch(else_grad_graph.release());
     }
 
-    then_graph->ResetGradients();
-    else_graph->ResetGradients();
+    // TODO(hamaji): Better to give pretty names even in subgraphs.
+    const bool reset_grad_names = false;
+    then_graph->ResetGradients(reset_grad_names);
+    else_graph->ResetGradients(reset_grad_names);
 }
 
-void SequenceStackGradFn(GradientOpContext* gc) {
+void ConcatFromSequenceGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
-    Value* gy = gc->gy(0);
-    gc->GradOp(Node::kChainerSequenceSeparate, 0, {gy})->producer()->set_axis(node->axis());
+    if (node->new_axis()) {
+        Value* gy = gc->gy(0);
+        gc->GradOp(Node::kSplitToSequence, 0, {gy})->producer()->set_axis(node->axis())->set_keepdims(false);
+    } else {
+        GraphBuilder gb{gc->builder(0)};
+        Node* node = gc->node();
+        Value* indices = gc->AddOutput(Type(Dtype::kInt64));
+        gc->GradOp(Node::kSplitToSequence, 0, {gc->gy(0), indices})->producer()->set_axis(node->axis());
+    }
 }
 
-void SequenceCreateGradFn(GradientOpContext* gc) {
+void SequenceConstructGradFn(GradientOpContext* gc) {
     Value* gy = gc->gy(0);
     const Node* node = gc->node();
     for (int64_t i = 0; i < node->inputs().size(); ++i) {
         GraphBuilder gb{gc->builder(i)};
-        Value* index = gb.Const(Type(Dtype::kInt64, {}), {i});
-        gc->GradOp(Node::kChainerSequenceLookup, i, {gy, index});
+        Value* index = gb.ScalarConst(i, Dtype::kInt64);
+        gc->GradOp(Node::kSequenceAt, i, {gy, index});
     }
 }
 
-void SequenceAppendGradFn(GradientOpContext* gc) {
+void SequenceInsertGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
+    // TODO(hamaji): Implement this.
+    CHECK_EQ(2, gc->node()->inputs().size()) << "backprop for SequenceInsert with 3 inputs is not supported yet";
     Value* gy = gc->gy(0);
     std::vector<Value*> gxs;
     for (int i = 0; i < 2; ++i) {
@@ -1001,29 +1100,21 @@ void SequenceExtendGradFn(GradientOpContext* gc) {
     Value* gy = gc->gy(0);
     {
         GraphBuilder gb{gc->builder(0)};
-        Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
+        Value* zero = gb.ScalarConst(0, Dtype::kInt64);
         Value* len = gb.Op(Node::kChainerGenericLen, {gc->x(0)});
         gc->GradOp(Node::kChainerSequenceGetSlice, 0, {gy, zero, len});
     }
     {
         GraphBuilder gb{gc->builder(1)};
-        Value* minus_one = gb.Const(Type(Dtype::kInt64, {}), {-1});
+        Value* minus_one = gb.ScalarConst(-1, Dtype::kInt64);
         Value* len = gb.Op(Node::kChainerGenericLen, {gc->x(0)});
         gc->GradOp(Node::kChainerSequenceGetSlice, 1, {gy, len, minus_one});
     }
 }
 
-void SequenceConcatGradFn(GradientOpContext* gc) {
-    GraphBuilder gb{gc->builder(0)};
+void SplitToSequenceGradFn(GradientOpContext* gc) {
     Node* node = gc->node();
-    Value* indices = gc->AddOutput(Type(Dtype::kInt64));
-    gc->GradOp(Node::kChainerSequenceSplitAxis, 0, {gc->gy(0), indices})->producer()->set_axis(node->axis());
-}
-
-void SequenceSplitAxisGradFn(GradientOpContext* gc) {
-    GraphBuilder gb{gc->builder(0)};
-    Node* node = gc->node();
-    gc->GradOp(Node::kChainerSequenceConcat, 0, {gc->gy(0)})->producer()->set_axis(node->axis());
+    gc->GradOp(Node::kConcatFromSequence, 0, {gc->gy(0)})->producer()->set_axis(node->axis())->set_new_axis(!node->keepdims());
 }
 
 void SequencePadGradFn(GradientOpContext* gc) {
@@ -1037,23 +1128,18 @@ void SequenceUnpadGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kChainerSequencePad, 0, {gc->gy(0)});
 }
 
-void SequenceSeparateGradFn(GradientOpContext* gc) {
-    const Node* node = gc->node();
-    gc->GradOp(Node::kChainerSequenceStack, 0, {gc->gy(0)})->producer()->set_axis(node->axis());
-}
-
-void SequenceLookupGradFn(GradientOpContext* gc) {
+void SequenceAtGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     GraphBuilder sgb{gc->src_builder(0)};
-    Value* size = sgb.Op(Node::kChainerSequenceSize, {gc->NoRetainX(0)});
+    Value* size = sgb.Op(Node::kSequenceLength, {gc->NoRetainX(0)});
     size = gc->Retain(size);
-    gc->GradOp(Node::kChainerSequenceLookupGrad, 0, {gc->gy(0), size, gc->x(1)});
+    gc->GradOp(Node::kChainerSequenceAtGrad, 0, {gc->gy(0), size, gc->x(1)});
 }
 
 void SequenceGetSliceGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     GraphBuilder sgb{gc->src_builder(0)};
-    Value* size = sgb.Op(Node::kChainerSequenceSize, {gc->NoRetainX(0)});
+    Value* size = sgb.Op(Node::kSequenceLength, {gc->NoRetainX(0)});
     size = gc->Retain(size);
     std::vector<Value*> inputs = {gc->gy(0), size};
     for (size_t i = 1; i < gc->node()->inputs().size(); ++i) {
@@ -1113,6 +1199,8 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kElu, &EluGradFn);
         register_grad_fn(Node::kSqrt, &SqrtGradFn);
         register_grad_fn(Node::kTanh, &TanhGradFn);
+        register_grad_fn(Node::kClip, &ClipGradFn);
+        register_grad_fn(Node::kCast, &CastGradFn);
 
         register_grad_fn(Node::kIdentity, &IdentityGradFn);
         register_grad_fn(Node::kReshape, &ReshapeGradFn);
@@ -1162,16 +1250,15 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kDynamicSlice, &DynamicSliceGradFn);
         register_grad_fn(Node::kChainerGetItem, &GetItemGradFn);
 
-        register_grad_fn(Node::kChainerSequenceCreate, &SequenceCreateGradFn);
-        register_grad_fn(Node::kChainerSequenceStack, &SequenceStackGradFn);
-        register_grad_fn(Node::kChainerSequenceAppend, &SequenceAppendGradFn);
+        register_grad_fn(Node::kConcatFromSequence, &ConcatFromSequenceGradFn);
+        register_grad_fn(Node::kSequenceAt, &SequenceAtGradFn);
+        register_grad_fn(Node::kSequenceConstruct, &SequenceConstructGradFn);
+        register_grad_fn(Node::kSequenceInsert, &SequenceInsertGradFn);
+        register_grad_fn(Node::kSequenceLength, &DoNothingGradFn);
+        register_grad_fn(Node::kSplitToSequence, &SplitToSequenceGradFn);
         register_grad_fn(Node::kChainerSequenceExtend, &SequenceExtendGradFn);
-        register_grad_fn(Node::kChainerSequenceConcat, &SequenceConcatGradFn);
-        register_grad_fn(Node::kChainerSequenceSplitAxis, &SequenceSplitAxisGradFn);
         register_grad_fn(Node::kChainerSequencePad, &SequencePadGradFn);
         register_grad_fn(Node::kChainerSequenceUnpad, &SequenceUnpadGradFn);
-        register_grad_fn(Node::kChainerSequenceSeparate, &SequenceSeparateGradFn);
-        register_grad_fn(Node::kChainerSequenceLookup, &SequenceLookupGradFn);
         register_grad_fn(Node::kChainerSequenceGetSlice, &SequenceGetSliceGradFn);
     }
 

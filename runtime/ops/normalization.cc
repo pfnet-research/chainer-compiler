@@ -5,6 +5,7 @@
 #include <chainerx/routines/statistics.h>
 
 #include <common/log.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/chxvm_state.h>
 #include <runtime/gen_chxvm_ops.h>
 
@@ -134,6 +135,18 @@ PreprocessBatchNormResult PreprocessBatchNorm(
     return {std::move(gamma_reshaped), std::move(beta_reshaped), std::move(mean_reshaped), std::move(var_reshaped), sorted_axis};
 }
 
+// A workaround for <4D tensors with cuDNN.
+chainerx::Shape UnsqueezedForBN(const chainerx::Array& x) {
+    if (!IsCudaDevice(&x.device())) {
+        return x.shape();
+    }
+    chainerx::Shape shape = x.shape();
+    while (shape.size() < 4) {
+        shape.push_back(1);
+    }
+    return shape;
+}
+
 }  // namespace
 
 std::tuple<chainerx::Array, ChxVMOpaque*, chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationOp::RunImpl(
@@ -161,8 +174,19 @@ std::tuple<chainerx::Array, ChxVMOpaque*, chainerx::Array, chainerx::Array, chai
     const Array& beta_reshaped = result.beta;
     std::shared_ptr<chainerx::BatchNormGradState> state;
     chainerx::Array out;
+    chainerx::Shape shape = UnsqueezedForBN(x);
     std::tie(out, state) = x.device().backend().CallKernel<chainerx::BatchNormKernel>(
-            x, gamma_reshaped, beta_reshaped, result.mean, result.var, epsilon, decay, result.sorted_axis, true, absl::nullopt);
+            x.Reshape(shape),
+            gamma_reshaped,
+            beta_reshaped,
+            result.mean,
+            result.var,
+            epsilon,
+            decay,
+            result.sorted_axis,
+            true,
+            absl::nullopt);
+    out = out.Reshape(x.shape());
     ChxVMOpaque* ctx = new BatchNormBackwardContext(state, x, gamma_reshaped, s.shape(), bias.shape(), epsilon, result.sorted_axis);
     if (st->options().dump_memory_usage >= 1) {
         ctx->SetRetainedArrays({x, gamma_reshaped, beta_reshaped, result.mean, result.var});
@@ -196,35 +220,38 @@ chainerx::Array FixedBatchNormalizationOp::RunImpl(
     for (int i = 0; i < x.shape().size(); ++i) {
         if (i != 1) axes.push_back(i);
     }
-    if (x.ndim() < 4) {
-        // A workaround for <4D tensors with cuDNN.
-        chainerx::Shape shape = x.shape();
-        while (shape.size() < 4) {
-            shape.push_back(1);
-        }
-        return chainerx::FixedBatchNorm(x.Reshape(shape), s, bias, mean, var, epsilon, axes).Reshape(x.shape());
-    } else {
-        return chainerx::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
-    }
+    chainerx::Shape shape = UnsqueezedForBN(x);
+    return chainerx::FixedBatchNorm(x.Reshape(shape), s, bias, mean, var, epsilon, axes).Reshape(x.shape());
 }
 
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationGradOp::RunImpl(
         ChxVMState* st, const chainerx::Array& gy, const ChxVMOpaque& ctx) {
     auto& context = dynamic_cast<const BatchNormBackwardContext&>(ctx);
+    chainerx::Shape shape = UnsqueezedForBN(context.x());
     chainerx::Array gx, ggamma, gbeta;
     std::tie(gx, ggamma, gbeta) = gy.device().backend().CallKernel<chainerx::BatchNormGradKernel>(
-            context.x(),
+            context.x().Reshape(shape),
             context.gamma(),
-            gy,
+            gy.Reshape(shape),
             context.epsilon(),
             context.sorted_axis(),
             context.state(),
             absl::nullopt,
             absl::nullopt,
             absl::nullopt);
+    gx = gx.Reshape(context.x().shape());
     chainerx::Array gx1 = chainerx::Reshape(ggamma, context.x1_shape());
     chainerx::Array gx2 = chainerx::Reshape(gbeta, context.x2_shape());
     return std::forward_as_tuple(gx, gx1, gx2);
+}
+
+chainerx::Array BatchNormalizationExpandedStatsShapeOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
+    const int axis = 1;
+    std::vector<int64_t> shape;
+    for (size_t i = 0; i < x.shape().size(); ++i) {
+        shape.push_back(i == axis ? x.shape()[i] : 1);
+    }
+    return MakeHostArray(chainerx::Dtype::kInt64, {static_cast<int64_t>(shape.size())}, shape.data());
 }
 
 std::tuple<chainerx::Array, chainerx::Array> LRNOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {

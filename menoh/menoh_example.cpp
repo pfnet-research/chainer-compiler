@@ -27,6 +27,21 @@ auto reorder_bgr_hwc_to_rgb_chw(cv::Mat const& mat) {
     return data;
 }
 
+auto preprocess_onnx_zoo(cv::Mat const& mat) {
+    assert(mat.channels() == 3);
+    std::vector<float> data(mat.channels() * mat.rows * mat.cols);
+    float mean[] = {0.485f, 0.456f, 0.406f};
+    float std[] = {0.229f, 0.224, 0.225f};
+    for (int y = 0; y < mat.rows; ++y) {
+        for (int x = 0; x < mat.cols; ++x) {
+            for (int c = 0; c < mat.channels(); ++c) {
+                data[c * (mat.rows * mat.cols) + y * mat.cols + x] = (mat.at<cv::Vec3f>(y, x)[c] / 255.f - mean[c]) / std[c];
+            }
+        }
+    }
+    return data;
+}
+
 template <typename InIter>
 auto extract_top_k_index_list(InIter first, InIter last, typename std::iterator_traits<InIter>::difference_type k) {
     using diff_t = typename std::iterator_traits<InIter>::difference_type;
@@ -60,9 +75,9 @@ int main(int argc, char** argv) {
     // Aliases to onnx's node input and output tensor name
     // Please use [Netron](https://github.com/lutzroeder/Netron)
     // See Menoh tutorial for more information.
-    const std::string conv1_1_in_name = "Input_0";
-    const std::string fc6_out_name = "LinearFunction_0";
-    const std::string softmax_out_name = "Softmax_0";
+    // const std::string conv1_1_in_name = "Input_0";
+    // const std::string fc6_out_name = "LinearFunction_0";
+    // const std::string softmax_out_name = "Softmax_0";
 
     const int batch_size = 1;
     const int channel_num = 3;
@@ -70,6 +85,11 @@ int main(int argc, char** argv) {
     const int width = 224;
 
     cmdline::parser a;
+    a.add<std::string>("input_name", 'I', "input value name", false, "Input_0");
+    a.add<std::string>("output_name", 'O', "output value name", false, "Softmax_0");
+    a.add<std::string>("preprocess", 'p', "preprocess method, menoh or onnx", false, "menoh");
+    a.add<std::string>("device", 'd', "chainerx device to run", false, "native:0");
+    a.add<std::string>("top_category", 't', "expected top category of input image", false, "n01514859 hen");
     a.add<std::string>("input_image", 'i', "input image path", false, "../data/Light_sussex_hen.jpg");
     a.add<std::string>("model", 'm', "onnx model path", false, "../data/vgg16.onnx");
     a.add<std::string>("synset_words", 's', "synset words path", false, "../data/synset_words.txt");
@@ -81,6 +101,9 @@ int main(int argc, char** argv) {
     auto input_image_path = a.get<std::string>("input_image");
     auto onnx_model_path = a.get<std::string>("model");
     auto synset_words_path = a.get<std::string>("synset_words");
+    auto input_name = a.get<std::string>("input_name");
+    auto output_name = a.get<std::string>("output_name");
+    auto preprocess = a.get<std::string>("preprocess");
 
     cv::Mat image_mat = cv::imread(input_image_path.c_str(), cv::IMREAD_COLOR);
     if (!image_mat.data) {
@@ -88,11 +111,23 @@ int main(int argc, char** argv) {
     }
 
     // Preprocess
-    std::cout << "Input preprocess..." << std::endl;
+    std::cout << "Input preprocess..." << preprocess << std::endl;
     cv::resize(image_mat, image_mat, cv::Size(width, height));
     image_mat.convertTo(image_mat, CV_32FC3);
-    image_mat -= cv::Scalar(103.939, 116.779, 123.68);  // subtract BGR mean
-    auto image_data = reorder_bgr_hwc_to_rgb_chw(image_mat);
+    std::vector<float> image_data;
+    if (preprocess == "onnx") {
+        image_data = preprocess_onnx_zoo(image_mat);
+    } else {
+        if (preprocess != "menoh") {
+            throw std::runtime_error("Unknown preprocess method: " + preprocess);
+        }
+        image_mat -= cv::Scalar(103.939, 116.779, 123.68);  // subtract BGR mean
+        image_data = reorder_bgr_hwc_to_rgb_chw(image_mat);
+    }
+
+    if (image_data.size() != batch_size * channel_num * height * width) {
+        throw std::runtime_error("invalid image data size");
+    }
 
     // Load ONNX model data
     std::cout << "Load ONNX file..." << std::endl;
@@ -102,28 +137,30 @@ int main(int argc, char** argv) {
     // Define input profile (name, dtype, dims) and output profile (name, dtype)
     // dims of output is automatically calculated later
     menoh::variable_profile_table_builder vpt_builder;
-    vpt_builder.add_input_profile(conv1_1_in_name, menoh::dtype_t::float_, {batch_size, channel_num, height, width});
-    vpt_builder.add_output_name(fc6_out_name);
-    vpt_builder.add_output_name(softmax_out_name);
+    vpt_builder.add_input_profile(input_name, menoh::dtype_t::float_, {batch_size, channel_num, height, width});
+    // vpt_builder.add_output_name(fc6_out_name);
+    vpt_builder.add_output_name(output_name);
 
     std::cout << "Build VPT..." << std::endl;
     // Build variable_profile_table and get variable dims (if needed)
     auto vpt = vpt_builder.build_variable_profile_table(model_data);
+    /*
     auto fc6_dims = vpt.get_variable_profile(fc6_out_name).dims;
     std::cout << "(";
-    for(auto d : fc6_dims) {
+    for (auto d : fc6_dims) {
         std::cout << d << ", ";
     }
     std::cout << ")" << std::endl;
     std::vector<float> fc6_out_data(std::accumulate(fc6_dims.begin(), fc6_dims.end(), 1, std::multiplies<int32_t>()));
+    */
 
     // Make model_builder and attach extenal memory buffer
     // Variables which are not attached external memory buffer here are attached
     // internal memory buffers which are automatically allocated
     std::cout << "Prepare model builder..." << std::endl;
     menoh::model_builder model_builder(vpt);
-    model_builder.attach_external_buffer(conv1_1_in_name, static_cast<void*>(image_data.data()));
-    model_builder.attach_external_buffer(fc6_out_name, static_cast<void*>(fc6_out_data.data()));
+    model_builder.attach_external_buffer(input_name, static_cast<void*>(image_data.data()));
+    // model_builder.attach_external_buffer(fc6_out_name, static_cast<void*>(fc6_out_data.data()));
 
     std::cout << "Build model..." << std::endl;
     // Build model
@@ -131,17 +168,20 @@ int main(int argc, char** argv) {
     nlohmann::json config;
     config_file >> config;
     std::cout << config << std::endl;
-    //config["trace_level"] = a.get<int>("trace-level");
+    // config["trace_level"] = a.get<int>("trace-level");
+    config["runtime"]["device"] = a.get<std::string>("device");
     auto model = model_builder.build_model(model_data, "", config.dump());
     // auto model = model_builder.build_model(model_data, "", "{\"compiler_log\":true,
     // \"trace_level\":"+std::to_string(a.get<int>("trace-level"))+"}");
     std::cout << "Model run..." << std::endl;
     model.run();
     std::cout << "Finish!" << std::endl;
+    /*
     for (size_t i = 0; i < 10; ++i) {
         std::cout << fc6_out_data.at(i) << " ";
     }
-    auto softmax_output_var = model.get_variable(softmax_out_name);
+    */
+    auto softmax_output_var = model.get_variable(output_name);
     float* softmax_output_buff = static_cast<float*>(softmax_output_var.buffer_handle);
     std::cout << "\n";
     auto categories = load_category_list(synset_words_path);
@@ -150,6 +190,10 @@ int main(int argc, char** argv) {
     std::cout << "top " << top_k << " categories are\n";
     for (auto ki : top_k_indices) {
         std::cout << ki << " " << *(softmax_output_buff + ki) << " " << categories.at(ki) << std::endl;
+    }
+    const std::string top_cat = categories.at(top_k_indices[0]);
+    if (top_cat != a.get<std::string>("top_category")) {
+        throw std::runtime_error("Unexpected category: " + top_cat);
     }
     return 0;
 }

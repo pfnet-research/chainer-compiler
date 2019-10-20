@@ -83,6 +83,11 @@ class ListInfinitelyNested(chainer.Chain):
         x.append(x)
         return x[1][1][1][0]
 
+class TensorToList(chainer.Chain):
+    def forward(self, tensor):
+        x = list(tensor)
+        x.append(1)
+        return x
 
 # ======================================
 
@@ -107,6 +112,8 @@ def main():
     # testtools.generate_testcase(ListAssignByValueRef, [], subname='list_assign_by_value_ref')
     # testtools.generate_testcase(ListInfinitelyNested(), [], subname='list_nested')
 
+    tensor = np.array([1, 2, 3, 4, 5])
+    testtools.generate_testcase(TensorToList(), [tensor], subname='tensor_to_list')
 
 if __name__ == '__main__':
     main()
