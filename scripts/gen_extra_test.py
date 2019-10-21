@@ -1147,6 +1147,37 @@ def gen_unsqueeze_negative_axis(test_name):
     gb.gen_test()
 
 
+def gen_seq_update_backprop_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    x = np.array([1.2, 2.3, 3.4, 4.5], dtype=np.float32)
+    i = np.array(1, np.int32)
+    t = np.array(5.6, dtype=np.float32)
+    r = np.array([2.0, 3.0, 4.0, 5.0], dtype=np.float32)
+
+    x_v = gb.param('x', x)
+    t_v = gb.param('t', t)
+    i_v = gb.input('i', i)
+    r_v = gb.param('r', r)
+
+    xs_v = gb.SplitToSequence([x_v], keepdims=False)
+    y_v = gb.ChainerSequenceUpdate([xs_v, i_v, t_v])
+    y_v = gb.ConcatFromSequence([y_v], axis=0, new_axis=1)
+    z_v = gb.Mul([y_v, r_v])
+
+    y = np.array(x)
+    y[i] = t
+    gx = np.array(r)
+    gx[i] = 0.0
+    gt = r[1]
+    gr = np.array(y)
+
+    gb.output(z_v, y * r)
+    gb.gradient(x_v, gx)
+    gb.gradient(t_v, gt)
+    gb.gradient(r_v, gr)
+    gb.gen_test()
+
+
 class TestCase(test_case.TestCase):
     def __init__(self, name, func, **kwargs):
         super(TestCase, self).__init__('out', name, **kwargs)
@@ -1209,6 +1240,8 @@ def get_tests():
     test('extra_backprop_test', gen_backprop_test)
 
     test('extra_backprop_test_concat', gen_concat_backprop_test)
+
+    test('extra_backprop_test_seq_update', gen_seq_update_backprop_test)
 
     test('extra_backprop_test_loop_012',
          gen_loop_backprop_test(0, 1, 2, 1, 5, 1))
