@@ -1148,6 +1148,20 @@ void SequenceGetSliceGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kChainerSequenceGetSliceGrad, 0, inputs);
 }
 
+void SequenceUpdateGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* x = gc->x(0);
+    Value* i = gc->x(1);
+    Value* gy = gc->gy(0);
+
+    Value* xt = gb.Op(Node::kSequenceAt, {x, i});
+    Value* shape = gb.Op(Node::kShape, {xt});
+    Value* zero = gb.Op(Node::kConstantOfShape, {shape});
+    gc->GradOp(Node::kChainerSequenceUpdate, 0, {gy, i, zero});
+
+    gc->GradOp(Node::kSequenceAt, 2, {gy, i});
+}
+
 void DynamicSliceGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* shape = gb.Op(Node::kShape, {gc->x(0)});
@@ -1260,6 +1274,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kChainerSequencePad, &SequencePadGradFn);
         register_grad_fn(Node::kChainerSequenceUnpad, &SequenceUnpadGradFn);
         register_grad_fn(Node::kChainerSequenceGetSlice, &SequenceGetSliceGradFn);
+        register_grad_fn(Node::kChainerSequenceUpdate, &SequenceUpdateGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());
