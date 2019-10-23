@@ -69,13 +69,13 @@ def lambda_source(l):
 
 def clip_head(s: 'str'):
     splitted = s.split('\n')
-    
+
     # remove comments
     comment_count = 0
     indent_targets = []
     for sp in splitted:
         if '"""' in sp or "'''" in sp:
-            comment_count += 1
+            comment_count += sp.count('"""') + sp.count("'''")
         else:
             if comment_count % 2 == 0:
                 indent_targets.append(sp)
@@ -140,7 +140,7 @@ class LineProperty():
         return self.filename + '[L.' + str(self.lineno) + ']'
 
 class UnimplementedError(Exception):
-    
+
     def __init__(self, message, lineprop):
         self.message = message
         self.lineprop = lineprop
