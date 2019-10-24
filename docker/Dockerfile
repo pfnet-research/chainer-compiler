@@ -203,6 +203,7 @@ RUN CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j8 \
     CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
     python3 -m pip install --user chainer-compiler/third_party/chainer[test]
 RUN python3 -m pip install --user 'pytest<5.0.0' 'chainercv>=0.11.0' onnxruntime==0.4.0
+RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
 RUN mkdir -p chainer-compiler/build && \
     cd chainer-compiler/build && \
     cmake .. \
