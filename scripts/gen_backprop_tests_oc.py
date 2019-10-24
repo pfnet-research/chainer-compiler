@@ -23,7 +23,7 @@ class AnyModel(chainer.Chain):
         return result
 
 
-def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
+def create_backprop_test(test_name, fn, args, dtype=np.float32, **kwargs):
     test_dir = 'out/%s' % test_name
 
     params = {}
@@ -34,22 +34,24 @@ def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
     chainer.disable_experimental_feature_warning = True
     shutil.rmtree(test_dir, ignore_errors=True)
     onnx_chainer.export_testcase(model,
-                                 (),
+                                 args,
                                  test_dir,
                                  output_grad=True,
                                  output_names='loss')
 
 
 class BackpropTest(TestCase):
-    def __init__(self, name, fn, rtol=None, test_params=None, **kwargs):
+    def __init__(self, name, fn, args=(),
+                 rtol=None, test_params=None, **kwargs):
         name = 'backprop_test_oc_%s' % name
         test_params = {} if test_params is None else test_params
         super().__init__(basedir='out', name=name, rtol=rtol, **test_params)
         self.fn = fn
+        self.args = args
         self.kwargs = kwargs
 
     def generate(self):
-        create_backprop_test(self.name, self.fn, **self.kwargs)
+        create_backprop_test(self.name, self.fn, self.args, **self.kwargs)
 
 
 def get_backprop_tests():
@@ -270,6 +272,13 @@ def get_backprop_tests():
     test('cast',
          lambda m: F.cast(m.x, np.float64),
          x=aranges(2, 12, 2))
+
+    # TODO(hamaji): Fix this.
+    # test('where',
+    #      lambda m, cond: F.where(cond, m.x, m.y),
+    #      x=aranges(20),
+    #      y=-aranges(20),
+    #      args=[np.array(np.random.randint(2, size=20), dtype=np.bool)])
 
     return tests
 
