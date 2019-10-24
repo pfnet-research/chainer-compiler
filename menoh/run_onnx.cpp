@@ -147,18 +147,22 @@ int main(int argc, char** argv) {
         }
         auto vpt = vpt_builder.build_variable_profile_table(model_data);
         menoh::model_builder model_builder(vpt);
-        nlohmann::json config;
+        nlohmann::json compiler_config;
 
 #include <menoh/args_json.inc>
 
-        config["is_training"] = args.exist("backprop") || args.exist("backprop_two_phase");
-        config["check_types"] = !args.exist("skip_runtime_type_check");
-        config["check_nans"] = args.exist("check_nans");
-        config["check_infs"] = args.exist("check_infs");
-        config["catch_exception"] = !args.exist("no_catch");
-        config["dump_memory_usage"] = args.exist("trace");
-        config["device"] = args.get<std::string>("device");
-        config["dump_outputs_dir"] = args.get<std::string>("dump_outputs_dir");
+        nlohmann::json runtime_config;
+        runtime_config["is_training"] = args.exist("backprop") || args.exist("backprop_two_phase");
+        runtime_config["check_types"] = !args.exist("skip_runtime_type_check");
+        runtime_config["check_nans"] = args.exist("check_nans");
+        runtime_config["check_infs"] = args.exist("check_infs");
+        runtime_config["catch_exception"] = !args.exist("no_catch");
+        runtime_config["dump_memory_usage"] = args.exist("trace");
+        runtime_config["device"] = args.get<std::string>("device");
+        runtime_config["dump_outputs_dir"] = args.get<std::string>("dump_outputs_dir");
+        nlohmann::json config;
+        config["compiler"] = compiler_config;
+        config["runtime"] = runtime_config;
         auto model = model_builder.build_model(model_data, args.get<std::string>("backend"), config.dump());
         for (const auto& p : test_case->inputs) {
             auto input_var = model.get_variable(p.first);

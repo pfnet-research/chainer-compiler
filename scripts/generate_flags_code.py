@@ -288,7 +288,7 @@ elif args.mode == 'menoh_chainer_compiler.json_args.inc':
 elif args.mode == 'menoh_chainer_compiler.args_json.inc':
     res = []
     for name, info in FLAGS:
-        res.append('config["{0}"] = chainer_compiler::g_{0};'.format(name))
+        res.append('compiler_config["{0}"] = chainer_compiler::g_{0};'.format(name))
     f.write('\n'.join(res))
 elif args.mode == 'menoh_example_default_config.json':
     import json
