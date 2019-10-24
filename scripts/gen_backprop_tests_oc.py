@@ -273,12 +273,11 @@ def get_backprop_tests():
          lambda m: F.cast(m.x, np.float64),
          x=aranges(2, 12, 2))
 
-    # TODO(hamaji): Fix this.
-    # test('where',
-    #      lambda m, cond: F.where(cond, m.x, m.y),
-    #      x=aranges(20),
-    #      y=-aranges(20),
-    #      args=[np.array(np.random.randint(2, size=20), dtype=np.bool)])
+    test('where',
+         lambda m, cond: F.where(cond, m.x, m.y),
+         x=aranges(20),
+         y=-aranges(20),
+         args=[np.array(np.random.randint(2, size=20), dtype=np.bool)])
 
     return tests
 
