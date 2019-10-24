@@ -385,6 +385,20 @@ void SplitGradFn(GradientOpContext* gc) {
     gx->producer()->set_axis(gc->node()->axis());
 }
 
+void WhereGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* cond = gc->x(0);
+    Value* x0_shape = gb.Op(Node::kShape, {gc->x(1)});
+    Value* x1_shape = gb.Op(Node::kShape, {gc->x(2)});
+    Value* gy = gc->gy(0);
+    Value* zero = gb.ScalarConst(0.0, GetFloatDtype(gy));
+
+    Value* gx0 = gb.Op(Node::kWhere, {cond, gy, zero});
+    Value* gx1 = gb.Op(Node::kWhere, {cond, zero, gy});
+    gc->GradOp(Node::kChainerReduceSumTo, 1, {gx0, x0_shape});
+    gc->GradOp(Node::kChainerReduceSumTo, 2, {gx1, x1_shape});
+}
+
 namespace {
 
 Value* ReduceGrad(const Node* node, GraphBuilder* gb, Value* gy) {
@@ -1226,6 +1240,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kPad, &PadGradFn);
         register_grad_fn(Node::kConcat, &ConcatGradFn);
         register_grad_fn(Node::kSplit, &SplitGradFn);
+        register_grad_fn(Node::kWhere, &WhereGradFn);
 
         register_grad_fn(Node::kReduceSum, &ReduceSumGradFn);
         register_grad_fn(Node::kReduceMean, &ReduceMeanGradFn);
