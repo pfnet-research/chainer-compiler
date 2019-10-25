@@ -147,6 +147,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.arctan)
     add_chainer_function(F.exp)
     add_chainer_function(F.log)
+    add_chainer_function(F.sqrt)
 
     add_chainer_function(F.clip)
 
@@ -172,6 +173,11 @@ def convert_model(model: 'chainer.Chain', args=[]):
     f_minimum = values.FuncValue(functions_ndarray.NDArrayChainerFunction(functions_ndarray.dummy_minimum), None)
     f_argmax = values.FuncValue(functions_ndarray.NDarrayArgminmaxFunction(functions_ndarray.dummy_argmax), None)
     f_argmin = values.FuncValue(functions_ndarray.NDarrayArgminmaxFunction(functions_ndarray.dummy_argmin), None)
+    f_round = values.FuncValue(functions_ndarray.NDarrayRoundFunction(functions_ndarray.dummy_round), None)
+    f_sqrt = values.FuncValue(functions_ndarray.NDarraySqrtFunction(functions_ndarray.dummy_sqrt), None)
+    f_stack = values.FuncValue(functions_ndarray.NDarrayStackFunction(functions_ndarray.dummy_stack), None)
+    f_reshape = values.FuncValue(functions_ndarray.NDarrayReshapeFunction(functions_ndarray.dummy_reshape), None)
+    f_transpose = values.FuncValue(functions_ndarray.NDarrayTransposeFunction(functions_ndarray.dummy_transpose), None)
 
     f_int32 = values.FuncValue(functions_ndarray.NDArrayInt32(), None)
     f_float32 = values.FuncValue(functions_ndarray.NDArrayFloat32(), None)
@@ -187,6 +193,11 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[np.minimum] = f_minimum
     values.function_converters[np.argmax] = f_argmax
     values.function_converters[np.argmin] = f_argmin
+    values.function_converters[np.round] = f_round
+    values.function_converters[np.sqrt] = f_sqrt
+    values.function_converters[np.stack] = f_stack
+    values.function_converters[np.reshape] = f_reshape
+    values.function_converters[np.transpose] = f_transpose
 
     values.function_converters[np.clip] = values.FuncValue(functions.UserDefinedFunction(custom_functions.numpy_clip), None, module=custom_functions_module)
     values.function_converters[np.absolute] = values.FuncValue(functions.UserDefinedFunction(custom_functions.numpy_absolute), None, module=custom_functions_module)

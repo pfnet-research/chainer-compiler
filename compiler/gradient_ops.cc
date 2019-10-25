@@ -385,6 +385,20 @@ void SplitGradFn(GradientOpContext* gc) {
     gx->producer()->set_axis(gc->node()->axis());
 }
 
+void WhereGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* cond = gc->x(0);
+    Value* x0_shape = gb.Op(Node::kShape, {gc->x(1)});
+    Value* x1_shape = gb.Op(Node::kShape, {gc->x(2)});
+    Value* gy = gc->gy(0);
+    Value* zero = gb.ScalarConst(0.0, GetFloatDtype(gy));
+
+    Value* gx0 = gb.Op(Node::kWhere, {cond, gy, zero});
+    Value* gx1 = gb.Op(Node::kWhere, {cond, zero, gy});
+    gc->GradOp(Node::kChainerReduceSumTo, 1, {gx0, x0_shape});
+    gc->GradOp(Node::kChainerReduceSumTo, 2, {gx1, x1_shape});
+}
+
 namespace {
 
 Value* ReduceGrad(const Node* node, GraphBuilder* gb, Value* gy) {
@@ -1148,6 +1162,20 @@ void SequenceGetSliceGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kChainerSequenceGetSliceGrad, 0, inputs);
 }
 
+void SequenceUpdateGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* x = gc->x(0);
+    Value* i = gc->x(1);
+    Value* gy = gc->gy(0);
+
+    Value* xt = gb.Op(Node::kSequenceAt, {x, i});
+    Value* shape = gb.Op(Node::kShape, {xt});
+    Value* zero = gb.Op(Node::kConstantOfShape, {shape});
+    gc->GradOp(Node::kChainerSequenceUpdate, 0, {gy, i, zero});
+
+    gc->GradOp(Node::kSequenceAt, 2, {gy, i});
+}
+
 void DynamicSliceGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* shape = gb.Op(Node::kShape, {gc->x(0)});
@@ -1212,6 +1240,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kPad, &PadGradFn);
         register_grad_fn(Node::kConcat, &ConcatGradFn);
         register_grad_fn(Node::kSplit, &SplitGradFn);
+        register_grad_fn(Node::kWhere, &WhereGradFn);
 
         register_grad_fn(Node::kReduceSum, &ReduceSumGradFn);
         register_grad_fn(Node::kReduceMean, &ReduceMeanGradFn);
@@ -1236,15 +1265,6 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         // TODO(hamaji): Implement dropout.
         register_grad_fn(Node::kDropout, &IdentityGradFn);
 
-        register_grad_fn(Node::kGreater, &DoNothingGradFn);
-        register_grad_fn(Node::kConstant, &DoNothingGradFn);
-        register_grad_fn(Node::kConstantFill, &DoNothingGradFn);
-        register_grad_fn(Node::kShape, &DoNothingGradFn);
-        register_grad_fn(Node::kNot, &DoNothingGradFn);
-        register_grad_fn(Node::kChainerSequenceLengths, &DoNothingGradFn);
-        register_grad_fn(Node::kChainerGenericIs, &DoNothingGradFn);
-        register_grad_fn(Node::kChainerGenericLen, &DoNothingGradFn);
-
         register_grad_fn(Node::kLoop, &LoopGradFn);
         register_grad_fn(Node::kIf, &IfGradFn);
         register_grad_fn(Node::kDynamicSlice, &DynamicSliceGradFn);
@@ -1254,19 +1274,30 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kSequenceAt, &SequenceAtGradFn);
         register_grad_fn(Node::kSequenceConstruct, &SequenceConstructGradFn);
         register_grad_fn(Node::kSequenceInsert, &SequenceInsertGradFn);
-        register_grad_fn(Node::kSequenceLength, &DoNothingGradFn);
         register_grad_fn(Node::kSplitToSequence, &SplitToSequenceGradFn);
         register_grad_fn(Node::kChainerSequenceExtend, &SequenceExtendGradFn);
         register_grad_fn(Node::kChainerSequencePad, &SequencePadGradFn);
         register_grad_fn(Node::kChainerSequenceUnpad, &SequenceUnpadGradFn);
         register_grad_fn(Node::kChainerSequenceGetSlice, &SequenceGetSliceGradFn);
+        register_grad_fn(Node::kChainerSequenceUpdate, &SequenceUpdateGradFn);
+
+        // The followings are not diffirentiable.
+        register_grad_fn(Node::kChainerGenericIs, &DoNothingGradFn);
+        register_grad_fn(Node::kChainerGenericLen, &DoNothingGradFn);
+        register_grad_fn(Node::kChainerSequenceLengths, &DoNothingGradFn);
+        register_grad_fn(Node::kChainerSequenceRange, &DoNothingGradFn);
+        register_grad_fn(Node::kConstant, &DoNothingGradFn);
+        register_grad_fn(Node::kConstantFill, &DoNothingGradFn);
+        register_grad_fn(Node::kFloor, &DoNothingGradFn);
+        register_grad_fn(Node::kGreater, &DoNothingGradFn);
+        register_grad_fn(Node::kNot, &DoNothingGradFn);
+        register_grad_fn(Node::kOneHot, &DoNothingGradFn);
+        register_grad_fn(Node::kSequenceLength, &DoNothingGradFn);
+        register_grad_fn(Node::kShape, &DoNothingGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());
-    if (found == s_gradient_funcs->end()) {
-        std::cerr << "Gradient not supported: " << node->op_type() << std::endl;
-        return false;
-    }
+    CHECK(found != s_gradient_funcs->end()) << "Gradient not supported: " << node->op_type();
     const GradientFunc& func = found->second;
 
     GradientOpContext gc(graph, dest_graph, node, node->inputs(), node->outputs(), retained);

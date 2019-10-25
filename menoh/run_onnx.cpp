@@ -63,7 +63,6 @@ int main(int argc, char** argv) {
 
     cmdline::parser args;
     // args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
-    args.add<std::string>("backend", '\0', "The name of the backend", false, "chxvm");
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
     args.add<std::string>("device", 'd', "ChainerX device to be used", false);
@@ -96,16 +95,9 @@ int main(int argc, char** argv) {
     args.add("skip_shape_inference", '\0', "Skip shape inference");
     args.add("strip_chxvm", '\0', "Strip ChxVM proto");
     */
-    args.add("trace", 't', "Tracing mode");
-    args.add("verbose", 'v', "Verbose mode");
     args.add<std::string>("verbose_ops", '\0', "Show verbose outputs for specific ops", false);
-    args.add("quiet", 'q', "Quiet mode");
-    chainer_compiler::runtime::AddCompilerFlags(&args);
-    args.parse_check(argc, argv);
-    chainer_compiler::runtime::ApplyCompilerFlags(args);
-    chainer_compiler::g_compiler_log |= args.exist("trace") || args.exist("verbose");
-    chainer_compiler::g_backend_name = args.get<std::string>("backend");
-    chainer_compiler::runtime::g_quiet = args.exist("quiet");
+    chainer_compiler::runtime::ParseArgs(&args, argc, argv);
+    chainer_compiler::runtime::SetupGlobals(args);
 
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
@@ -129,7 +121,7 @@ int main(int argc, char** argv) {
         QFAIL() << "Unknown extra arguments specified";
     }
     if (onnx_path.empty()) {
-        onnx_path = test_path + "/model.onnx";
+        onnx_path = chainer_compiler::runtime::OnnxPathFromTestDir(test_path);
     }
     LOG() << "Loading model..." << std::endl;
     menoh::model_data model_data = menoh::make_model_data_from_onnx(onnx_path);
@@ -155,18 +147,22 @@ int main(int argc, char** argv) {
         }
         auto vpt = vpt_builder.build_variable_profile_table(model_data);
         menoh::model_builder model_builder(vpt);
-        nlohmann::json config;
+        nlohmann::json compiler_config;
 
 #include <menoh/args_json.inc>
 
-        config["is_training"] = args.exist("backprop") || args.exist("backprop_two_phase");
-        config["check_types"] = !args.exist("skip_runtime_type_check");
-        config["check_nans"] = args.exist("check_nans");
-        config["check_infs"] = args.exist("check_infs");
-        config["catch_exception"] = !args.exist("no_catch");
-        config["dump_memory_usage"] = args.exist("trace");
-        config["device"] = args.get<std::string>("device");
-        config["dump_outputs_dir"] = args.get<std::string>("dump_outputs_dir");
+        nlohmann::json runtime_config;
+        runtime_config["is_training"] = args.exist("backprop") || args.exist("backprop_two_phase");
+        runtime_config["check_types"] = !args.exist("skip_runtime_type_check");
+        runtime_config["check_nans"] = args.exist("check_nans");
+        runtime_config["check_infs"] = args.exist("check_infs");
+        runtime_config["catch_exception"] = !args.exist("no_catch");
+        runtime_config["dump_memory_usage"] = args.exist("trace");
+        runtime_config["device"] = args.get<std::string>("device");
+        runtime_config["dump_outputs_dir"] = args.get<std::string>("dump_outputs_dir");
+        nlohmann::json config;
+        config["compiler"] = compiler_config;
+        config["runtime"] = runtime_config;
         auto model = model_builder.build_model(model_data, args.get<std::string>("backend"), config.dump());
         for (const auto& p : test_case->inputs) {
             auto input_var = model.get_variable(p.first);

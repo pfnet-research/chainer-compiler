@@ -46,7 +46,7 @@ class FPN(chainer.Chain):
         return self.base.mean
 
     def forward(self, x):
-        hs = list(self.base(x))
+        hs = self.base(x)
 
         with flags.for_unroll():
             for i in range(self.n_base_output_minus1, -1, -1):

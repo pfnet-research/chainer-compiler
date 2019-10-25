@@ -795,6 +795,8 @@ for name, _, _, kwargs in gen_large_tests_oc.get_large_tests():
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
 TEST_CASES.append(TestCase('data', 'shufflenet', want_gpu=True))
+TEST_CASES.append(TestCase('data', 'squeezenet1.1', want_gpu=True))
+TEST_CASES.append(TestCase('data', 'mobilenetv2-1.0', want_gpu=True, rtol=1e-2))
 TEST_CASES.append(TestCase('data', 'mnist'))
 
 TEST_CASES.extend(ch2o_tests.get())
@@ -1037,7 +1039,7 @@ def main():
         if len(target_opsets) != 0:
             if args.only_opset_targetable and test_case.opset_version is None:
                 continue
-            if not (test_case.opset_version in target_opsets):
+            if test_case.opset_version is not None and not (test_case.opset_version in target_opsets):
                 continue
 
         test_case.runner = run_onnx

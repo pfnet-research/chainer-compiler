@@ -127,7 +127,7 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
             assert(False)   # not supported
         
         for i in range(len(targets)):
-            assert(value_obj.get_value().get_constant_value() is not None)
+            assert(value_obj.get_value().get_constant_value() is not None), "Not supported yet. In {}".format(lineprop)
 
             node_assign = nodes.NodeAssign(targets[i], value_obj.get_value().get_constant_value()[i], astc.lineno)
             targets[i].revise(utils.try_get_obj(value_obj.get_value().get_constant_value()[i],'assign', lineprop))
@@ -432,7 +432,10 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
                 assert(False)
 
             if obj is not None:
-                obj.revise(output_value)
+                if isinstance(obj, values.SubscriptObject):
+                    obj.revise(output_value, update_parent=False)
+                else:
+                    obj.revise(output_value)
                 field.get_attribute(name).revise(obj)
             elif field.get_attribute(name).has_obj():
                 field.get_attribute(name).get_obj().revise(output_value)
@@ -511,6 +514,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
         return indices
 
     value = veval_ast(astc.c(astc.nast.value), local_field, graph, context)
+    value_obj = utils.try_get_obj(value, 'subscript', lineprop)
     value_value = utils.try_get_value(value, 'subscript', lineprop)
 
     if isinstance(value_value, values.DictValue):
@@ -535,7 +539,8 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             return ret
     elif isinstance(value_value, (values.ListValue, values.TupleValue, values.TensorValue)):
         if isinstance(astc.nast.slice, gast.gast.Index):
-            slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, context)
+            with context.eval_as_written_target(False):
+                slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, context)
             slice_value = utils.try_get_value(slice_, 'subscript', lineprop)
 
             if isinstance(slice_value, values.TupleValue):
@@ -567,12 +572,9 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
             node.set_outputs([ret_value])
             graph.add_node(node)
-            if isinstance(value, values.Attribute):
-                ret_attr = value.make_subscript_attribute(slice_, graph)
-                ret_attr.revise(values.Object(ret_value), update_parent=False)
-                return ret_attr
-            else:
-                return values.Object(ret_value)
+            ret_obj = value_obj.make_subscript_object(slice_, graph)
+            ret_obj.revise(ret_value, update_parent=False)
+            return ret_obj
 
         elif isinstance(astc.nast.slice, gast.gast.Slice):
 
@@ -590,7 +592,9 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
             node.set_outputs([ret_value])
             graph.add_node(node)
-            return values.Object(ret_value)
+            ret_obj = value_obj.make_subscript_object(values.TupleValue(indices), graph)
+            ret_obj.revise(ret_value, update_parent=False)
+            return ret_obj
 
         elif isinstance(astc.nast.slice, gast.gast.ExtSlice):
             indices = []
@@ -610,7 +614,9 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             ret_value = functions.generate_value_with_same_type(value_value)
             node.set_outputs([ret_value])
             graph.add_node(node)
-            return values.Object(ret_value)
+            ret_obj = value_obj.make_subscript_object(values.TupleValue(indices), graph)
+            ret_obj.revise(ret_value, update_parent=False)
+            return ret_obj
     else:
         utils.print_warning("Subscript not possible for type {}".format(type(value_value)), lineprop)
 
@@ -1219,7 +1225,10 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
             if 'output_obj' in v:
                 obj = v['output_obj']
-                obj.revise(output_value)
+                if isinstance(obj, values.SubscriptObject):
+                    obj.revise(output_value, update_parent=False)
+                else:
+                    obj.revise(output_value)
                 field.get_attribute(name).revise(obj)
             elif field.get_attribute(name).has_obj():
                 field.get_attribute(name).get_obj().revise(output_value)
@@ -1353,6 +1362,7 @@ def veval_ast_arguments(astc : 'AstContext', local_field : 'values.Field', graph
     return ret
 
 def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', context : 'functions.VEvalContext' = None):
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
     if context is None:
         context = functions.VEvalContext()
 
@@ -1467,4 +1477,4 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
 
     else:
         if config.show_warnings:
-            print('Unknown ast is found : {} in L.{}'.format(astc.nast, astc.lineno))
+            print('Unknown ast is found : {} in {}'.format(astc.nast,lineprop))

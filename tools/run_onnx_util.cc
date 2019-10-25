@@ -67,6 +67,23 @@ chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     return array;
 }
 
+std::string OnnxPathFromTestDir(const std::string& test_dir) {
+    std::ifstream ifs(test_dir + "/model.onnx");
+    if (ifs) {
+        return test_dir + "/model.onnx";
+    }
+
+    std::string candidate_onnx;
+    for (const std::string& fn : ListDir(test_dir)) {
+        if (HasSuffix(fn, ".onnx")) {
+            CHECK(candidate_onnx.empty()) << "Multiple onnx files detected: " << candidate_onnx << ", " << fn << ", ...";
+            candidate_onnx = fn;
+            continue;
+        }
+    }
+    return candidate_onnx;
+}
+
 void ReadTestDir(
         const std::string& test_path,
         const std::vector<std::string>& input_names,
@@ -84,6 +101,8 @@ void ReadTestDir(
         std::vector<std::tuple<std::string, std::string, chainerx::Array>> all_tensors;
         for (const std::string& tensor_pb : ListDir(data_set_dir)) {
             if (!HasSuffix(tensor_pb, ".pb")) continue;
+            // Ignore some files for test data like MobileNet v2
+            if (HasPrefix(*SplitString(tensor_pb, "/").rbegin(), "._")) continue;
             onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
             chainerx::Array tensor(MakeArrayFromONNX(xtensor));
             all_tensors.emplace_back(Basename(tensor_pb), xtensor.name(), tensor);
@@ -282,6 +301,32 @@ void VerifyOutputs(
     }
 
     if (check_values) CHECK_EQ(ok_cnt, test_case.outputs.size());
+}
+
+static void AddCommonRuntimeFlags(cmdline::parser* args) {
+    args->add("trace", 't', "Tracing mode");
+    args->add("verbose", 'v', "Verbose mode");
+    args->add("quiet", 'q', "Quiet mode");
+    args->add<std::string>("backend", '\0', "The name of the backend", false, "chxvm");
+}
+
+void ParseArgs(cmdline::parser* args, int argc, char** argv) {
+    AddCompilerFlags(args);
+    AddCommonRuntimeFlags(args);
+    args->parse_check(argc, argv);
+}
+
+void ParseArgs(cmdline::parser* args, const std::vector<std::string>& argv) {
+    AddCompilerFlags(args);
+    AddCommonRuntimeFlags(args);
+    args->parse_check(argv);
+}
+
+void SetupGlobals(const cmdline::parser& args) {
+    ApplyCompilerFlags(args);
+    g_compiler_log |= args.exist("trace") || args.exist("verbose");
+    g_backend_name = args.get<std::string>("backend");
+    g_quiet = args.exist("quiet");
 }
 
 std::vector<std::string> GetOrderedOutputNames(const Graph& graph) {

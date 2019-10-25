@@ -21,6 +21,8 @@ struct TestCase {
     InOuts outputs;
 };
 
+std::string OnnxPathFromTestDir(const std::string& test_dir);
+
 void ReadTestDir(
         const std::string& test_path,
         const std::vector<std::string>& input_names,
@@ -40,6 +42,10 @@ void VerifyOutputs(
         std::vector<std::string> orded_output_names);
 
 std::vector<std::string> GetOrderedOutputNames(const Graph& graph);
+
+void ParseArgs(cmdline::parser* args, int argc, char** argv);
+void ParseArgs(cmdline::parser* args, const std::vector<std::string>& argv);
+void SetupGlobals(const cmdline::parser& args);
 
 }  // namespace runtime
 }  // namespace chainer_compiler

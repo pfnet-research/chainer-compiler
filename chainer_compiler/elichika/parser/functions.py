@@ -234,7 +234,7 @@ class FunctionArgCollection():
         self.args_list.append(fa)
         self.args[fa.name] = fa
 
-    def analyze_args(self, func):
+    def analyze_args(self, func, module_function=False):
         sig = inspect.signature(func)
         argspec = inspect.getfullargspec(func)
 
@@ -245,7 +245,7 @@ class FunctionArgCollection():
                 continue
             parameter_count += 1
 
-        isSelfRemoved = parameter_count != len(argspec.args) + len(argspec.kwonlyargs)
+        isSelfRemoved = not module_function and parameter_count != len(argspec.args) + len(argspec.kwonlyargs)
 
         if isSelfRemoved:
             self.add_arg(argspec.args[0], None)
