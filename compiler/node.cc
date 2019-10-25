@@ -234,13 +234,18 @@ int Node::OpVersion() const {
 }
 
 bool Node::ValidateWithSchema(const OpsetList& opsets_, std::string* message) const {
+    // TODO(take-cheeze): Fix this workaround
+    if (op_type() == Node::kIf) {
+        return true;
+    }
+
     const OpsetList& opset = opsets_.empty() ? opset_import_ : opsets_;
     const int version = GetOpsetVersion(opset, domain_);
     const onnx::OpSchema* schema = onnx::OpSchemaRegistry::Schema(OpTypeToString(op_type()), version, domain_);
 
     // TODO(take-cheeze): Return false when schema not found
     if (!schema) {
-        CLOG() << "schema of " << op_type() << "-" << version << " (" << domain_ << ") not found" << std::endl;
+        CLOG() << "schema of " << op_type() << "-" << version << " (" << domain_ << ") not found in: " << name_ << std::endl;
         return true;
     }
 
