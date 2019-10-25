@@ -223,7 +223,7 @@ Node* Graph::AddNode(
             inputs,
             outputs,
             domain,
-            opsets.empty() ? opset_import_ : opsets);
+            opsets);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     return node;
 }

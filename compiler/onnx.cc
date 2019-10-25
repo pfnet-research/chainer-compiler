@@ -11,6 +11,9 @@ int GetOpsetVersion(const OpsetList& list, const std::string& domain) {
             return i.version();
         }
     }
+    if (domain == CHAINER_ONNX_DOMAIN) {
+        return CHAINER_OPSET_VERSION;
+    }
     CHECK_EQ(onnx::ONNX_DOMAIN, domain) << "domain not found: " << domain;
     return DEFAULT_OPSET_VERSION;
 }

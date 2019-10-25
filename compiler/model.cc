@@ -4,6 +4,7 @@
 
 #include <common/log.h>
 #include <compiler/graph.h>
+#include <compiler/log.h>
 #include <compiler/serializer_util.h>
 
 namespace chainer_compiler {
@@ -17,6 +18,15 @@ Model::Model(const onnx::ModelProto& xmodel)
       model_version_(xmodel.model_version()),
       doc_string_(xmodel.doc_string()),
       graph_(new Graph(opset_import_, xmodel.graph())) {
+    CLOG() << "Opset versions:" << std::endl;
+    for (const auto& i : opset_import_) {
+        std::string domain = i.domain();
+        if (domain.empty()) {
+            domain = "onnx";
+        }
+        CLOG() << "  " << domain << ": " << i.version() << std::endl;
+    }
+
     for (const onnx::StringStringEntryProto& metadata : xmodel.metadata_props()) {
         CHECK(metadata_props_.emplace(metadata.key(), metadata.value()).second) << "Duplicated metadata key: " << metadata.key();
     }

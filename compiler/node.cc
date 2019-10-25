@@ -237,12 +237,12 @@ bool Node::ValidateWithSchema(const OpsetList& opsets_, std::string* message) co
 
     // TODO(take-cheeze): Return false when schema not found
     if (!schema) {
-        CLOG() << "schema of " << op_type() << "-" << version << " (" << domain_ << ") not found";
+        CLOG() << "schema of " << op_type() << "-" << version << " (" << domain_ << ") not found" << std::endl;
         return true;
     }
 
     std::ostringstream oss;
-    oss << "Failed validation of " << op_type() << ", ";
+    oss << "Failed validation of " << op_type() << "-" << version << ", ";
 
 #define output_error_message()     \
     if (message) {                 \
@@ -252,8 +252,14 @@ bool Node::ValidateWithSchema(const OpsetList& opsets_, std::string* message) co
     }                              \
     return false
 
+    int min_input = schema->min_input();
+    // TODO(take-cheeze): Better handler for these extensions
+    if (op_type() == Node::kSequenceConstruct) {
+        min_input = 0;
+    }
+
     // TODO(take-cheeze): Input/output dtype check
-    if (inputs().size() < schema->min_input() || schema->max_input() < inputs().size()) {
+    if (inputs().size() < min_input || schema->max_input() < inputs().size()) {
         oss << "Invalid input count: " << inputs().size() << " (min: " << schema->min_input() << ", max: " << schema->max_input() << ")";
         output_error_message();
     }
