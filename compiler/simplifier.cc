@@ -756,6 +756,24 @@ bool ReplaceUpsample(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplacePad(Graph* graph, Node* node) {
+    // No need to upgrade to Pad-11.
+    if (node->inputs().size() > 1) {
+        return false;
+    }
+    GraphBuilder gb(graph, "SimplifyPad", node->output(0));
+    Dtype dtype = node->input(0)->type().dtype();
+    CHECK_NE(Dtype::kUnknown, dtype);
+    Value* pads = gb.Const(ArrayBuilder({static_cast<int64_t>(node->pads().size())}).WithData<int64_t>(node->pads()).Build());
+    Value* value = gb.ScalarConst(node->value(), dtype);
+    gb.Op(Node::kPad, {node->input(0), pads, value}, node->output(0))
+            ->producer()
+            ->set_pads(node->pads())
+            ->set_value(node->value())
+            ->set_mode(node->mode());
+    return true;
+}
+
 SimplifierFn FunctionExpander(const std::string& fn, const onnx::OpSchema* schema) {
     return [fn, schema](Graph* graph, Node* fn_nd) {
         std::unordered_map<std::string, Value*> value_table;
@@ -876,6 +894,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     REGISTER_SIMPLIFIER(Clip);
     REGISTER_SIMPLIFIER(TopK);
     REGISTER_SIMPLIFIER(Upsample);
+    REGISTER_SIMPLIFIER(Pad);
 
     register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
     register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);

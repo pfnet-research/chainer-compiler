@@ -354,12 +354,10 @@ void ExpandGradFn(GradientOpContext* gc) {
 }
 
 void PadGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
     Value* gy = gc->gy(0);
-    const std::vector<int64_t> pads = gc->node()->pads();
-    std::vector<int64_t> negated_pads(pads);
-    for (int64_t& p : negated_pads) p = -p;
-
-    gc->GradOp(Node::kPad, 0, {gy})->producer()->set_pads(negated_pads);
+    Value* negated_pads = gb.Op(Node::kNeg, {gc->x(1)});
+    gc->GradOp(Node::kPad, 0, {gy, negated_pads});
 }
 
 void ConcatGradFn(GradientOpContext* gc) {
