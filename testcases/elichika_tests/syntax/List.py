@@ -14,6 +14,15 @@ class ListSubscript(chainer.Chain):
     def forward(self):
         test_list = [0, 1, 2]
         test_list[1] = 3
+        test_list[2] += 2
+        return test_list
+
+
+class IfListSubscriptAssign(chainer.Chain):
+    def forward(self):
+        test_list = [0, 1, 2]
+        if True:
+            test_list = test_list[1]
         return test_list
 
 class ArraySubscript(chainer.Chain):
@@ -21,13 +30,17 @@ class ArraySubscript(chainer.Chain):
         test_list = np.array([0, 1, 2])
         x = test_list[2]
         test_list[1] = x
+        #TODO(rchouras): Debug error
+        # x = test_list[0:1]
+        # test_list[1:2] = x
         return test_list
 
 class ArraySubscriptFancy(chainer.Chain):
     def forward(self, x, y):
         # (2, 3, 4, 5) => (2, 3, 4)
+        y[1,2,3,4]=x[0,1,2,3]
         t = x[:, 1, :3, -4:]
-        return t
+        return t, y
         # TODO(hamaji): Support multi-axes subsription.
         # y[1, 1:3, :3, :4] = t
         # return t, y
@@ -66,7 +79,7 @@ class ListInConstructor(chainer.Chain):
 
 class ListInfinitelyNested(chainer.Chain):
     def forward(self):
-        x = [1]
+        x = [0]
         x.append(x)
         return x[1][1][1][0]
 
@@ -91,6 +104,7 @@ def main():
 
     # TODO(rchouras): Fix following tests. First two are used very commonly.
     testtools.generate_testcase(ListSubscript, [], subname='list_subscript')
+    testtools.generate_testcase(IfListSubscriptAssign, [], subname='if_list_subscript_assign')
     testtools.generate_testcase(ArraySubscript, [], subname='array_subscript')
     x, y = (np.arange(2 * 3 * 4 * 5).reshape((2, 3, 4, 5)) for _ in range(2))
     testtools.generate_testcase(ArraySubscriptFancy, [x, y],

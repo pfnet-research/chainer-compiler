@@ -199,7 +199,7 @@ class Function_Concat(Callable):
             )
         else:
             return env.calc(
-                "ChainerSequenceConcat",
+                "ConcatFromSequence",
                 inputs=[xs.to_sequence(env).name],
                 axis=axis.to_int(),
             )
@@ -412,7 +412,7 @@ class Function_SplitAxis(Callable):
     def call_impl(self, env, x, indices_or_sections, axis, force_tuple):
         assert force_tuple.value is True  # TODO(hamaji): Not supported yet.
         return env.calc_seq(
-            'ChainerSequenceSplitAxis',
+            'SplitToSequence',
             inputs=[x.to_tensor(env).name,
                     indices_or_sections.to_tensor(env).name],
             axis=axis.to_int()
@@ -437,7 +437,7 @@ class Cuda_ToCpu(object):
 class Function_Vstack(Callable):
     def call_impl(self, env, xs):
         return env.calc(
-            'ChainerSequenceConcat',
+            'ConcatFromSequence',
             inputs=[xs.to_sequence(env).name],
             axis=0
         )
@@ -446,7 +446,7 @@ class Function_Vstack(Callable):
 class Function_Hstack(Callable):
     def call_impl(self, env, xs):
         return env.calc(
-            'ChainerSequenceConcat',
+            'ConcatFromSequence',
             inputs=[xs.to_sequence(env).name],
             axis=1
         )
@@ -455,18 +455,20 @@ class Function_Hstack(Callable):
 class Function_Stack(Callable):
     def call_impl(self, env, xs, axis):
         return env.calc(
-            'ChainerSequenceStack',
+            'ConcatFromSequence',
             inputs=[xs.to_sequence(env).name],
-            axis=axis.to_int()
+            axis=axis.to_int(),
+            new_axis=True
         )
 
 
 class Function_Separate(Callable):
     def call_impl(self, env, x, axis):
         return env.calc_seq(
-            'ChainerSequenceSeparate',
+            'SplitToSequence',
             inputs=[x.to_tensor(env).name],
-            axis=axis.to_int()
+            axis=axis.to_int(),
+            keepdims=False
         )
 
 

@@ -155,6 +155,7 @@ class GenTuple(chainer.Chain):
 
 
 def main():
+    np.random.seed(42)
 
     testtools.generate_testcase(Basic1(), [], subname='basic1')
 

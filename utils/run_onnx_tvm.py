@@ -104,7 +104,7 @@ def build_graph_relay(args, ctx, onnx_model, inputs, input_names):
 
 
 def run(args):
-    onnx_model = onnx.load_model(os.path.join(args.test_dir, args.model_file))
+    onnx_model = onnx.load_model(run_onnx_util.onnx_model_file(args.test_dir, args.model_file))
     ctx = tvm.gpu()
 
     input_names, output_names = run_onnx_util.onnx_input_output_names(
@@ -150,7 +150,7 @@ def get_args(args=None):
     parser.add_argument('--iterations', '-I', type=int, default=1)
     parser.add_argument('--opt_level', '-O', type=int, default=3)
     parser.add_argument('--autotvm_log', type=str)
-    parser.add_argument('--model_file', default='model.onnx')
+    parser.add_argument('--model_file', default=None)
     return parser.parse_args(args=args)
 
 

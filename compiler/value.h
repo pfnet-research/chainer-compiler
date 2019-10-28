@@ -49,6 +49,9 @@ public:
     const std::string& name() const {
         return name_;
     }
+    void ResetName(const std::string& n) {
+        name_ = n;
+    }
 
     const Type& type() const {
         return *type_;

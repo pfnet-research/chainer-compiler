@@ -116,7 +116,7 @@ void TensorRTOp::InitImpl() {
 
     auto builder = UniquePtr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(impl_->logger));
     CHECK(builder);
-    auto network = UniquePtr<nvinfer1::INetworkDefinition>(builder->createNetwork());
+    auto network = UniquePtr<nvinfer1::INetworkDefinition>(builder->createNetworkV2(0U));
     CHECK(network);
 
     DeconvolutionOutputDimensionsFormula::ShapeMap shape_map;
@@ -148,11 +148,15 @@ void TensorRTOp::InitImpl() {
         CHECK(false);
     }
 
-    builder->setMaxBatchSize(batch_size);
-    builder->setMaxWorkspaceSize(128 * 1000 * 1000);
-    builder->setFp16Mode(use_fp16);
+    std::shared_ptr<nvinfer1::IBuilderConfig> config(builder->createBuilderConfig(), InferDeleter());
 
-    impl_->engine = std::shared_ptr<nvinfer1::ICudaEngine>(builder->buildCudaEngine(*network), InferDeleter());
+    builder->setMaxBatchSize(batch_size);
+    config->setMaxWorkspaceSize(128 * 1000 * 1000);
+    if (use_fp16) {
+        config->setFlag(nvinfer1::BuilderFlag::kFP16);
+    }
+
+    impl_->engine = std::shared_ptr<nvinfer1::ICudaEngine>(builder->buildEngineWithConfig(*network, *config), InferDeleter());
     CHECK(impl_->engine);
 
     std::map<std::string, size_t> name_to_index;

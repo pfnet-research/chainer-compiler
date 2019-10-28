@@ -51,3 +51,16 @@ def onnx_input_output_names(onnx_filename):
         output_names.append(output.name)
 
     return input_names, output_names
+
+
+def onnx_model_file(test_dir, model_file):
+    if model_file is None:
+        model_file = 'model.onnx'
+    if os.path.isfile(os.path.join(test_dir, model_file)):
+        return os.path.join(test_dir, model_file)
+
+    candidates = glob.glob('{}/*.onnx'.format(test_dir))
+    if len(candidates) != 1:
+        raise RuntimeError('onnx file not found or too many in {}'.format(test_dir))
+
+    return candidates[0]

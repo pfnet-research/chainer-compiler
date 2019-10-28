@@ -99,6 +99,8 @@ import numpy as np
 
 
 if __name__ == '__main__':
+    np.random.seed(42)
+
     model = A()
 
     v = np.random.rand(10).astype(np.float32)

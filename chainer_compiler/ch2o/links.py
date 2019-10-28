@@ -213,8 +213,10 @@ class Link_NStepLSTM(Callable):
         )
 
         tilens = env.calc(
-            "ChainerSequenceStack",
+            "ConcatFromSequence",
             inputs=[ilens.name],
+            axis=0,
+            new_axis=True
         )
 
         v = env.calc(
@@ -349,8 +351,10 @@ class Link_NStepBiLSTM(Callable):
         )
 
         tilens = env.calc(
-            "ChainerSequenceStack",
+            "ConcatFromSequence",
             inputs=[ilens.name],
+            axis=0,
+            new_axis=True
         )
 
         v = xs

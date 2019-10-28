@@ -93,10 +93,10 @@ class AttLoc(chainer.Chain):
             self.pre_compute_enc_h = linear_tensor_3d(self.mlp_enc, self.enc_h)
 
         if dec_z is None:
-            dec_z = chainer.Variable(self.xp.zeros(
+            dec_z_new = chainer.Variable(self.xp.zeros(
                 (batch, self.dunits), dtype=np.float32))
         else:
-            dec_z = F.reshape(dec_z, (batch, self.dunits))
+            dec_z_new = F.reshape(dec_z, (batch, self.dunits))
 
         # initialize attention weight with uniform dist.
         if att_prev is None:
@@ -116,7 +116,7 @@ class AttLoc(chainer.Chain):
 
         # dec_z_tiled: utt x frame x att_dim
         dec_z_tiled = F.broadcast_to(
-            F.expand_dims(self.mlp_dec(dec_z), 1), self.pre_compute_enc_h.shape)
+            F.expand_dims(self.mlp_dec(dec_z_new), 1), self.pre_compute_enc_h.shape)
 
         # dot with gvec
         # utt x frame x att_dim -> utt x frame

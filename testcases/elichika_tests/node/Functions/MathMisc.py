@@ -2,7 +2,7 @@
 
 import chainer
 import chainer.functions as F
-
+import numpy as np
 # Network definition
 
 
@@ -142,6 +142,23 @@ class AbsBuiltin(chainer.Chain):
         y1 = abs(x)
         return y1
 
+class Sqrt(chainer.Chain):
+    def __init__(self):
+        super(Sqrt,self).__init__()
+
+    def forward(self, x):
+        y1 = F.sqrt(x)
+        y2 = np.sqrt(x)
+        return y1, y2
+
+class Round(chainer.Chain):
+    def __init__(self):
+        super(Round,self).__init__()
+
+    def forward(self, x):
+        y = np.round(x)
+        return y
+
 # ======================================
 from chainer_compiler.elichika import testtools
 import numpy as np
@@ -169,6 +186,8 @@ def main():
     testtools.generate_testcase(ClipNp(), [x], subname='clip_np')
     testtools.generate_testcase(Abs(), [x], subname='abs')
     testtools.generate_testcase(AbsNp(), [x], subname='abs_np')
+    testtools.generate_testcase(Sqrt(), [x], subname='sqrt')
+    testtools.generate_testcase(Round(), [x], subname='round')
     testtools.generate_testcase(AbsBuiltin(), [x], subname='abs_builtin')
     testtools.generate_testcase(AbsBuiltin(), [s_float], subname='abs_builtin_scalar_float')
     testtools.generate_testcase(AbsBuiltin(), [s_int], subname='abs_builtin_scalar_int')

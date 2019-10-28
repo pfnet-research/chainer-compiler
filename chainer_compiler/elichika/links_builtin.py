@@ -231,10 +231,12 @@ def convert_onnx_chainer_NStepLSTM(onnx_graph: 'ONNXGraph', node: 'nodes.NodeCal
         str(node.lineprop))
 
     (tilens,) = onnx_graph.add_node(
-        'ChainerSequenceStack',
+        'ConcatFromSequence',
         [ilens],
         [None],
-        str(node.lineprop))
+        str(node.lineprop),
+        axis=0,
+        new_axis=True)
 
     (v,) = onnx_graph.add_node(
         "ChainerSequencePad",
@@ -382,10 +384,12 @@ def convert_onnx_chainer_NStepBiLSTM(onnx_graph: 'ONNXGraph', node: 'nodes.NodeC
         str(node.lineprop))
 
     (tilens,) = onnx_graph.add_node(
-        'ChainerSequenceStack',
+        'ConcatFromSequence',
         [ilens],
         [None],
-        str(node.lineprop))
+        str(node.lineprop),
+        axis=0,
+        new_axis=True)
 
     v = xs
 
@@ -456,7 +460,7 @@ def convert_onnx_chainer_NStepBiLSTM(onnx_graph: 'ONNXGraph', node: 'nodes.NodeC
     out_size2 = oc.ONNXValue(onnx_graph, np.array(out_size * 2), [node, '/Outputs'])
 
     (sout_shape,) = onnx_graph.add_node(
-        "ChainerSequenceCreate", [sequence_length, minus1, out_size2], [None], str(node.lineprop),)
+        "SequenceConstruct", [sequence_length, minus1, out_size2], [None], str(node.lineprop),)
     sout_shape.onnx_type = oc.ONNXValueType.Sequence
 
     out_shape = sout_shape.create_tensor(node.lineprop)
@@ -537,4 +541,3 @@ def convert_onnx_chainer_EmbedID(onnx_graph: 'ONNXGraph', node: 'nodes.NodeCall'
         [w, x],
         [node.outputs[0]],
         str(node.lineprop))
-

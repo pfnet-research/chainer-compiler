@@ -5,9 +5,6 @@
 [submodule "chainer"]
 	path = third_party/chainer
 	url = https://github.com/chainer/chainer
-[submodule "third_party/onnx-chainer"]
-	path = third_party/onnx-chainer
-	url = https://github.com/chainer/onnx-chainer
 [submodule "protobuf"]
 	path = third_party/protobuf
 	url = https://github.com/protocolbuffers/protobuf.git

@@ -97,8 +97,10 @@ class Value(object):
             self.is_py = False
         else:
             if self.is_sequence():
-                self.value = env.calc('ChainerSequenceStack',
-                                      inputs=[self.value.name])
+                self.value = env.calc('ConcatFromSequence',
+                                      inputs=[self.value.name],
+                                      axis=0,
+                                      new_axis=True)
                 self.is_py = False
 
             if dtype is not None:
@@ -119,21 +121,22 @@ class Value(object):
             if not isinstance(self.value, collections.Iterable):
                 raise TypeError('Expected a sequence: %s' % self.value)
             res = env.calc_seq(
-                "ChainerSequenceCreate",
+                "SequenceConstruct",
                 inputs=[],
             )
             for v in self.value:
                 v = Value(v).to_tensor(env)
                 res = env.calc_seq(
-                    "ChainerSequenceAppend",
+                    "SequenceInsert",
                     inputs=[res.name, v.name],
                 )
             self.value = res
             self.is_py = False
         elif self.is_tensor():
             self.value = env.calc_seq(
-                'ChainerSequenceSeparate',
-                inputs=[self.value.name]
+                'SplitToSequence',
+                inputs=[self.value.name],
+                keepdims=False
             )
 
         assert self.is_sequence()

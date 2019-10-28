@@ -10,7 +10,7 @@ class UnaryOpSub(unittest.TestCase):
 
     def test_usub(self):
         orig_ast = gast.ast_to_gast(ast.parse("-3"))
-        target_ast = gast.Module(body=[gast.Expr(value=gast.Num(n=-3))])
+        target_ast = gast.Module(body=[gast.Expr(value=gast.Constant(value=-3, kind=None))], type_ignores=[])
         assert compare_ast(self.canonicalizer.visit(orig_ast), target_ast)
 
 # ======================================

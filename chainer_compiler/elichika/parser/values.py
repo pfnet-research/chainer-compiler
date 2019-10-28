@@ -3,7 +3,6 @@ import chainer.functions as F
 import chainer.links as L
 import sys
 import numpy as np
-
 import collections
 
 import ast
@@ -338,7 +337,10 @@ class FieldAttributeCollection():
 
     def pop_history(self):
         for att, input in self.inputs.items():
-            input[0].revise(input[1])
+            if isinstance(input[0], SubscriptObject):
+                input[0].revise(input[1], update_parent=False)
+            else:
+                input[0].revise(input[1])
         self.inputs.clear()
 
     def get_inputs(self) -> 'List[FieldInput]':
@@ -522,45 +524,8 @@ class Attribute:
         assert self.has_obj()
         return self.obj
 
-    def make_subscript_attribute(self, subscript: 'Object', graph: 'Graph'):
-        return SubscriptAttribute(self.name+"subscript"+str(utils.get_guid()), self, subscript, graph)
-
     def __str__(self):
         return self.name
-
-class SubscriptAttribute(Attribute):
-    def __init__(self, name: 'str', parent: 'Attribute', subscript: 'Object', graph: 'Graph'):
-        super().__init__(name)
-        self.attribute_parent = parent
-        self.subscript = subscript
-        self.graph = graph
-
-    def revise(self, obj: 'Object', update_parent = True):
-        super().revise(obj)
-        if not update_parent:
-            return
-
-        assert isinstance(self.attribute_parent, Attribute)
-        target_value = utils.try_get_value(self.attribute_parent, 'subscript', -1)
-        revision_value = utils.try_get_value(self.obj, 'subscript', -1)
-        subscript_value = utils.try_get_value(self.subscript, 'subscript', -1)
-
-        if isinstance(subscript_value, TupleValue):
-            # ex. x[1,2]
-            if subscript_value.has_constant_value():
-                subscripts = [utils.try_get_value(x, 'subscript', -1) for x in subscript_value.get_constant_value()]
-            else:
-                if config.show_warnings:
-                    assert False, "This subscript is not supported."
-
-        else:
-            # ex. x[1]
-            subscripts = [subscript_value]
-        node = nodes.NodeSetItem(target_value, subscripts, revision_value)
-        ret_value = functions.generate_value_with_same_type(target_value)
-        node.set_outputs([ret_value])
-        self.graph.add_node(node)
-        self.attribute_parent.revise(Object(ret_value))
 
 
 class Object():
@@ -578,8 +543,11 @@ class Object():
     def get_value(self) -> 'Value':
         return self.value
 
-    def revise(self, value):
+    def revise(self, value, update_parent=False):
         self.value = value
+    
+    def make_subscript_object(self, subscript: 'Object', graph: 'Graph'):
+        return SubscriptObject(self.value, self, subscript, graph)
 
     def try_get_and_store_obj(self, name: 'str', root_graph : 'graphs.Graph') -> 'Object':
 
@@ -594,6 +562,40 @@ class Object():
 
         self.attributes.set_predefined_obj(name, obj)
         return obj
+
+class SubscriptObject(Object):
+    def __init__(self, value: 'Value', parent: 'Attribute', subscript: 'Object', graph: 'Graph'):
+        super().__init__(value)
+        self.parent_object = parent
+        self.subscript = subscript
+        self.graph = graph
+
+    def revise(self, value: 'Value', update_parent = True):
+        super().revise(value)
+        if not update_parent:
+            return
+
+        assert isinstance(self.parent_object, Object)
+        target_value = utils.try_get_value(self.parent_object, 'subscript_object', -1)
+        revision_value = utils.try_get_value(self.value, 'subscript_object', -1)
+        subscript_value = utils.try_get_value(self.subscript, 'subscript_object', -1)
+
+        if isinstance(subscript_value, TupleValue):
+            # ex. x[1,2]
+            if subscript_value.has_constant_value():
+                subscripts = [utils.try_get_value(x, 'subscript', -1) for x in subscript_value.get_constant_value()]
+            else:
+                if config.show_warnings:
+                    assert False, "This subscript is not supported."
+
+        else:
+            # ex. x[1]
+            subscripts = [subscript_value]
+        node = nodes.NodeSetItem(target_value, subscripts, revision_value)
+        ret_value = functions.generate_value_with_same_type(target_value)
+        node.set_outputs([ret_value])
+        self.graph.add_node(node)
+        self.parent_object.revise(ret_value)
 
 
 class Value():

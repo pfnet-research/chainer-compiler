@@ -20,7 +20,7 @@ add_custom_target(
   DEPENDS ${CHAINER_COMPILER_CC_INC}
   )
 
-add_library(_chainer_compiler_core.so MODULE chainer_compiler_core.cc)
+pybind11_add_module(_chainer_compiler_core.so MODULE chainer_compiler_core.cc)
 add_dependencies(_chainer_compiler_core.so chainer_compiler_cc_inc)
 target_link_libraries(_chainer_compiler_core.so
   PRIVATE

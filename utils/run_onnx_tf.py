@@ -13,7 +13,7 @@ import run_onnx_util
 
 
 def run(args):
-    onnx_filename = os.path.join(args.test_dir, args.model_file)
+    onnx_filename = run_onnx_util.onnx_model_file(args.test_dir, args.model_file)
     input_names, output_names = run_onnx_util.onnx_input_output_names(
         onnx_filename)
     test_data_dir = os.path.join(args.test_dir, 'test_data_set_0')
@@ -45,7 +45,7 @@ def get_args(args=None):
     parser = argparse.ArgumentParser(description='Run ONNX by nGraph')
     parser.add_argument('test_dir')
     parser.add_argument('--iterations', '-I', type=int, default=1)
-    parser.add_argument('--model_file', default='model.onnx')
+    parser.add_argument('--model_file', default=None)
     return parser.parse_args(args=args)
 
 

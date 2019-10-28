@@ -4,7 +4,7 @@
 
 Usage:
 
-$ PYTHONPATH=third_party/onnx-chainer python3 scripts/gen_resnet50.py
+$ PYTHONPATH=third_party/chainer python3 scripts/gen_resnet50.py
 """
 
 import argparse

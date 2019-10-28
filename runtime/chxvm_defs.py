@@ -225,6 +225,7 @@ CHX_OPS = [
     ('ReduceSumTo', [Array('data'), Shape('shape')], ['reduced']),
     ('ReduceMean', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
     ('ReduceProd', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
+    ('CumSum', [Array('x'), OptionalScalar('axis')], ['y']),
 
     ('Linear',
      [Array('x'), Array('w'), OptionalArray('b'), Int('n_batch_axes')],
@@ -308,6 +309,8 @@ CHX_OPS = [
     ('Resize', [Array('x'), Array('scales')], ['y']),
     ('ResizeGrad', [Array('x'), Array('scales')], ['y']),
     ('Pad', [Array('data'), Ints('pads'), Float('value')], ['output']),
+    ('DynamicPad', [Array('data'), Shape('pads'), OptionalScalar('value')],
+     ['output']),
     ('MaxPool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),
       Int('cover_all'), String('auto_pad')],
@@ -348,7 +351,7 @@ CHX_OPS = [
 
     ('MatMul', [Array('a'), Array('b')], ['y']),
     ('Gemm',
-     [Array('a'), Array('b'), Array('c'),
+     [Array('a'), Array('b'), OptionalArray('c'),
       Float('alpha'), Float('beta'), Int('trans_a'), Int('trans_b')],
      ['y']),
 
@@ -403,7 +406,10 @@ CHX_OPS = [
     ('Greater', [Array('a'), Array('b')], ['c']),
     ('GreaterEqual', [Array('a'), Array('b')], ['c']),
     ('Not', [Array('x')], ['y']),
+
+    ('Dtype', [Array('input')], [Scalar('output')]),
     ('Cast', [Array('input'), Int('to')], ['output']),
+    ('DynamicCast', [Array('input'), Scalar('to')], ['output']),
 
     ('IntScalarConstant',
      [Int('value'), Int('dtype'), Int('host')], [Scalar('output')]),

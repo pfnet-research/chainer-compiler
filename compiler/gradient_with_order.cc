@@ -59,7 +59,9 @@ void ExposeParamGradsAsOutputs(Graph* graph, Graph* dest_graph, const std::set<V
         CHECK(false);
     }
 
-    graph->ResetGradients();
+    // TODO(hamaji): Better to give pretty names even in two-phase mode.
+    const bool reset_grad_names = graph == dest_graph;
+    graph->ResetGradients(reset_grad_names);
 }
 
 // TODO(mkusumoto): Re-organize dup code.
@@ -451,8 +453,10 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
         ExposeParamGradsAsOutputs(fwd_graph, bwd_graph, GetParamValues(fwd_graph));
     }
 
-    fwd_graph->ResetGradients();
-    bwd_graph->ResetGradients();
+    // TODO(hamaji): Better to give pretty names even in two-phase mode.
+    const bool reset_grad_names = false;
+    fwd_graph->ResetGradients(reset_grad_names);
+    bwd_graph->ResetGradients(reset_grad_names);
 
     return true;
 }

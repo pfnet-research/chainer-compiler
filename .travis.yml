@@ -1,15 +1,11 @@
 language: cpp
 
-dist: xenial
-
 cache:
   ccache: true
   pip: true
   directories:
     - $HOME/dist-chainer
-
-before_install:
-  - sudo apt-get install -y --no-install-recommends libprotobuf-dev protobuf-compiler libopencv-dev python3 python3-pip python3-setuptools cmake libopenblas-dev
+    - $HOME/Library/Caches/Homebrew
 
 before_script:
   - export -f travis_nanoseconds
@@ -17,18 +13,40 @@ before_script:
   - export -f travis_time_start
   - export -f travis_time_finish
 
-script:
-  - bash ./scripts/run-travis-tests.sh
-
-addons:
-  apt:
-    update: true
-
 env:
   - CHAINER_BUILD_CHAINERX=1 MAKEFLAGS=-j2
+
+matrix:
+  include:
+    - name: Ubuntu16.04
+      dist: xenial
+      before_install:
+        - |
+          sudo apt-get install -y --no-install-recommends \
+            libprotobuf-dev protobuf-compiler libopencv-dev \
+            python3 python3-pip python3-setuptools \
+            cmake libopenblas-dev
+      script:
+        - bash ./scripts/run-clang-format.sh
+        - bash ./scripts/run-travis-tests.sh
+    - name: macOS
+      os: osx
+      before_cache:
+        - brew cleanup
+      before_install:
+        - brew install protobuf opencv python cmake openblas
+      script:
+        - bash ./scripts/run-travis-tests.sh
 
 notifications:
   slack:
     secure: DAD1YfKKOHP48qzGwS9cPjRlpLgHy9jDwXdcwnzE9ujzD/rct5lg7s+1Cw5LqjWdSGsMmkkbV5XUEmPpXB8V2MxhRv4A21dhUab3bdPbP4e/8JRTPrg7wz7d1YeXDXTSP1NwL3XtChmXQFEa0Jy+PeUJed+lsEbNxjeH1WEVv4iKPWqd5YH+ncZ+q9CCy2lJOneBQM298h8BLpcfEdFEZ1ezpcLBVmxNK9f78AtoVS6OY+0oP6ffS7aLGr73al55l/LpqaLlkhy3sSpiZ+3VeGmxnBybUzd6QBewEjjJyEh2WBW1WCCUJ8PtVWd1ix8NuQqC+QbxDJtogFfCJoGsliNbT8Auk+GVEz+ijpnEpckFMGtfwywNsv309bnTFGGt+zlf9BxL834Z8wVhEMCmIOw3U1mQgIsmo1m62yqtwOqGbQlq73hLWkMwB9c9nnuWXRkPgBujef1JW99tlHg/lHvyC3jXoMPpgHGiWb82KiBzWSZ1jTO9Y1k7Ix8EFCZT1OLw9Hy4IUiDUyUkMPizj5r9wORrre4ug36GbznuV8BlDFWyAhxqcYguOQzMwlkygOjpYsYDjumv0b468h2YYfu4C4OevCEdE2d8/nIb0WvluBuKYQsFUe29rJa1wBw1x3ws2AjCucCJzbKSQyp72LBaHi8yGpeMbOPpuTz9/yc=
     on_success: change
     on_failure: always
+
+
+addons:
+  apt:
+    update: true
+  homebrew:
+    update: true

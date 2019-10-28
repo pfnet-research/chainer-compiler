@@ -137,7 +137,7 @@ absl::variant<chainerx::Array, std::vector<std::string>> TensorProtoToArray(onnx
                 data = LoadDataFromRepeated<double, double>(xtensor.double_data());
                 break;
             default:
-                CHECK(false) << "Unknown data type: " << dtype.ToString();
+                CHECK(false) << "Unknown data type: " << dtype.ToString() << " in: " << xtensor.name();
         }
         return runtime::MakeHostArray(dtype.chx(), std::move(shape), data.get());
     }

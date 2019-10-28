@@ -23,7 +23,7 @@ class AnyModel(chainer.Chain):
         return result
 
 
-def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
+def create_backprop_test(test_name, fn, args, dtype=np.float32, **kwargs):
     test_dir = 'out/%s' % test_name
 
     params = {}
@@ -34,22 +34,24 @@ def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
     chainer.disable_experimental_feature_warning = True
     shutil.rmtree(test_dir, ignore_errors=True)
     onnx_chainer.export_testcase(model,
-                                 (),
+                                 args,
                                  test_dir,
                                  output_grad=True,
                                  output_names='loss')
 
 
 class BackpropTest(TestCase):
-    def __init__(self, name, fn, rtol=None, test_params=None, **kwargs):
+    def __init__(self, name, fn, args=(),
+                 rtol=None, test_params=None, **kwargs):
         name = 'backprop_test_oc_%s' % name
         test_params = {} if test_params is None else test_params
         super().__init__(basedir='out', name=name, rtol=rtol, **test_params)
         self.fn = fn
+        self.args = args
         self.kwargs = kwargs
 
     def generate(self):
-        create_backprop_test(self.name, self.fn, **self.kwargs)
+        create_backprop_test(self.name, self.fn, self.args, **self.kwargs)
 
 
 def get_backprop_tests():
@@ -81,6 +83,21 @@ def get_backprop_tests():
     test('relu', lambda m: F.relu(m.a), a=[-3, 3, 5])
     test('elu', lambda m: F.elu(m.a), a=[-3, 3, 5])
     test('reduce_sum', lambda m: F.sum(m.a, axis=0), a=[3, 5, 7])
+    test('reduce_sum_neg_axis', lambda m: F.sum(m.a, axis=-1),
+         a=aranges(2, 3, 5))
+    test('reduce_sum_keepdims',
+         lambda m: F.sum(m.a, axis=1, keepdims=True), a=aranges(2, 3, 5))
+    test('reduce_sum_multi_axes',
+         lambda m: F.sum(m.a, axis=(0, 2)), a=aranges(2, 3, 5))
+    test('reduce_mean', lambda m: F.mean(m.a, axis=0), a=[3, 5, 7])
+    test('reduce_mean_neg_axis', lambda m: F.mean(m.a, axis=-1),
+         a=aranges(2, 3, 5))
+    test('reduce_mean_keepdims',
+         lambda m: F.mean(m.a, axis=1, keepdims=True), a=aranges(2, 3, 5))
+    test('clip', lambda m: F.clip(m.a, -2.0, 4.0),
+         a=[-3.0, -2.0, 3.0, 4.0, 5.0])
+    test('reduce_mean_multi_axes',
+         lambda m: F.mean(m.a, axis=(0, 2)), a=aranges(2, 3, 5))
 
     test('mulconst', lambda m: m.a * 1.23, a=[3, 5])
     test('mulbcast', lambda m: m.a * m.b, a=[[1, 2, 3], [4, 5, 6]], b=[7, 8, 9])
@@ -245,6 +262,22 @@ def get_backprop_tests():
     test('split_2_axis_1',
          lambda m: sum(F.split_axis(m.x, 3, axis=1)),
          x=aranges(2, 12, 2))
+
+    def get_item(m):
+        indices = aranges(5, 3).astype(np.int32) % 12
+        return m.x[:, indices] * m.r
+    test('get_item', get_item,
+         x=aranges(1, 12, 32), r=aranges(1, 5, 3, 32))
+
+    test('cast',
+         lambda m: F.cast(m.x, np.float64),
+         x=aranges(2, 12, 2))
+
+    test('where',
+         lambda m, cond: F.where(cond, m.x, m.y),
+         x=aranges(20),
+         y=-aranges(20),
+         args=[np.array(np.random.randint(2, size=20), dtype=np.bool)])
 
     return tests
 

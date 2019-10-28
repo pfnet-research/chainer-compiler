@@ -79,5 +79,9 @@ chainerx::Array ReduceProdOp::RunImpl(ChxVMState* st, const chainerx::Array& x) 
     return y;
 }
 
+chainerx::Array CumSumOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const absl::optional<StrictScalar>& axis) {
+    return chainerx::Cumsum(x, axis ? absl::optional<int8_t>(static_cast<int64_t>(*axis)) : absl::nullopt);
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler

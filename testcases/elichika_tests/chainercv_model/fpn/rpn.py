@@ -13,6 +13,7 @@ from testcases.elichika_tests.chainercv_model.fpn.misc import choice
 from testcases.elichika_tests.chainercv_model.fpn.misc import exp_clip
 from testcases.elichika_tests.chainercv_model.fpn.misc import smooth_l1
 import testcases.elichika_tests.chainercv_model.utils as utils
+from chainer_compiler.elichika.parser import flags
 
 
 class RPN(chainer.Chain):
@@ -24,7 +25,7 @@ class RPN(chainer.Chain):
     """
 
     _anchor_size = 32
-    _anchor_ratios = (0.5, 1, 2)
+    _anchor_ratios = np.array([0.5, 1, 2])
     _nms_thresh = 0.7
     _train_nms_limit_pre = 2000
     _train_nms_limit_post = 2000
@@ -91,17 +92,29 @@ class RPN(chainer.Chain):
 
         """
         anchors = []
-        for l, (H, W) in enumerate(sizes):
-            v, u, ar = np.meshgrid(
-                np.arange(W), np.arange(H), self._anchor_ratios)
+        for l in range(len(sizes)):
+            H = sizes
+            W = sizes[l][1]
+            return H
+            # mesh = np.meshgrid(range(W), range(H), self._anchor_ratios)
+            v = np.zeros((W, H, len(self._anchor_ratios)), dtype='f')
+            u = np.zeros((W, H, len(self._anchor_ratios)), dtype='f')
+            ar = np.zeros((W, H, len(self._anchor_ratios)), dtype='f')
+            for i in range(W):
+                for j in range(H):
+                    for k in range(len(self._anchor_ratios)):
+                        v[i][j][k] = i
+                        u[i][j][k] = j
+                        ar[i][j][k] = self._anchor_ratios[k]
+
             w = np.round(1 / np.sqrt(ar) / self._scales[l])
             h = np.round(w * ar)
-            anchor = np.stack((u, v, h, w)).reshape((4, -1)).transpose()
-            anchor[:, :2] = (anchor[:, :2] + 0.5) / self._scales[l]
-            anchor[:, 2:] *= (self._anchor_size << l) * self._scales[l]
-            # yxhw -> tlbr
-            anchor[:, :2] -= anchor[:, 2:] / 2
-            anchor[:, 2:] += anchor[:, :2]
+            anchor = np.transpose(np.stack(np.reshape((u, v, h, w), (4, -1))), (1, 0))
+            # anchor[:, :2] = (anchor[:, :2] + 0.5) / self._scales[l]
+            # anchor[:, 2:] *= ((2**l) * self._anchor_size) * self._scales[l]
+            # # yxhw -> tlbr
+            # anchor[:, :2] -= anchor[:, 2:] / 2
+            # anchor[:, 2:] += anchor[:, :2]
             anchors.append(self.xp.array(anchor, dtype=np.float32))
 
         return anchors
@@ -148,7 +161,7 @@ class RPN(chainer.Chain):
                 loc_l = locs[l].array[i]
                 conf_l = confs[l].array[i]
 
-                roi_l = anchors[l].copy()
+                roi_l = anchors[l]#.copy()
                 # tlbr -> yxhw
                 roi_l[:, 2:] -= roi_l[:, :2]
                 roi_l[:, :2] += roi_l[:, 2:] / 2
@@ -284,3 +297,28 @@ def rpn_loss(locs, confs, anchors, sizes,  bboxes):
     conf_loss /= len(sizes)
 
     return loc_loss, conf_loss
+
+
+# ======================================
+
+from chainer_compiler.elichika import testtools
+import numpy as np
+
+def main():
+    np.random.seed(314)
+
+    scales = (0.25, 0.125, 0.0625, 0.03125, 0.015625)
+    model = RPN(scales)
+
+    bsize = 2
+
+    v = [
+        np.random.rand(bsize, 256, 56, 56).astype(np.float32),
+        np.random.rand(bsize, 256, 28, 28).astype(np.float32),
+        np.random.rand(bsize, 256, 14, 14).astype(np.float32),
+        np.random.rand(bsize, 256, 4, 4).astype(np.float32),
+    ]
+    testtools.generate_testcase(model, [v])
+
+if __name__ == '__main__':
+    main()

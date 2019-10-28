@@ -147,10 +147,10 @@ class PickableSequentialChain(chainer.Chain):
                 if name in self._pick:
                     layers.append(h)
 
-        if not self._return_tuple:
-            layers = layers[0]
-
-        return layers
+        if self._return_tuple:
+            return layers
+        else:
+            return layers[0]
 
     def copy(self, *args, **kargs):
         copied = super(PickableSequentialChain, self).copy(*args, **kargs)

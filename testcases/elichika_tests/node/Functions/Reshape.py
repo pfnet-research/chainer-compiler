@@ -17,7 +17,10 @@ class A(chainer.Chain):
         y1 = F.reshape(x, (24, 12))
         y2 = F.reshape(x, (6, -1, 12))
         y3 = F.reshape(x, (-1, p))
-        return (y1, y2, y3)
+        y4 = np.reshape(x, (24, 12))
+        y5 = np.reshape(x, (6, -1, 12))
+        y6 = np.reshape(x, (-1, p))
+        return (y1, y2, y3, y4, y5, y6)
 
 class B(chainer.Chain):
 

@@ -67,6 +67,23 @@ chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     return array;
 }
 
+std::string OnnxPathFromTestDir(const std::string& test_dir) {
+    std::ifstream ifs(test_dir + "/model.onnx");
+    if (ifs) {
+        return test_dir + "/model.onnx";
+    }
+
+    std::string candidate_onnx;
+    for (const std::string& fn : ListDir(test_dir)) {
+        if (HasSuffix(fn, ".onnx")) {
+            CHECK(candidate_onnx.empty()) << "Multiple onnx files detected: " << candidate_onnx << ", " << fn << ", ...";
+            candidate_onnx = fn;
+            continue;
+        }
+    }
+    return candidate_onnx;
+}
+
 void ReadTestDir(
         const std::string& test_path,
         const std::vector<std::string>& input_names,
@@ -84,6 +101,8 @@ void ReadTestDir(
         std::vector<std::tuple<std::string, std::string, chainerx::Array>> all_tensors;
         for (const std::string& tensor_pb : ListDir(data_set_dir)) {
             if (!HasSuffix(tensor_pb, ".pb")) continue;
+            // Ignore some files for test data like MobileNet v2
+            if (HasPrefix(*SplitString(tensor_pb, "/").rbegin(), "._")) continue;
             onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
             chainerx::Array tensor(MakeArrayFromONNX(xtensor));
             all_tensors.emplace_back(Basename(tensor_pb), xtensor.name(), tensor);
@@ -161,15 +180,31 @@ chainerx::Array StageArray(chainerx::Array a) {
     return a;
 }
 
-void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdline::parser& args, bool check_values, bool show_diff) {
+void VerifyOutputs(
+        const InOuts& outputs,
+        const TestCase& test_case,
+        const cmdline::parser& args,
+        bool check_values,
+        bool show_diff,
+        std::vector<std::string> ordered_output_names) {
+    if (ordered_output_names.empty()) {
+        for (const auto& p : test_case.outputs) {
+            const std::string key = p.first;
+            ordered_output_names.push_back(key);
+        }
+    }
+
     LOG() << "Verifying the result..." << std::endl;
     size_t ok_cnt = 0;
-    for (const auto& p : test_case.outputs) {
-        const std::string key = p.first;
-        ChxVMVar* expected = p.second.get();
-        auto found = outputs.find(key);
-        CHECK(found != outputs.end()) << "Output does not contain " << key;
-        ChxVMVar* actual = found->second.get();
+    for (const std::string& key : ordered_output_names) {
+        auto expected_found = test_case.outputs.find(key);
+        if (expected_found == test_case.outputs.end()) {
+            continue;
+        }
+        ChxVMVar* expected = expected_found->second.get();
+        auto actual_found = outputs.find(key);
+        CHECK(actual_found != outputs.end()) << "Output does not contain " << key;
+        ChxVMVar* actual = actual_found->second.get();
 
         auto array_str = [&args](const absl::optional<chainerx::Array>& a) {
             int size = a->GetTotalSize();
@@ -266,6 +301,55 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
     }
 
     if (check_values) CHECK_EQ(ok_cnt, test_case.outputs.size());
+}
+
+static void AddCommonRuntimeFlags(cmdline::parser* args) {
+    args->add("trace", 't', "Tracing mode");
+    args->add("verbose", 'v', "Verbose mode");
+    args->add("quiet", 'q', "Quiet mode");
+    args->add<std::string>("backend", '\0', "The name of the backend", false, "chxvm");
+}
+
+void ParseArgs(cmdline::parser* args, int argc, char** argv) {
+    AddCompilerFlags(args);
+    AddCommonRuntimeFlags(args);
+    args->parse_check(argc, argv);
+}
+
+void ParseArgs(cmdline::parser* args, const std::vector<std::string>& argv) {
+    AddCompilerFlags(args);
+    AddCommonRuntimeFlags(args);
+    args->parse_check(argv);
+}
+
+void SetupGlobals(const cmdline::parser& args) {
+    ApplyCompilerFlags(args);
+    g_compiler_log |= args.exist("trace") || args.exist("verbose");
+    g_backend_name = args.get<std::string>("backend");
+    g_quiet = args.exist("quiet");
+}
+
+std::vector<std::string> GetOrderedOutputNames(const Graph& graph) {
+    typedef std::pair<Value*, int> Pair;
+    std::vector<Pair> values = graph.GetTopologicallySortedValuesWithDistance();
+    std::sort(values.begin(), values.end(), [](const Pair& l, const Pair& r) {
+        if (l.second < r.second) {
+            return true;
+        } else if (l.second > r.second) {
+            return false;
+        }
+        Value* lv = l.first;
+        Value* rv = r.first;
+        return lv->name() < rv->name();
+    });
+
+    std::vector<std::string> ordered;
+    for (const Pair& p : values) {
+        if (p.first->IsOutput()) {
+            ordered.push_back(p.first->name());
+        }
+    }
+    return ordered;
 }
 
 }  // namespace runtime

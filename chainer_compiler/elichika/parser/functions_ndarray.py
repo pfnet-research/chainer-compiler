@@ -292,6 +292,103 @@ class NDarrayArgminmaxFunction(functions.FunctionBase):
         node.set_outputs([value])
         return values.Object(value)
 
+
+class NDarrayRoundFunction(functions.FunctionBase):
+    def __init__(self, func):
+        super().__init__()
+        self.name = func.__name__
+        self.args.analyze_args(func, module_function=True)
+        self.base_func = func
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              context: 'functions.VEvalContext' = None, line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+        value = values.NumberValue(None)
+        value.dtype = np.float32
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.Object(value)
+
+
+class NDarraySqrtFunction(functions.FunctionBase):
+    def __init__(self, func):
+        super().__init__()
+        self.name = func.__name__
+        self.args.analyze_args(func, module_function=True)
+        self.base_func = func
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              context: 'functions.VEvalContext' = None, line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+        value = values.TensorValue()
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.Object(value)
+
+
+class NDarrayStackFunction(functions.FunctionBase):
+    def __init__(self, func):
+        super().__init__()
+        self.name = func.__name__
+        self.args.analyze_args(func, module_function=True)
+        self.base_func = func
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              context: 'functions.VEvalContext' = None, line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+        value = values.TensorValue()
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.Object(value)
+
+
+class NDarrayReshapeFunction(functions.FunctionBase):
+    def __init__(self, func):
+        super().__init__()
+        self.name = func.__name__
+        self.args.analyze_args(func, module_function=True)
+        self.base_func = func
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              context: 'functions.VEvalContext' = None, line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+        value = values.TensorValue()
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.Object(value)
+
+
+class NDarrayTransposeFunction(functions.FunctionBase):
+    def __init__(self, func):
+        super().__init__()
+        self.name = func.__name__
+        self.args.analyze_args(func, module_function=True)
+        self.base_func = func
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              context: 'functions.VEvalContext' = None, line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+        value = values.TensorValue()
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.Object(value)
+
+
 def dummy_argmin(a, axis=None, out=None):
     return
 
@@ -302,6 +399,21 @@ def dummy_maximum(x1, x2, out=None, where=True, casting='same_kind', order='K', 
     return
 
 def dummy_minimum(x1, x2, out=None, where=True, casting='same_kind', order='K', dtype=None, subok=True):
+    return
+
+def dummy_round(x, decimals=0): # doesn't support `out`
+    return
+
+def dummy_sqrt(x):
+    return
+
+def dummy_stack(xs, axis=0):  # doesn't support `out`
+    return
+
+def dummy_reshape(x, shape):  # doesen't support `order`
+    return
+
+def dummy_transpose(x, axes=0):
     return
 
 class Assigner(values.PredefinedValueAssigner):
@@ -338,5 +450,6 @@ class Assigner(values.PredefinedValueAssigner):
         add_chainer_function(F.reshape)
         add_chainer_function(F.sum)
         add_chainer_function(F.swapaxes)
+        add_chainer_function(F.transpose)
         
 values.predefined_value_assigners.append(Assigner())

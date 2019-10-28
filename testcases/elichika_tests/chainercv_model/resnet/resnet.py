@@ -277,7 +277,6 @@ def main():
     bsize = 2
 
     v = np.random.rand(bsize, 3, 224, 224).astype(np.float32)
-    t = np.random.randint(1000, size=bsize).astype(np.int32)
 
     testtools.generate_testcase(model, [v])
 

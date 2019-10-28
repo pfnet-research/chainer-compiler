@@ -91,7 +91,7 @@ endif()
 if (${CHAINER_COMPILER_ENABLE_PYTHON})
   include_directories(${PYTHON_INCLUDE_DIRS})
 
-  add_library(run_onnx_core.so MODULE run_onnx_core.cc)
+  pybind11_add_module(run_onnx_core.so MODULE run_onnx_core.cc)
   set_hidden_(run_onnx_core.so)
 
   target_link_libraries(run_onnx_core.so
@@ -110,7 +110,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
     SUFFIX "${PYTHON_MODULE_SUFFIX}")
 
   if(${CHAINER_COMPILER_ENABLE_OPENCV})
-    add_library(train_imagenet_core.so MODULE train_imagenet_core.cc)
+    pybind11_add_module(train_imagenet_core.so MODULE train_imagenet_core.cc)
     set_hidden_(train_imagenet_core.so)
 
     target_link_libraries(train_imagenet_core.so
