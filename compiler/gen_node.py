@@ -36,7 +36,7 @@ class Dtype(object):
     pass
 
 
-CHAINER_COMPILERX_GLOBAL_ATTRS = attr_sets(chainer_order=-1, chainer_fusion_group=0)
+CHAINER_COMPILERX_GLOBAL_ATTRS = attr_sets(chainer_order=-1, chainer_fusion_group=0, chainer_onnx_domain=[str], chainer_onnx_version=[int])
 
 NODES = []
 
