@@ -182,6 +182,8 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         } else {
             EMIT(Mod, out(0), in(0), in(1));
         }
+    } else if (node.op_type() == Node::kChainerSquare) {
+        EMIT(Mul, out(0), in(0), in(0));
     } else if (node.op_type() == Node::kDropout) {
         CHECK_EQ(1UL, node.inputs().size());
         CHECK_LE(1UL, node.outputs().size());
