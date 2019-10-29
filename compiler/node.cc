@@ -29,7 +29,7 @@ Node::Node(
       doc_string_(xnode.doc_string()) {
     {
         std::vector<std::string> domains;
-        std::vector<int> versions;
+        std::vector<int64_t> versions;
         for (const auto i : opsets) {
             domains.push_back(i.domain());
             versions.push_back(i.version());
@@ -58,7 +58,17 @@ Node::Node(
         const std::vector<Value*>& outputs,
         const std::string& domain,
         const OpsetList& opsets)
-    : NodeBase(op_type), inputs_(inputs), outputs_(outputs), name_(name), domain_(domain), opset_import_(opsets) {
+    : NodeBase(op_type), inputs_(inputs), outputs_(outputs), name_(name), domain_(domain) {
+    {
+        std::vector<std::string> domains;
+        std::vector<int64_t> versions;
+        for (const auto i : opsets) {
+            domains.push_back(i.domain());
+            versions.push_back(i.version());
+        }
+        set_chainer_onnx_domain(domains);
+        set_chainer_onnx_version(versions);
+    }
     ValidateNumInputsOutputs(inputs, outputs);
     SetDefaultAttributeValues();
 }
@@ -83,12 +93,20 @@ void Node::ToONNX(onnx::NodeProto* xnode, const OpsetList& opsets, bool validate
     DUMP_STRING(xnode, domain);
     DUMP_STRING(xnode, doc_string);
 
-    FillONNXAttributes(xnode);
+    bool ignore_opset_imports = true;
+    const OpsetList node_opsets = OpsetImports();
+    for (size_t i = 0; i < node_opsets.size(); ++i) {
+        if (node_opsets[i].domain() != opsets[i].domain() || node_opsets[i].version() != opsets[i].version()) {
+            ignore_opset_imports = false;
+        }
+    }
+
+    FillONNXAttributes(xnode, ignore_opset_imports);
 }
 
 std::string Node::DebugString() const {
     onnx::NodeProto xnode;
-    ToONNX(&xnode, {}, false);
+    ToONNX(&xnode, OpsetImports(), false);
     return xnode.DebugString();
 }
 
@@ -239,8 +257,21 @@ std::string Node::ToString() const {
     return oss.str();
 }
 
+OpsetList Node::OpsetImports() const {
+    OpsetList ret;
+    CHECK_EQ(chainer_onnx_version().size(), chainer_onnx_domain().size());
+    for (size_t i = 0; i < chainer_onnx_version().size(); ++i) {
+        onnx::OperatorSetIdProto p;
+        p.set_domain(chainer_onnx_domain()[i]);
+        p.set_version(chainer_onnx_version()[i]);
+        ret.push_back(p);
+    }
+    CHECK_EQ(chainer_onnx_version().size(), ret.size());
+    return ret;
+}
+
 int Node::OpVersion() const {
-    return GetOpsetVersion(opset_import_, domain_);
+    return GetOpsetVersion(OpsetImports(), domain_);
 }
 
 bool Node::ValidateWithSchema(const OpsetList& opsets_, std::string* message) const {
@@ -249,7 +280,7 @@ bool Node::ValidateWithSchema(const OpsetList& opsets_, std::string* message) co
         return true;
     }
 
-    const OpsetList& opset = opsets_.empty() ? opset_import_ : opsets_;
+    const OpsetList& opset = opsets_.empty() ? OpsetImports() : opsets_;
     const int version = GetOpsetVersion(opset, domain_);
     const onnx::OpSchema* schema = onnx::OpSchemaRegistry::Schema(OpTypeToString(op_type()), version, domain_);
 

@@ -76,7 +76,7 @@ public:
 
     std::string ToString() const;
 
-    OpsetList opset_imports() const;
+    OpsetList OpsetImports() const;
 
     int OpVersion() const;
 

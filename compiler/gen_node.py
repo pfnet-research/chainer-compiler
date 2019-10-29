@@ -36,7 +36,8 @@ class Dtype(object):
     pass
 
 
-CHAINER_COMPILERX_GLOBAL_ATTRS = attr_sets(chainer_order=-1, chainer_fusion_group=0, chainer_onnx_domain=[str], chainer_onnx_version=[int])
+ONNX_OPSET_IMPORT_ATTRS = attr_sets(chainer_onnx_domain=[str], chainer_onnx_version=[int])
+CHAINER_COMPILERX_GLOBAL_ATTRS = attr_sets(chainer_order=-1, chainer_fusion_group=0, **ONNX_OPSET_IMPORT_ATTRS)
 
 NODES = []
 
@@ -579,7 +580,7 @@ class Value;
 
 class NodeBase {
 public:
-    void FillONNXAttributes(onnx::NodeProto* xnode) const;
+    void FillONNXAttributes(onnx::NodeProto* xnode, bool ignore_opset_imports = false) const;
 
     void SetDefaultAttributeValues();
 
@@ -699,7 +700,7 @@ def gen_gen_node_base_cc():
     lines.append('}')
     lines.append('}')
 
-    lines.append('void NodeBase::FillONNXAttributes(onnx::NodeProto* xnode) '
+    lines.append('void NodeBase::FillONNXAttributes(onnx::NodeProto* xnode, bool ignore_opset_imports) '
                  'const {')
 
     lines.append(r'''
@@ -781,7 +782,10 @@ def gen_gen_node_base_cc():
     for node in NODES:
         lines.append('case k%s: ' % (node.op_type) + '{')
         for _, attr in sorted(node.attr_defs.items()):
-            lines.append('if (was_%s_set_)' % (attr.c_name))
+            if attr.c_name in ONNX_OPSET_IMPORT_ATTRS:
+                lines.append('if (!ignore_opset_imports && was_%s_set_)' % (attr.c_name))
+            else:
+                lines.append('if (was_%s_set_)' % (attr.c_name))
             lines.append('    %s("%s",' % (attr.add_func(), attr.onnx_name) +
                          ' %s_);' % (attr.c_name))
         lines.append('break;')
