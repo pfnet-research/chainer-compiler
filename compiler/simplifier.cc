@@ -32,7 +32,7 @@ struct Simplifier {
 };
 
 bool ReplaceMul(Graph* graph, Node* node) {
-    if (node->input(0) != node->input(1)) {
+    if (node->input(0) != node->input(1) || !node->input(0)->IsTemp()) {
         return false;
     }
     GraphBuilder gb(graph, "SimplifyMul", node->output(0));
