@@ -213,6 +213,13 @@ void MulGradFn(GradientOpContext* gc) {
     }
 }
 
+void SquareGradFn(GradientOpContext* gc) {
+    Value* gy = gc->gy(0);
+    GraphBuilder gb{gc->builder(0)};
+    Value* mul = gb.Op(Node::kMul, {gy, gc->x(0)});
+    gc->GradOp(Node::kAdd, 0, {mul, mul});
+}
+
 void DivGradFn(GradientOpContext* gc) {
     Value* gy = gc->gy(0);
     Value* gx0 = gc->GradOp(Node::kDiv, 0, {gy, gc->x(1)});
@@ -1218,6 +1225,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kAdd, &AddGradFn);
         register_grad_fn(Node::kSub, &SubGradFn);
         register_grad_fn(Node::kMul, &MulGradFn);
+        register_grad_fn(Node::kChainerSquare, &SquareGradFn);
         register_grad_fn(Node::kDiv, &DivGradFn);
         register_grad_fn(Node::kNeg, &NegGradFn);
         register_grad_fn(Node::kExp, &ExpGradFn);

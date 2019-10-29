@@ -31,6 +31,15 @@ struct Simplifier {
     SimplifierFn fn;
 };
 
+bool ReplaceMul(Graph* graph, Node* node) {
+    if (node->input(0) != node->input(1) || !node->input(0)->IsTemp()) {
+        return false;
+    }
+    GraphBuilder gb(graph, "SimplifyMul", node->output(0));
+    gb.Op(Node::kChainerSquare, {node->input(0)}, node->output(0));
+    return true;
+}
+
 bool ReplaceSum(Graph* graph, Node* node) {
     CHECK_LT(0UL, node->inputs().size());
     CHECK_EQ(1UL, node->outputs().size());
@@ -834,6 +843,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
         register_simplifier(Node::k##op, "Replace" #op, Replace##op); \
     } while (0)
 
+    REGISTER_SIMPLIFIER(Mul);
     REGISTER_SIMPLIFIER(Sum);
     REGISTER_SIMPLIFIER(Less);
     REGISTER_SIMPLIFIER(ArgMin);

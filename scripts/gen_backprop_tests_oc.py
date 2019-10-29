@@ -106,6 +106,7 @@ def get_backprop_tests():
 
     test('reshape', lambda m: F.reshape(m.a, (1, 2, 1)), a=[3, 5])
 
+    test('square', lambda m: F.square(m.a), a=[0.3, 0.6])
     test('sqrt', lambda m: F.sqrt(m.a), a=[3, 5])
     test('tanh', lambda m: F.tanh(m.a), a=[0.3, 0.6])
 
