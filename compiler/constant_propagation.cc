@@ -57,7 +57,9 @@ void DoConstantPropagation(Graph* graph, Node* node) {
         auto& next_value = next_values[i];
         GraphBuilder gb(graph, "Const", node->output(i));
         if (next_value->is_tensor()) {
-            gb.Op(Node::kConstant, {}, node->output(i))->producer()->set_tensor_value(next_value->ReleaseTensor());
+            Tensor* t = next_value->ReleaseTensor();
+            node->output(i)->set_type(new Type(t->dtype(), t->dims()));
+            gb.Op(Node::kConstant, {}, node->output(i))->producer()->set_tensor_value(t);
         } else {
             gb.Op(Node::kChainerSequenceConstants, {}, node->output(i))->producer()->set_tensor_values(next_value->ReleaseSequence());
         }
