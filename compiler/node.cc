@@ -26,8 +26,18 @@ Node::Node(
       outputs_(outputs),
       name_(name.empty() ? xnode.name() : name),
       domain_(xnode.domain()),
-      doc_string_(xnode.doc_string()),
-      opset_import_(opsets) {
+      doc_string_(xnode.doc_string()) {
+    {
+        std::vector<std::string> domains;
+        std::vector<int> versions;
+        for (const auto i : opsets) {
+            domains.push_back(i.domain());
+            versions.push_back(i.version());
+        }
+        set_chainer_onnx_domain(domains);
+        set_chainer_onnx_version(versions);
+    }
+
     if (domain_ == onnx::ONNX_DOMAIN && HasPrefix(xnode.op_type(), "Chainer")) {
         domain_ = CHAINER_ONNX_DOMAIN;
     }

@@ -76,9 +76,7 @@ public:
 
     std::string ToString() const;
 
-    const OpsetList& opset_imports() const {
-        return opset_import_;
-    }
+    OpsetList opset_imports() const;
 
     int OpVersion() const;
 
@@ -90,7 +88,6 @@ private:
     std::string name_;
     std::string domain_;
     std::string doc_string_;
-    OpsetList opset_import_;
 
     bool detached_ = false;
 };
