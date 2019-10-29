@@ -93,11 +93,13 @@ void Node::ToONNX(onnx::NodeProto* xnode, const OpsetList& opsets, bool validate
     DUMP_STRING(xnode, domain);
     DUMP_STRING(xnode, doc_string);
 
-    bool ignore_opset_imports = true;
     const OpsetList node_opsets = OpsetImports();
-    for (size_t i = 0; i < node_opsets.size(); ++i) {
-        if (node_opsets[i].domain() != opsets[i].domain() || node_opsets[i].version() != opsets[i].version()) {
-            ignore_opset_imports = false;
+    bool ignore_opset_imports = node_opsets.size() == opsets.size();
+    if (ignore_opset_imports) {
+        for (size_t i = 0; i < node_opsets.size(); ++i) {
+            if (node_opsets[i].domain() != opsets[i].domain() || node_opsets[i].version() != opsets[i].version()) {
+                ignore_opset_imports = false;
+            }
         }
     }
 
