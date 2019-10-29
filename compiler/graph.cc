@@ -217,13 +217,7 @@ Node* Graph::AddNode(
         const std::string& base,
         const std::string& domain,
         const OpsetList& opsets) {
-    Node* node = new Node(
-            GenSym(base.empty() ? Node::OpTypeToString(op_type) : base),
-            op_type,
-            inputs,
-            outputs,
-            domain,
-            opsets);
+    Node* node = new Node(GenSym(base.empty() ? Node::OpTypeToString(op_type) : base), op_type, inputs, outputs, domain, opsets);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     return node;
 }
