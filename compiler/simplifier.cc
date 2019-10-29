@@ -365,7 +365,6 @@ bool HasImbalancedPad(const Node* node) {
 }
 
 Value* PadForPool(GraphBuilder* gb, Node* node, double value) {
-    Value* padded = gb->Op(Node::kPad, node->inputs());
     std::vector<int64_t> pads = {0, 0};
     size_t i = 0;
     for (; i < node->pads().size() / 2; ++i) {
@@ -376,8 +375,12 @@ Value* PadForPool(GraphBuilder* gb, Node* node, double value) {
     for (; i < node->pads().size(); ++i) {
         pads.push_back(node->pads()[i]);
     }
-    padded->producer()->set_pads(pads)->set_value(value);
-    return padded;
+    std::vector<Value*> inputs = node->inputs();
+    inputs.push_back(gb->Const(ArrayBuilder({pads.size()}).WithData<int64_t>(pads).Build()));
+    if (value != 0) {
+        inputs.push_back(gb->ScalarConst(value, node->input(0)->type().dtype()));
+    }
+    return gb->Op(Node::kPad, inputs);
 }
 
 bool ReplaceMaxPool(Graph* graph, Node* node) {
