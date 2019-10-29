@@ -81,6 +81,21 @@ void Graph::Construct(const onnx::GraphProto& xgraph) {
         }
 
         Node* node = new Node(opset_import_, xnode, inputs, outputs);
+        switch (node->op_type()) {
+            case Node::kSequenceConstruct:
+            case Node::kSequenceErase:
+            case Node::kSequenceInsert:
+            case Node::kSplitToSequence: {
+                Value& out = *node->output(0);
+                const Type& t = out.type();
+                if (t.kind() == Type::Kind::kTensor && t.dtype() == Dtype::kUnknown) {
+                    out.set_type(new Type(Type::Kind::kSequence));
+                }
+            } break;
+
+            default:
+                break;
+        }
         AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     }
 }
