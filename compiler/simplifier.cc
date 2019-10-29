@@ -385,7 +385,7 @@ Value* PadForPool(GraphBuilder* gb, Node* node, double value) {
         pads.push_back(node->pads()[i]);
     }
     std::vector<Value*> inputs = node->inputs();
-    inputs.push_back(gb->Const(ArrayBuilder({pads.size()}).WithData<int64_t>(pads).Build()));
+    inputs.push_back(gb->Const(ArrayBuilder({static_cast<int64_t>(pads.size())}).WithData<int64_t>(pads).Build()));
     if (value != 0) {
         inputs.push_back(gb->ScalarConst(value, node->input(0)->type().dtype()));
     }
