@@ -271,10 +271,6 @@ chainerx::Array ScatterOp::RunImpl(
     const int64_t axis = this->axis < 0 ? data_.shape().size() - this->axis : this->axis;
     CHECK(0 <= axis && axis < data_.shape().size());
     CHECK_EQ(indices_.shape(), updates.shape());
-    // TODO(take-cheeze): More than rank 2
-    CHECK_EQ(2, data_.shape().size());
-    CHECK_EQ(2, indices_.shape().size());
-    CHECK_EQ(2, updates.shape().size());
 
     // TODO(take-cheeze): Avoid copy
     chainerx::Array data = data_.Copy();
