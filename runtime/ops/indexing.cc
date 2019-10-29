@@ -271,10 +271,6 @@ chainerx::Array ScatterOp::RunImpl(
     const int64_t axis = this->axis < 0 ? data_.shape().size() - this->axis : this->axis;
     CHECK(0 <= axis && axis < data_.shape().size());
     CHECK_EQ(indices_.shape(), updates.shape());
-    // TODO(take-cheeze): More than rank 2
-    CHECK_EQ(2, data_.shape().size());
-    CHECK_EQ(2, indices_.shape().size());
-    CHECK_EQ(2, updates.shape().size());
 
     // TODO(take-cheeze): Avoid copy
     chainerx::Array data = data_.Copy();
@@ -298,7 +294,7 @@ chainerx::Array GatherGradOp::RunImpl(
     chainerx::Array out = chainerx::Zeros(shape, gy.dtype());
     // TODO(hamaji): Ineffcient. Update the TODO is removed in ChainerX:
     // https://github.com/chainer/chainer/pull/6789
-    return chainerx::AddAt(out, indices.ToDevice(out.device()), axis, gy, chainerx::IndexBoundsMode::kDefault);
+    return chainerx::AddAt(out, indices.ToDevice(out.device()), axis, chainerx::AsContiguous(gy), chainerx::IndexBoundsMode::kDefault);
 }
 
 chainerx::Array SelectItemOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {

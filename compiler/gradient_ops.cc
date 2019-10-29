@@ -6,6 +6,8 @@
 #include <memory>
 #include <string>
 
+#include <chainerx/testing/array.h>
+
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/flags.h>
@@ -211,6 +213,13 @@ void MulGradFn(GradientOpContext* gc) {
         Value* shape = gb.Op(Node::kShape, {gc->x(i)});
         gc->GradOp(Node::kChainerReduceSumTo, i, {mul, shape});
     }
+}
+
+void SquareGradFn(GradientOpContext* gc) {
+    Value* gy = gc->gy(0);
+    GraphBuilder gb{gc->builder(0)};
+    Value* mul = gb.Op(Node::kMul, {gy, gc->x(0)});
+    gc->GradOp(Node::kAdd, 0, {mul, mul});
 }
 
 void DivGradFn(GradientOpContext* gc) {
@@ -699,7 +708,20 @@ void BatchNormalizationGradFn(GradientOpContext* gc) {
     Value* gy = gc->gy(0);
 
     Value* original_shape = gb.Op(Node::kShape, {gamma});
-    Value* expanded_shape = gb.Op(Node::kChainerBatchNormalizationExpandedStatsShape, {x});
+    Value* expanded_shape = nullptr;
+    constexpr int axis = 1;
+    if (x->type().ndim() > axis && x->type().dims()[axis] > 0) {
+        using chainerx::testing::array_detail::ArrayBuilder;
+        std::vector<int64_t> expanded_shape_value;
+        for (size_t i = 0; i < x->type().ndim(); ++i) {
+            expanded_shape_value.push_back(i == axis ? x->type().dims()[i] : 1);
+        }
+        chainerx::Array expanded_shape_array =
+                ArrayBuilder({static_cast<int>(x->type().ndim())}).WithData<int64_t>(expanded_shape_value).Build();
+        expanded_shape = gb.Const(expanded_shape_array);
+    } else {
+        expanded_shape = gb.Op(Node::kChainerBatchNormalizationExpandedStatsShape, {x});
+    }
 
     gamma = gb.Op(Node::kReshape, {gamma, expanded_shape});
     mean = gb.Op(Node::kReshape, {mean, expanded_shape});
@@ -1216,6 +1238,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kAdd, &AddGradFn);
         register_grad_fn(Node::kSub, &SubGradFn);
         register_grad_fn(Node::kMul, &MulGradFn);
+        register_grad_fn(Node::kChainerSquare, &SquareGradFn);
         register_grad_fn(Node::kDiv, &DivGradFn);
         register_grad_fn(Node::kNeg, &NegGradFn);
         register_grad_fn(Node::kExp, &ExpGradFn);
