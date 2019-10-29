@@ -69,7 +69,11 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
 
     std::vector<int64_t> pads;
     if (pad->OpVersion() >= 11) {
-        chainerx::Array ary = chainerx::AsContiguous(pad->input(1)->GetConstTensor()->chx().AsType(chainerx::Dtype::kInt64));
+        const Tensor* t = pad->input(1)->GetConstTensor();
+        if (!t) {
+            return false;
+        }
+        chainerx::Array ary = chainerx::AsContiguous(t->chx().AsType(chainerx::Dtype::kInt64));
         const int64_t* ptr = reinterpret_cast<const int64_t*>(ary.raw_data());
         pads.assign(ptr, ptr + ary.GetTotalSize());
     } else {
