@@ -298,7 +298,7 @@ chainerx::Array GatherGradOp::RunImpl(
     chainerx::Array out = chainerx::Zeros(shape, gy.dtype());
     // TODO(hamaji): Ineffcient. Update the TODO is removed in ChainerX:
     // https://github.com/chainer/chainer/pull/6789
-    return chainerx::AddAt(out, indices.ToDevice(out.device()), axis, gy, chainerx::IndexBoundsMode::kDefault);
+    return chainerx::AddAt(out, indices.ToDevice(out.device()), axis, chainerx::AsContiguous(gy), chainerx::IndexBoundsMode::kDefault);
 }
 
 chainerx::Array SelectItemOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
