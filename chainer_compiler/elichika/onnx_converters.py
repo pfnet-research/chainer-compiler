@@ -1065,6 +1065,13 @@ class ONNXGraph:
     def generate_graph(self, name: 'str', isMain=False):
 
         input_tensor_and_initializer = self.input_tensor.copy()
+
+        # TODO(take-cheeze): Remove this workaround
+        for i in input_tensor_and_initializer:
+            t = i.type.tensor_type
+            if t is not None and t.elem_type is TensorProto.UNDEFINED:
+                t.elem_type = TensorProto.FLOAT
+
         initializers = []
 
         # add initializers
