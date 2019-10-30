@@ -15,7 +15,8 @@
 
 namespace chainer_compiler {
 
-GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* target) : graph_(graph), category_(category), target_(target) {
+GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* target, const OpsetList& opsets)
+    : graph_(graph), category_(category), target_(target), opsets_(opsets) {
 }
 
 GraphBuilder::~GraphBuilder() {
@@ -48,13 +49,14 @@ GraphBuilder::~GraphBuilder() {
         for (Value* value : temps) {
             value->ToONNX(xgraph.add_value_info());
         }
-        std::unordered_map<std::string, int> opset_imports = DefaultOpsetImports();
-        // TODO(take-cheeze): Run shape inference separately per opset imports of nodes
-        /*
-        for (const auto& i : graph_->opset_imports()) {
-            opset_imports.insert(std::make_pair(i.domain(), i.version()));
+        std::unordered_map<std::string, int> opset_imports;
+        if (opsets_.empty()) {
+            opset_imports = DefaultOpsetImports();
+        } else {
+            for (const auto& i : opsets_) {
+                opset_imports.insert(std::make_pair(i.domain(), i.version()));
+            }
         }
-        */
         onnx::shape_inference::InferShapes(&xgraph, opset_imports);
 
         for (size_t i = 0; i < outputs.size(); ++i) {
@@ -73,14 +75,14 @@ GraphBuilder::~GraphBuilder() {
 Value* GraphBuilder::Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output, const std::string& domain) {
     const std::string name = GenName();
     if (!output) output = graph_->AddValue(name);
-    added_nodes_.push_back(graph_->AddNode(op_type, inputs, {output}, name, domain));
+    added_nodes_.push_back(graph_->AddNode(op_type, inputs, {output}, name, domain, opsets_));
     return output;
 }
 
 Node* GraphBuilder::MOp(
         Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& domain) {
     const std::string name = GenName();
-    Node* node = graph_->AddNode(op_type, inputs, outputs, name, domain);
+    Node* node = graph_->AddNode(op_type, inputs, outputs, name, domain, opsets_);
     added_nodes_.push_back(node);
     return node;
 }
