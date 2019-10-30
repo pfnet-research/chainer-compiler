@@ -765,7 +765,7 @@ bool ReplaceUpsample(Graph* graph, Node* node) {
     CHECK(node->scales().size() > 0);
     GraphBuilder gb(graph, "SimplifyUpsample", node->output(0));
     Value* scales = gb.Const(ArrayBuilder({static_cast<int64_t>(node->scales().size())}).WithData<float>(node->scales()).Build());
-    gb.MOp(Node::kResize, {node->input(0), scales}, node->outputs())->set_mode(node->mode());
+    gb.MOp(Node::kResize, {node->input(0), scales, scales}, node->outputs())->set_mode(node->mode());
 
     return true;
 }
