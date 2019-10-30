@@ -226,6 +226,8 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         std::vector<Value*> input_seqs;
         for (Value* v : scan_inputs) {
             Value* inputs = gb.Op(Node::kSplitToSequence, {v});
+            // TODO(take-cheeze): Make more general for node with sequence output
+            inputs->set_type(new Type(Type::Kind::kSequence));
             inputs->producer()->set_axis(input_axis)->set_keepdims(false);
             input_seqs.push_back(inputs);
         }
