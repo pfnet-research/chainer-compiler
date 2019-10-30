@@ -865,14 +865,14 @@ class ONNXGraph:
         if isinstance(value, values.ListValue):
             vi = onnx.ValueInfoProto()
             vi.name = name
-            # vi.type.sequence_type.elem_type.tensor_type.elem_type = onnx.TensorProto.FLOAT
+            vi.type.sequence_type.elem_type.tensor_type.elem_type = onnx.TensorProto.UNDEFINED
             self.generator.onnx_tensors[vi.name] = vi
             return vi
 
         if isinstance(value, values.TupleValue):
             vi = onnx.ValueInfoProto()
             vi.name = name
-            # vi.type.sequence_type.elem_type.tensor_type.elem_type = onnx.TensorProto.FLOAT
+            vi.type.sequence_type.elem_type.tensor_type.elem_type = onnx.TensorProto.UNDEFINED
             self.generator.onnx_tensors[vi.name] = vi
             return vi
 
