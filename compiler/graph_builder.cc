@@ -48,14 +48,13 @@ GraphBuilder::~GraphBuilder() {
         for (Value* value : temps) {
             value->ToONNX(xgraph.add_value_info());
         }
-        std::unordered_map<std::string, int> opset_imports;
-        if (graph_->opset_imports().empty()) {
-            opset_imports = DefaultOpsetImports();
-        } else {
-            for (const auto& i : graph_->opset_imports()) {
-                opset_imports.insert(std::make_pair(i.domain(), i.version()));
-            }
+        std::unordered_map<std::string, int> opset_imports = DefaultOpsetImports();
+        // TODO(take-cheeze): Run shape inference separately per opset imports of nodes
+        /*
+        for (const auto& i : graph_->opset_imports()) {
+            opset_imports.insert(std::make_pair(i.domain(), i.version()));
         }
+        */
         onnx::shape_inference::InferShapes(&xgraph, opset_imports);
 
         for (size_t i = 0; i < outputs.size(); ++i) {
