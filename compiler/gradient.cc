@@ -26,7 +26,11 @@ void SetInitialGradients(Graph* graph) {
     CHECK_EQ(1UL, graph->output_values().size());
     for (Value* value : graph->output_values()) {
         GraphBuilder gb(graph, "GradIn", value);
-        Value* one = gb.ScalarConst(1.0, value->type().dtype());
+
+        // TODO(take-cheeze): Remove this dtype workaround
+        const Dtype dt = value->type().dtype();
+        Value* one = gb.ScalarConst(1.0, dt != Dtype::kUnknown ? dt : Dtype(Dtype::kFloat32));
+
         Value* shape = gb.Op(Node::kShape, {value});
         Value* grad = gb.Op(Node::kExpand, {one, shape});
         CHECK(value->grad() == nullptr);
