@@ -42,7 +42,7 @@ Node::Node(
         domain_ = CHAINER_ONNX_DOMAIN;
     }
     // TODO(take-cheeze): Handle Resize-11
-    if (op_type_ == Node::kResize && inputs_.size() == 2) {
+    if (op_type_ == Node::kResize && inputs_.size() == 2 && OpVersion() >= 11) {
         inputs_.push_back(inputs_[1]);
     }
     Validate();
