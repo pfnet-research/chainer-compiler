@@ -81,6 +81,7 @@ void Graph::Construct(const onnx::GraphProto& xgraph) {
         }
 
         Node* node = new Node(opset_import_, xnode, inputs, outputs);
+        // TODO(take-cheeze): ONNX should support undefined value case
         switch (node->op_type()) {
             case Node::kSequenceConstruct:
             case Node::kSequenceErase:
