@@ -84,6 +84,10 @@ COMPILER_FLAGS = {
         'type': 'std::string',
         'doc': 'Output file of snpe-dlc-info.'
     },
+    'snpe_quantize': {
+        'type': 'bool',
+        'doc': 'Quantize DLC model'
+    },
 
     'use_tensorrt': {
         'type': 'bool',
