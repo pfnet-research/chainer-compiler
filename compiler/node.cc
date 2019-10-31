@@ -77,7 +77,7 @@ Node::~Node() {
 }
 
 void Node::ToONNX(onnx::NodeProto* xnode, const OpsetList& opsets, bool validate) const {
-    if (validate) {
+    if (validate || g_skip_inference || g_skip_validation) {
         CHECK(ValidateWithSchema(opsets));
     }
 

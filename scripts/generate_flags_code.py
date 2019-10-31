@@ -14,6 +14,10 @@ COMPILER_FLAGS = {
         'type': 'bool',
         'doc': 'Skip dtype/shape inference.'
     },
+    'skip_validation': {
+        'type': 'bool',
+        'doc': 'skips validation for inference'
+    },
     'use_cuda': {
         'type': 'bool',
         'doc': 'Use CUDA specific ops.'
