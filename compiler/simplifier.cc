@@ -794,7 +794,11 @@ bool ReplaceToOldPad(Graph* graph, Node* node) {
         return false;
     }
 
-    GraphBuilder gb(graph, "SimplifyToOldPad", node->output(0));
+    OpsetList opsets;
+    opsets.emplace_back();
+    opsets.back().set_domain("");
+    opsets.back().set_version(2);
+    GraphBuilder gb(graph, "SimplifyToOldPad", node->output(0), opsets);
 
     const Tensor* pads_tensor = node->input(1)->GetConstTensor();
     CHECK(pads_tensor);
@@ -811,7 +815,7 @@ bool ReplaceToOldPad(Graph* graph, Node* node) {
 
     // Use chainer domain to disable shape inference. Otherwise,
     // ONNX's shape inference will access the second input.
-    gb.MOp(Node::kPad, {node->input(0)}, node->outputs(), CHAINER_ONNX_DOMAIN)
+    gb.MOp(Node::kPad, {node->input(0)}, node->outputs())
             ->set_mode(node->mode())
             ->set_pads(std::vector<int64_t>(pads_start_ptr, pads_start_ptr + pads.GetTotalSize()))
             ->set_value(value);
