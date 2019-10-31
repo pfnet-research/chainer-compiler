@@ -1,6 +1,7 @@
 {
     "simplify": {
-        "ReplaceLpNormalization": true
+        "ReplaceLpNormalization": true,
+        "ReplaceToOldPad": true
     },
     // https://github.com/NervanaSystems/ngraph/blob/master/src/ngraph/frontend/onnx_import/op/supported_ops.md
     "supported_ops": {

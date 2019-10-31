@@ -88,6 +88,12 @@ void FuseDldtOperations(Graph* graph) {
         if (!fusable_ops.count(node.op_type())) {
             return false;
         }
+
+        if (node.op_type() == Node::kPad &&
+            (!node.input(1)->GetConstTensor() || (node.inputs().size() >= 3 && !node.input(2)->GetConstTensor()))) {
+            return false;
+        }
+
         for (Value* value : node.inputs()) {
             if (!value->type().HasKnownShape()) return false;
         }

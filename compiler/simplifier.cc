@@ -16,6 +16,7 @@
 #include <compiler/node.h>
 #include <compiler/value.h>
 #include <configs/backend_config.h>
+#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 namespace {
@@ -788,6 +789,35 @@ bool ReplacePad(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceToOldPad(Graph* graph, Node* node) {
+    if (node->inputs().size() >= 2) {
+        return false;
+    }
+
+    GraphBuilder gb(graph, "SimplifyToOldPad", node->output(0));
+
+    const Tensor* pads_tensor = node->input(1)->GetConstTensor();
+    CHECK(pads_tensor);
+    float value = 0;
+    if (node->inputs().size() >= 3) {
+        const Tensor* value_tensor = node->input(2)->GetConstTensor();
+        CHECK(value_tensor);
+        value = float(chainerx::AsScalar(value_tensor->chx()));
+    }
+
+    chainerx::Array pads = chainerx::AsContiguous(pads_tensor->chx().AsType(chainerx::Dtype::kInt64));
+    CHECK_EQ(1, pads.ndim());
+    const int64_t* pads_start_ptr = reinterpret_cast<const int64_t*>(runtime::RawStartPtr(pads));
+
+    // Use chainer domain to disable shape inference. Otherwise,
+    // ONNX's shape inference will access the second input.
+    gb.MOp(Node::kPad, {node->input(0)}, node->outputs(), CHAINER_ONNX_DOMAIN)
+            ->set_mode(node->mode())
+            ->set_pads(std::vector<int64_t>(pads_start_ptr, pads_start_ptr + pads.GetTotalSize()))
+            ->set_value(value);
+    return true;
+}
+
 SimplifierFn FunctionExpander(const std::string& fn, const onnx::OpSchema* schema) {
     return [fn, schema](Graph* graph, Node* fn_nd) {
         std::unordered_map<std::string, Value*> value_table;
@@ -913,6 +943,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
 
     register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
     register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);
+    register_simplifier(Node::kPad, "ReplaceToOldPad", ReplaceToOldPad);
 
     // Validate `simplifier_names`.
     for (const std::string& name : simplifier_names) {

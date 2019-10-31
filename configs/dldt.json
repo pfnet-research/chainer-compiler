@@ -1,6 +1,7 @@
 {
     "simplify": {
         "ReplaceLpNormalization": true,
+        "ReplaceToOldPad": true,
         "ReplaceResizeForDldt": true,
         "ReplaceUpsampleForDldt": true
     },
