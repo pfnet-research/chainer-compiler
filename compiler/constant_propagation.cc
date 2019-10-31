@@ -91,6 +91,7 @@ bool MaybePropagateConstant(Graph* graph, Node* node) {
         case Node::kGather:
         case Node::kIdentity:
         case Node::kMul:
+        case Node::kNeg:
         case Node::kReciprocal:
         case Node::kReshape:
         case Node::kSequenceConstruct:
