@@ -93,7 +93,14 @@ int64_t CalculateFlopsOfConvGradWeight(Node const& node) {
 }
 
 int64_t CalculateFlopsOfSoftmax(Node const& node) {
-    int64_t const c = node.input(0)->type().dims()[node.axis()];
+    int axis = node.axis();
+    if (node.axis() < 0) {
+        axis = node.input(0)->type().ndim() + axis;
+    }
+    CHECK_GE(axis, 0);
+    CHECK_LT(axis, node.input(0)->type().ndim());
+
+    int64_t const c = node.input(0)->type().dims()[axis];
     int64_t const s = node.input(0)->type().NumElements() / c;
     return 2 * OutputSize(node) + s * (c - 1);
 }
