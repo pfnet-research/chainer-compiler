@@ -790,7 +790,7 @@ bool ReplacePad(Graph* graph, Node* node) {
 }
 
 bool ReplaceToOldPad(Graph* graph, Node* node) {
-    if (node->inputs().size() >= 2) {
+    if (node->inputs().size() == 1) {
         return false;
     }
 
@@ -975,7 +975,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
             }
             const Simplifier& simplifier = found->second;
             if (simplifier.fn(graph, node)) {
-                CLOG() << node->op_type() << " simplified" << std::endl;
+                CLOG() << node->op_type() << " simplified with " << simplifier.name << std::endl;
                 graph->DetachNode(node);
                 replaced = true;
             }
