@@ -14,18 +14,23 @@ class Value;
 
 class Node : public NodeBase {
 public:
-    Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& name = "");
+    Node(const OpsetList& opset,
+         const onnx::NodeProto& xnode,
+         const std::vector<Value*>& inputs,
+         const std::vector<Value*>& outputs,
+         const std::string& name = "");
     Node(const std::string& name,
          OpType op_type,
          const std::vector<Value*>& inputs,
          const std::vector<Value*>& outputs,
-         const std::string& domain);
+         const std::string& domain,
+         const OpsetList& opsets);
     ~Node();
 
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
 
-    void ToONNX(onnx::NodeProto* xnode) const;
+    void ToONNX(onnx::NodeProto* xnode, const OpsetList& opsets, bool validate = true) const;
     std::string DebugString() const;
 
     void Validate() const;
@@ -70,6 +75,12 @@ public:
     bool IsZeroCost() const;
 
     std::string ToString() const;
+
+    OpsetList OpsetImports() const;
+
+    int OpVersion() const;
+
+    bool ValidateWithSchema(const OpsetList& opsets = {}, std::string* message = nullptr) const;
 
 private:
     std::vector<Value*> inputs_;

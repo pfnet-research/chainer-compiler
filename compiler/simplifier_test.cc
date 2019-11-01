@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <chainerx/testing/context_session.h>
+
 #include <common/iterator.h>
 #include <common/strutil.h>
 #include <compiler/graph.h>
@@ -12,7 +14,7 @@ namespace {
 
 std::vector<Node::OpType> TestSimplify(
         const std::string& name, Node::OpType op_type, const std::vector<Type>& input_types, const std::vector<Type>& output_types) {
-    Graph graph("test");
+    Graph graph({}, "test");
     std::vector<Value*> inputs;
     for (const auto& type : Enumerate(input_types)) {
         inputs.push_back(graph.AddInputValue(StrCat("input", type.index), type.value));
@@ -27,7 +29,7 @@ std::vector<Node::OpType> TestSimplify(
         gb.MOp(op_type, inputs, outputs);
     }
     auto bc = BackendConfig::FromName("chxvm_test");
-    Simplify(*bc, {name}, &graph, true /* gen_backprop */);
+    Simplify(*bc, {name, "ReplaceConstant"}, &graph, true /* gen_backprop */);
 
     std::vector<Node::OpType> ops;
     for (Node* node : graph.GetLiveNodes()) {
@@ -67,9 +69,10 @@ TEST(SimplifyTest, Sum) {
 }
 
 TEST(SimplifyTest, Split) {
-    EXPECT_EQ(
-            Ops({Node::kSlice, Node::kSlice, Node::kSlice}),
-            TestSimplify("ReplaceSplit", Node::kSplit, Types({{3}}), Types({{1}, {1}, {1}})));
+    chainerx::testing::ContextSession sess;
+    auto result = TestSimplify("ReplaceSplit", Node::kSplit, Types({{3}}), Types({{1}, {1}, {1}}));
+    result.resize(3);
+    EXPECT_EQ(Ops({Node::kSlice, Node::kSlice, Node::kSlice}), result);
 }
 
 TEST(SimplifyTest, ReduceSumTo) {

@@ -198,8 +198,13 @@ chainerx::Dtype menoh_dtype_to_chx_dtype(menoh_dtype mdtype) {
  * model_data
  */
 struct menoh_model_data {
-    onnx::GraphProto xgraph;
+    onnx::ModelProto xmodel;
+    // onnx::GraphProto xgraph;
     // std::shared_ptr<chainer_compiler::Graph> graph;
+
+    chainer_compiler::OpsetList opset_imports() const {
+        return chainer_compiler::OpsetList(xmodel.opset_import().begin(), xmodel.opset_import().end());
+    }
 };
 
 void menoh_delete_model_data(menoh_model_data_handle model_data) {
@@ -222,36 +227,35 @@ onnx::ModelProto load_model_proto(const uint8_t* onnx_data, int64_t size) {
 menoh_error_code menoh_make_model_data_from_onnx_data_on_memory(
         const uint8_t* onnx_data, int64_t size, menoh_model_data_handle* dst_handle) {
     return check_error([&]() {
-        *dst_handle = std::make_unique<menoh_model_data>(menoh_model_data{load_model_proto(onnx_data, size).graph()}).release();
+        *dst_handle = std::make_unique<menoh_model_data>(menoh_model_data{load_model_proto(onnx_data, size)}).release();
         return menoh_error_code_success;
     });
 }
 
 menoh_error_code menoh_make_model_data_from_onnx(const char* onnx_filename, menoh_model_data_handle* dst_handle) {
     return check_error([&]() {
-        *dst_handle =
-                std::make_unique<menoh_model_data>(menoh_model_data{LoadLargeProto<onnx::ModelProto>(onnx_filename).graph()}).release();
+        *dst_handle = std::make_unique<menoh_model_data>(menoh_model_data{LoadLargeProto<onnx::ModelProto>(onnx_filename)}).release();
         return menoh_error_code_success;
     });
 }
 
 menoh_error_code MENOH_API menoh_model_data_get_input_name_list_size(menoh_model_data_handle model_data, int64_t* dst_size) {
     return check_error([&]() {
-        *dst_size = model_data->xgraph.input().size();
+        *dst_size = model_data->xmodel.graph().input().size();
         return menoh_error_code_success;
     });
 }
 
 menoh_error_code MENOH_API menoh_model_data_get_input_name_size(menoh_model_data_handle model_data, int64_t index, int64_t* dst_size) {
     return check_error([&]() {
-        *dst_size = model_data->xgraph.input(index).name().size();
+        *dst_size = model_data->xmodel.graph().input(index).name().size();
         return menoh_error_code_success;
     });
 }
 
 menoh_error_code MENOH_API menoh_model_data_get_input_name(menoh_model_data_handle model_data, int64_t index, char* dst_name) {
     return check_error([&]() {
-        auto const& name = model_data->xgraph.input(index).name();
+        auto const& name = model_data->xmodel.graph().input(index).name();
         std::copy(name.c_str(), name.c_str() + name.size() + 1, dst_name);
         return menoh_error_code_success;
     });
@@ -259,21 +263,21 @@ menoh_error_code MENOH_API menoh_model_data_get_input_name(menoh_model_data_hand
 
 menoh_error_code MENOH_API menoh_model_data_get_output_name_list_size(menoh_model_data_handle model_data, int64_t* dst_size) {
     return check_error([&]() {
-        *dst_size = model_data->xgraph.output().size();
+        *dst_size = model_data->xmodel.graph().output().size();
         return menoh_error_code_success;
     });
 }
 
 menoh_error_code MENOH_API menoh_model_data_get_output_name_size(menoh_model_data_handle model_data, int64_t index, int64_t* dst_size) {
     return check_error([&]() {
-        *dst_size = model_data->xgraph.output(index).name().size();
+        *dst_size = model_data->xmodel.graph().output(index).name().size();
         return menoh_error_code_success;
     });
 }
 
 menoh_error_code MENOH_API menoh_model_data_get_output_name(menoh_model_data_handle model_data, int64_t index, char* dst_name) {
     return check_error([&]() {
-        auto const& name = model_data->xgraph.output(index).name();
+        auto const& name = model_data->xmodel.graph().output(index).name();
         std::copy(name.c_str(), name.c_str() + name.size() + 1, dst_name);
         return menoh_error_code_success;
     });
@@ -394,13 +398,13 @@ menoh_error_code menoh_build_variable_profile_table(
         std::unique_ptr<chainer_compiler::Graph> graph;
         {
             onnx::GraphProto xgraph;
-            xgraph.set_doc_string(model_data->xgraph.doc_string());
-            xgraph.mutable_node()->CopyFrom(model_data->xgraph.node());
+            xgraph.set_doc_string(model_data->xmodel.graph().doc_string());
+            xgraph.mutable_node()->CopyFrom(model_data->xmodel.graph().node());
             // xgraph.mutable_initializer()->CopyFrom(model_data->xgraph.initializer()); // Skip
-            xgraph.mutable_input()->CopyFrom(model_data->xgraph.input());
-            xgraph.mutable_output()->CopyFrom(model_data->xgraph.output());
-            xgraph.mutable_value_info()->CopyFrom(model_data->xgraph.value_info());
-            graph = std::make_unique<chainer_compiler::Graph>(xgraph);
+            xgraph.mutable_input()->CopyFrom(model_data->xmodel.graph().input());
+            xgraph.mutable_output()->CopyFrom(model_data->xmodel.graph().output());
+            xgraph.mutable_value_info()->CopyFrom(model_data->xmodel.graph().value_info());
+            graph = std::make_unique<chainer_compiler::Graph>(model_data->opset_imports(), xgraph);
         }
 
         // Check output is contained in the model
@@ -474,7 +478,7 @@ menoh_error_code menoh_build_variable_profile_table(
         xgraph.mutable_value_info()->erase(value_info_end_iter, xgraph.mutable_value_info()->end());
 
         // InferShape
-        graph = std::make_unique<chainer_compiler::Graph>(xgraph);  // Reset graph
+        graph = std::make_unique<chainer_compiler::Graph>(model_data->opset_imports(), xgraph);  // Reset graph
         graph->InferShapes();
 
         std::unordered_map<std::string, menoh_impl::array_profile> output_profiles;
@@ -650,12 +654,13 @@ menoh_error_code menoh_build_model(
 
         // Set initializer
         CHECK(xgraph.initializer().empty());
-        for (onnx::TensorProto const& xtensor : model_data->xgraph.initializer()) {
+        for (onnx::TensorProto const& xtensor : model_data->xmodel.graph().initializer()) {
             *(xgraph.add_initializer()) = xtensor;
         }
 
         // Compile graph
-        chainer_compiler::Graph graph(xgraph);
+        chainer_compiler::OpsetList opsets(model_data->xmodel.opset_import().begin(), model_data->xmodel.opset_import().end());
+        chainer_compiler::Graph graph(opsets, xgraph);
         {
             chainerx::NoBackpropModeScope scope;
 

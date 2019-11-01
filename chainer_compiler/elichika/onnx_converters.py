@@ -832,7 +832,9 @@ class ONNXGraph:
         '''
         generate a tensor for connecting between nodes
         '''
-        dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(dtype)]
+        dt = TensorProto.UNDEFINED
+        if dtype is not None:
+            onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(dtype)]
         tensor = oh.make_tensor_value_info(name, dt, dims)
         self.generator.onnx_tensors[name] = tensor
         return tensor
@@ -843,45 +845,44 @@ class ONNXGraph:
         it is for inputting and outputting
         '''
 
-        if isinstance(value, values.TensorValue):
-            dtype = np.float32
-            if value.dtype is not None:
-                dtype = value.dtype
+        name = value2onnx_parameter[value].onnx_name
 
+        if isinstance(value, values.TensorValue):
+            dtype = value.dtype
             if len(value.shape) > 0:
                 shape = list(value.shape)
                 shape = [x if x != -1 else 'Undefined' for x in shape]
                 # type estimation is not correct. so shape needs to be undefined.
                 shape = None
-                return self.new_empty_tensor(shape, dtype, value2onnx_parameter[value].onnx_name)
+                return self.new_empty_tensor(shape, dtype, name)
             else:
                 shape = None
-                return self.new_empty_tensor(shape, dtype, value2onnx_parameter[value].onnx_name)
+                return self.new_empty_tensor(shape, dtype, name)
 
         if isinstance(value, values.BoolValue):
-            return self.new_empty_tensor(None, np.bool, value2onnx_parameter[value].onnx_name)
+            return self.new_empty_tensor(None, np.bool, name)
 
         if isinstance(value, values.ListValue):
             vi = onnx.ValueInfoProto()
-            vi.name = value2onnx_parameter[value].onnx_name
-            vi.type.sequence_type.elem_type.tensor_type.elem_type = onnx.TensorProto.FLOAT
+            vi.name = name
+            vi.type.sequence_type.elem_type.tensor_type.elem_type = onnx.TensorProto.UNDEFINED
             self.generator.onnx_tensors[vi.name] = vi
             return vi
 
         if isinstance(value, values.TupleValue):
             vi = onnx.ValueInfoProto()
-            vi.name = value2onnx_parameter[value].onnx_name
-            vi.type.sequence_type.elem_type.tensor_type.elem_type = onnx.TensorProto.FLOAT
+            vi.name = name
+            vi.type.sequence_type.elem_type.tensor_type.elem_type = onnx.TensorProto.UNDEFINED
             self.generator.onnx_tensors[vi.name] = vi
             return vi
 
         if isinstance(value, values.NumberValue):
             if value.dtype is not None:
-                return self.new_empty_tensor(None, value.dtype, value2onnx_parameter[value].onnx_name)
+                return self.new_empty_tensor(None, value.dtype, name)
             elif value.internal_value is not None:
                 if isinstance(value.internal_value, int):
                     dtype = np.array(value.internal_value).dtype
-                    return self.new_empty_tensor(None, dtype, value2onnx_parameter[value].onnx_name)
+                    return self.new_empty_tensor(None, dtype, name)
                 if isinstance(value.internal_value, float):
 
                     if config.float_restrict:
@@ -889,18 +890,18 @@ class ONNXGraph:
                     else:
                         dtype = np.float32
 
-                    return self.new_empty_tensor(None, dtype, value2onnx_parameter[value].onnx_name)
+                    return self.new_empty_tensor(None, dtype, name)
 
         if isinstance(value, values.StrValue):
             if value.internal_value is None:
-                return self.new_empty_tensor(None, np.array(np.object).dtype, value2onnx_parameter[value].onnx_name)
+                return self.new_empty_tensor(None, np.array(np.object).dtype, name)
             else:
                 name = self.get_value_name(value)
                 arr = np.array(value.internal_value, dtype=np.object)
                 return self.new_constant_with_np(arr, name)
 
 
-        return self.new_empty_tensor(None, np.float32, value2onnx_parameter[value].onnx_name)
+        return self.new_empty_tensor(None, np.float32, name)
 
     def new_initializer_with_np(self, ndarray_, name):
         '''
@@ -1064,6 +1065,13 @@ class ONNXGraph:
     def generate_graph(self, name: 'str', isMain=False):
 
         input_tensor_and_initializer = self.input_tensor.copy()
+
+        # TODO(take-cheeze): Remove this workaround
+        for i in input_tensor_and_initializer:
+            t = i.type.tensor_type
+            if t is not None and t.elem_type is TensorProto.UNDEFINED:
+                t.elem_type = TensorProto.FLOAT
+
         initializers = []
 
         # add initializers

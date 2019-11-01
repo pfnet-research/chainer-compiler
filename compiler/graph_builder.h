@@ -20,7 +20,7 @@ public:
     // `category` and `target->name()` in their names. `category` is
     // intended to be a name of component while `target` is a unique
     // name in the target graph.
-    GraphBuilder(Graph* graph, const std::string& category, Value* target);
+    GraphBuilder(Graph* graph, const std::string& category, Value* target, const OpsetList& target_opsets = {});
 
     ~GraphBuilder();
 
@@ -64,6 +64,7 @@ private:
     const std::string category_;
     Value* target_;
     std::vector<Node*> added_nodes_;
+    const OpsetList opsets_;
 };
 
 }  // namespace chainer_compiler

@@ -1048,8 +1048,12 @@ def gen_pad_negative_width_test(test_name):
     gb = onnx_script.GraphBuilder(test_name)
     v = aranges(2, 5, 6, 7)
     i_v = gb.input('input', v)
-    gb.output(gb.Pad([i_v], pads=[0, -2, -1, -2, 0, -2, -2, -1]),
-              v[:, 2:-2, 1:-2, 2:-1])
+    pads = [0, -2, -1, -2, 0, -2, -2, -1]
+    if onnx.defs.onnx_opset_version() >= 11:
+        pads = gb.const(pads, dtype=np.int64)
+        gb.output(gb.Pad([i_v, pads]), v[:, 2:-2, 1:-2, 2:-1])
+    else:
+        gb.output(gb.Pad([i_v], pads=pads), v[:, 2:-2, 1:-2, 2:-1])
     gb.gen_test()
 
 

@@ -14,7 +14,7 @@ namespace {
 
 TEST(MergeTest, SplitConcat) {
     Type type(Dtype::kFloat32, {});
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* input = graph.AddInputValue("input", type);
     Value* output = graph.AddOutputValue("output", type);
 
@@ -38,8 +38,10 @@ TEST(MergeTest, SplitConcat) {
 }
 
 TEST(MergeTest, PadConv) {
+    chainerx::testing::ContextSession sess;
+
     Type type(Dtype::kFloat32, {});
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* input = graph.AddInputValue("input", type);
     Value* output = graph.AddOutputValue("output", type);
 
@@ -48,12 +50,11 @@ TEST(MergeTest, PadConv) {
         GraphBuilder gb(&graph, "test", input);
 
         // Pad node
-        Value& pad = *gb.Op(Node::kPad, {input});
+        Value* pads = gb.Const(chainerx::testing::array_detail::ArrayBuilder({8}).WithData<int64_t>({0, 0, 1, 1, 0, 0, 1, 1}).Build());
+        Value& pad = *gb.Op(Node::kPad, {input, pads, gb.ScalarConst(0, Dtype::kFloat32)});
         pad_name = pad.name();
         Node& pad_node = *pad.producer();
         pad_node.set_mode("constant");
-        pad_node.set_pads({0, 0, 1, 1, 0, 0, 1, 1});
-        pad_node.set_value(0);
 
         // Conv node
         Node& conv_node = *gb.MOp(Node::kConv, {&pad, graph.AddInputValue("w", type)}, {output});
@@ -66,8 +67,8 @@ TEST(MergeTest, PadConv) {
 
     MergeOperations({"MergePadConv"}, &graph, false);
     graph.DeleteDetached();
-    EXPECT_EQ(1, graph.nodes().size());
-    const Node& node = *graph.nodes()[0];
+    // EXPECT_EQ(1, graph.nodes().size());
+    const Node& node = **graph.nodes().rbegin();
     EXPECT_EQ(Node::kConv, node.op_type());
     EXPECT_EQ(std::vector<int64_t>({1, 1, 1, 1}), node.pads());
     EXPECT_EQ(2, node.inputs().size());
@@ -77,7 +78,7 @@ TEST(MergeTest, PadConv) {
 
 TEST(MergeTest, TransposeGemmA) {
     Type type(Dtype::kFloat32, {});
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* input = graph.AddInputValue("input", type);
     Value* output = graph.AddOutputValue("output", type);
 
@@ -113,7 +114,7 @@ TEST(MergeTest, ConvBN) {
     chainerx::testing::ContextSession sess;
 
     Type type(chainer_compiler::Dtype::kFloat32, {});
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* input = graph.AddInputValue("input", type);
     Value* output = graph.AddOutputValue("output", type);
 
@@ -158,7 +159,7 @@ TEST(MergeTest, ConvTransposeBN) {
     chainerx::testing::ContextSession sess;
 
     Type type(chainer_compiler::Dtype::kFloat32, {});
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* input = graph.AddInputValue("input", type);
     Value* output = graph.AddOutputValue("output", type);
 
@@ -200,7 +201,7 @@ TEST(MergeTest, MatMulAdd) {
     chainerx::testing::ContextSession sess;
 
     Type type(Dtype::kFloat32, {2, 2});
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* a = graph.AddInputValue("a", type);
     Value* b = graph.AddInputValue("b", type);
     Value* c = graph.AddInputValue("c", type);
@@ -226,7 +227,7 @@ TEST(MergeTest, MatMulAdd) {
 TEST(MergeTest, ConvAdd) {
     chainerx::testing::ContextSession sess;
 
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {1, 4, 3, 3}));
     Value* b = graph.AddInputValue("b", Type(Dtype::kFloat32, {2, 4, 1, 1}));
     Value* output = graph.AddOutputValue("output", Type(Dtype::kFloat32, {1, 2, 3, 3}));
@@ -253,7 +254,7 @@ TEST(MergeTest, AddToSum) {
     chainerx::testing::ContextSession sess;
 
     {
-        Graph graph("test");
+        Graph graph({}, "test");
         Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {3, 3}));
         Value* b = graph.AddInputValue("b", Type(Dtype::kFloat32, {3, 3}));
         Value* c = graph.AddInputValue("c", Type(Dtype::kFloat32, {3, 3}));
@@ -278,7 +279,7 @@ TEST(MergeTest, AddToSum) {
     }
 
     {
-        Graph graph("test");
+        Graph graph({}, "test");
         Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {3, 3}));
         Value* b = graph.AddInputValue("b", Type(Dtype::kFloat32, {3, 3}));
         Value* c = graph.AddInputValue("c", Type(Dtype::kFloat32, {3, 3}));

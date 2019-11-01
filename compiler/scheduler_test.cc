@@ -24,7 +24,7 @@ int LookupIntAttribute(const onnx::NodeProto& xnode, const std::string& name, in
 }
 
 TEST_P(SchedulerTest, Basic) {
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* out = graph.AddValue("out", Value::Kind::kOutput);
     Value* tmp = graph.AddValue("tmp");
     Value* unused1 = graph.AddValue("unused1");
@@ -45,18 +45,18 @@ TEST_P(SchedulerTest, Basic) {
     EXPECT_EQ(1, n2->chainer_order());
 
     onnx::NodeProto xn1;
-    n1->ToONNX(&xn1);
+    n1->ToONNX(&xn1, {});
     EXPECT_EQ(2, LookupIntAttribute(xn1, "chainer_order", -1));
     onnx::NodeProto xn2;
-    n2->ToONNX(&xn2);
+    n2->ToONNX(&xn2, {});
     EXPECT_EQ(1, LookupIntAttribute(xn2, "chainer_order", -1));
     onnx::NodeProto xn3;
-    n3->ToONNX(&xn3);
+    n3->ToONNX(&xn3, {});
     EXPECT_EQ(-1, LookupIntAttribute(xn3, "chainer_order", -1));
 }
 
 TEST_P(SchedulerTest, MultipleTimes) {
-    Graph graph("test");
+    Graph graph({}, "test");
     Value* out = graph.AddValue("out", Value::Kind::kOutput);
     Value* tmp = graph.AddValue("tmp");
     Value* other1 = graph.AddValue("other1");

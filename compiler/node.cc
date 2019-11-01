@@ -7,21 +7,42 @@
 #include <common/strutil.h>
 #include <compiler/dtype.h>
 #include <compiler/graph.h>
+#include <compiler/log.h>
 #include <compiler/serializer_util.h>
 #include <compiler/tensor.h>
 #include <compiler/value.h>
+#include <onnx/defs/schema.h>
 
 namespace chainer_compiler {
 
-Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& name)
-    : NodeBase(xnode, inputs, outputs),
+Node::Node(
+        const OpsetList& opsets,
+        const onnx::NodeProto& xnode,
+        const std::vector<Value*>& inputs,
+        const std::vector<Value*>& outputs,
+        const std::string& name)
+    : NodeBase(opsets, xnode, inputs, outputs),
       inputs_(inputs),
       outputs_(outputs),
       name_(name.empty() ? xnode.name() : name),
       domain_(xnode.domain()),
       doc_string_(xnode.doc_string()) {
+    {
+        std::vector<std::string> domains;
+        std::vector<int64_t> versions;
+        for (const auto i : opsets) {
+            domains.push_back(i.domain());
+            versions.push_back(i.version());
+        }
+        set_chainer_onnx_domain(domains);
+        set_chainer_onnx_version(versions);
+    }
+
+    if (domain_ == onnx::ONNX_DOMAIN && HasPrefix(xnode.op_type(), "Chainer")) {
+        domain_ = CHAINER_ONNX_DOMAIN;
+    }
     // TODO(take-cheeze): Handle Resize-11
-    if (op_type_ == Node::kResize && inputs_.size() == 2) {
+    if (op_type_ == Node::kResize && inputs_.size() == 2 && OpVersion() >= 11) {
         inputs_.push_back(inputs_[1]);
     }
     Validate();
@@ -35,8 +56,19 @@ Node::Node(
         OpType op_type,
         const std::vector<Value*>& inputs,
         const std::vector<Value*>& outputs,
-        const std::string& domain)
+        const std::string& domain,
+        const OpsetList& opsets)
     : NodeBase(op_type), inputs_(inputs), outputs_(outputs), name_(name), domain_(domain) {
+    {
+        std::vector<std::string> domains;
+        std::vector<int64_t> versions;
+        for (const auto i : opsets) {
+            domains.push_back(i.domain());
+            versions.push_back(i.version());
+        }
+        set_chainer_onnx_domain(domains);
+        set_chainer_onnx_version(versions);
+    }
     ValidateNumInputsOutputs(inputs, outputs);
     SetDefaultAttributeValues();
 }
@@ -44,7 +76,11 @@ Node::Node(
 Node::~Node() {
 }
 
-void Node::ToONNX(onnx::NodeProto* xnode) const {
+void Node::ToONNX(onnx::NodeProto* xnode, const OpsetList& opsets, bool validate) const {
+    if (validate && !g_skip_inference && !g_skip_validation) {
+        CHECK(ValidateWithSchema(opsets));
+    }
+
     for (const auto& value : inputs_) {
         xnode->add_input(value->name());
     }
@@ -57,12 +93,22 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
     DUMP_STRING(xnode, domain);
     DUMP_STRING(xnode, doc_string);
 
-    FillONNXAttributes(xnode);
+    const OpsetList node_opsets = OpsetImports();
+    bool ignore_opset_imports = node_opsets.size() == opsets.size();
+    if (ignore_opset_imports) {
+        for (size_t i = 0; i < node_opsets.size(); ++i) {
+            if (node_opsets[i].domain() != opsets[i].domain() || node_opsets[i].version() != opsets[i].version()) {
+                ignore_opset_imports = false;
+            }
+        }
+    }
+
+    FillONNXAttributes(xnode, ignore_opset_imports);
 }
 
 std::string Node::DebugString() const {
     onnx::NodeProto xnode;
-    ToONNX(&xnode);
+    ToONNX(&xnode, OpsetImports(), false);
     return xnode.DebugString();
 }
 
@@ -211,6 +257,85 @@ std::string Node::ToString() const {
     oss << "(" << JoinString(MapToString(inputs(), [](const Value* v) { return v->name(); })) << ")";
     oss << " -> (" << JoinString(MapToString(outputs(), [](const Value* v) { return v->name(); })) << ")";
     return oss.str();
+}
+
+OpsetList Node::OpsetImports() const {
+    OpsetList ret;
+    CHECK_EQ(chainer_onnx_version().size(), chainer_onnx_domain().size());
+    for (size_t i = 0; i < chainer_onnx_version().size(); ++i) {
+        onnx::OperatorSetIdProto p;
+        p.set_domain(chainer_onnx_domain()[i]);
+        p.set_version(chainer_onnx_version()[i]);
+        ret.push_back(p);
+    }
+    CHECK_EQ(chainer_onnx_version().size(), ret.size());
+    return ret;
+}
+
+int Node::OpVersion() const {
+    return GetOpsetVersion(OpsetImports(), domain_);
+}
+
+bool Node::ValidateWithSchema(const OpsetList& opsets_, std::string* message) const {
+    // TODO(take-cheeze): Fix this workaround
+    if (op_type() == Node::kIf) {
+        return true;
+    }
+
+    const OpsetList& opset = opsets_.empty() ? OpsetImports() : opsets_;
+    const int version = GetOpsetVersion(opset, domain_);
+    const onnx::OpSchema* schema = onnx::OpSchemaRegistry::Schema(OpTypeToString(op_type()), version, domain_);
+
+    // TODO(take-cheeze): Return false when schema not found
+    if (!schema) {
+        CLOG() << "schema of " << op_type() << "-" << version << " (" << domain_ << ") not found in: " << name_ << std::endl;
+        return true;
+    }
+
+    std::ostringstream oss;
+    oss << "Failed validation of " << op_type() << "-" << version << ", ";
+
+#define output_error_message()     \
+    if (message) {                 \
+        *message = oss.str();      \
+    } else {                       \
+        CHECK(false) << oss.str(); \
+    }                              \
+    return false
+
+    int min_input = schema->min_input();
+    // TODO(take-cheeze): Better handler for these extensions
+    if (op_type() == Node::kSequenceConstruct) {
+        min_input = 0;
+    }
+
+    // TODO(take-cheeze): Input/output dtype check
+    if (inputs().size() < min_input || schema->max_input() < inputs().size()) {
+        oss << "Invalid input count: " << inputs().size() << " (min: " << schema->min_input() << ", max: " << schema->max_input() << ")";
+        output_error_message();
+    }
+    if (outputs().size() < schema->min_output() || schema->max_output() < outputs().size()) {
+        oss << "Invalid output count: " << outputs().size() << " (min: " << schema->min_output() << ", max: " << schema->max_output()
+            << ")";
+        output_error_message();
+    }
+
+    onnx::NodeProto xnode;
+    ToONNX(&xnode, opsets_, false);
+
+    for (const auto& attr_sch : schema->attributes()) {
+        auto a_it = std::find_if(xnode.attribute().begin(), xnode.attribute().end(), [&attr_sch](const onnx::AttributeProto& a) {
+            return attr_sch.second.name == a.name();
+        });
+        if (attr_sch.second.required && a_it == xnode.attribute().end()) {
+            oss << "Required attribute not set: " << attr_sch.second.name;
+            output_error_message();
+        }
+    }
+
+#undef output_error_message
+
+    return true;
 }
 
 std::ostream& operator<<(std::ostream& os, Node::OpType op_type) {

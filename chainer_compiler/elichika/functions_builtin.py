@@ -306,13 +306,22 @@ class ConverterClip(BaseConverter):
     def __call__(self, onnx_graph, node):
         parser = self.parse_args(onnx_graph, node)
 
-        onnx_graph.add_node(
-            "Clip",
-            [parser.get('x')],
-            node.outputs,
-            str(node.lineprop),
-            min=parser.get('x_min'),
-            max=parser.get('x_max'))
+        if onnx.defs.onnx_opset_version() >= 11:
+            x_min = oc.ONNXValue(onnx_graph, np.array(parser.get('x_min')), [node, '/Min'], is_constant = True)
+            x_max = oc.ONNXValue(onnx_graph, np.array(parser.get('x_max')), [node, '/Max'], is_constant = True)
+            onnx_graph.add_node(
+                "Clip",
+                [parser.get('x'), x_min, x_max],
+                node.outputs,
+                str(node.lineprop))
+        else:
+            onnx_graph.add_node(
+                "Clip",
+                [parser.get('x')],
+                node.outputs,
+                str(node.lineprop),
+                min=parser.get('x_min'),
+                max=parser.get('x_max'))
 
 class ConverterSum(BaseConverter):
     def __init__(self):

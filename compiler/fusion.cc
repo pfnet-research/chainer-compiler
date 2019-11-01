@@ -122,7 +122,7 @@ void CreateFusionGroup(
         return true;
     };
 
-    Graph* subgraph = new Graph(StrCat("Fusion_", fusion_group_id));
+    Graph* subgraph = new Graph({}, StrCat("Fusion_", fusion_group_id));
     std::vector<Value*> subgraph_inputs;
     for (const auto& e : Enumerate(inputs)) {
         Value* value = e.value;

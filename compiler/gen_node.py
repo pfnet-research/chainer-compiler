@@ -36,7 +36,8 @@ class Dtype(object):
     pass
 
 
-CHAINER_COMPILERX_GLOBAL_ATTRS = attr_sets(chainer_order=-1, chainer_fusion_group=0)
+ONNX_OPSET_IMPORT_ATTRS = attr_sets(chainer_onnx_domain=[str], chainer_onnx_version=[int])
+CHAINER_COMPILERX_GLOBAL_ATTRS = attr_sets(chainer_order=-1, chainer_fusion_group=0, **ONNX_OPSET_IMPORT_ATTRS)
 
 NODES = []
 
@@ -580,7 +581,7 @@ class Value;
 
 class NodeBase {
 public:
-    void FillONNXAttributes(onnx::NodeProto* xnode) const;
+    void FillONNXAttributes(onnx::NodeProto* xnode, bool ignore_opset_imports = false) const;
 
     void SetDefaultAttributeValues();
 
@@ -594,7 +595,7 @@ public:
     std::vector<onnx::AttributeProto> unknown_attributes_;
 
     explicit NodeBase(OpType op_type);
-    NodeBase(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+    NodeBase(const OpsetList& opsets, const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 };
 
 }  // namespace chainer_compiler
@@ -618,7 +619,9 @@ def gen_gen_node_base_cc():
     lines.append('}')
 
     lines.append('NodeBase::NodeBase(OpType op_type) : op_type_(op_type) {}')
-    lines.append('NodeBase::NodeBase(const onnx::NodeProto& xnode, '
+    lines.append('NodeBase::NodeBase('
+                 'const OpsetList& opsets, '
+                 'const onnx::NodeProto& xnode, '
                  'const std::vector<Value*>& inputs, '
                  'const std::vector<Value*>& outputs) {')
     lines.append('op_type_ = StringToOpType(xnode.op_type());')
@@ -663,7 +666,7 @@ def gen_gen_node_base_cc():
             elif attr.type == Tensor:
                 blines.append('set_%s(new Tensor(xattr.t()));' % (attr.c_name))
             elif attr.type == Graph:
-                blines.append('set_%s(new Graph(xattr.g()));' % (attr.c_name))
+                blines.append('set_%s(new Graph(opsets, xattr.g()));' % (attr.c_name))
             else:
                 raise RuntimeError('Unknown attribute type: %s' % attr.type)
             blines.append('was_%s_set_ = true;' % (attr.c_name))
@@ -698,7 +701,7 @@ def gen_gen_node_base_cc():
     lines.append('}')
     lines.append('}')
 
-    lines.append('void NodeBase::FillONNXAttributes(onnx::NodeProto* xnode) '
+    lines.append('void NodeBase::FillONNXAttributes(onnx::NodeProto* xnode, bool ignore_opset_imports) '
                  'const {')
 
     lines.append(r'''
@@ -780,7 +783,10 @@ def gen_gen_node_base_cc():
     for node in NODES:
         lines.append('case k%s: ' % (node.op_type) + '{')
         for _, attr in sorted(node.attr_defs.items()):
-            lines.append('if (was_%s_set_)' % (attr.c_name))
+            if attr.c_name in ONNX_OPSET_IMPORT_ATTRS:
+                lines.append('if (!ignore_opset_imports && was_%s_set_)' % (attr.c_name))
+            else:
+                lines.append('if (was_%s_set_)' % (attr.c_name))
             lines.append('    %s("%s",' % (attr.add_func(), attr.onnx_name) +
                          ' %s_);' % (attr.c_name))
         lines.append('break;')

@@ -15,7 +15,8 @@
 
 namespace chainer_compiler {
 
-GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* target) : graph_(graph), category_(category), target_(target) {
+GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* target, const OpsetList& opsets)
+    : graph_(graph), category_(category), target_(target), opsets_(opsets) {
 }
 
 GraphBuilder::~GraphBuilder() {
@@ -37,7 +38,7 @@ GraphBuilder::~GraphBuilder() {
 
         onnx::GraphProto xgraph;
         for (Node* node : nodes) {
-            node->ToONNX(xgraph.add_node());
+            node->ToONNX(xgraph.add_node(), {});
         }
         for (Value* value : inputs) {
             value->ToONNX(xgraph.add_input());
@@ -48,13 +49,15 @@ GraphBuilder::~GraphBuilder() {
         for (Value* value : temps) {
             value->ToONNX(xgraph.add_value_info());
         }
-        // TODO(hamaji): Probably, we can remove this try-catch by passing
-        // appropriate opset_imports.
-        try {
-            onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
-        } catch (const std::runtime_error& e) {
-            std::cerr << "WARNING: Error during shape inference: " << e.what() << std::endl;
+        std::unordered_map<std::string, int> opset_imports;
+        if (opsets_.empty()) {
+            opset_imports = DefaultOpsetImports();
+        } else {
+            for (const auto& i : opsets_) {
+                opset_imports.insert(std::make_pair(i.domain(), i.version()));
+            }
         }
+        onnx::shape_inference::InferShapes(&xgraph, opset_imports);
 
         for (size_t i = 0; i < outputs.size(); ++i) {
             if (xgraph.output(i).type().has_tensor_type()) outputs[i]->set_type(new Type(xgraph.output(i).type()));
@@ -72,14 +75,14 @@ GraphBuilder::~GraphBuilder() {
 Value* GraphBuilder::Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output, const std::string& domain) {
     const std::string name = GenName();
     if (!output) output = graph_->AddValue(name);
-    added_nodes_.push_back(graph_->AddNode(op_type, inputs, {output}, name, domain));
+    added_nodes_.push_back(graph_->AddNode(op_type, inputs, {output}, name, domain, opsets_));
     return output;
 }
 
 Node* GraphBuilder::MOp(
         Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& domain) {
     const std::string name = GenName();
-    Node* node = graph_->AddNode(op_type, inputs, outputs, name, domain);
+    Node* node = graph_->AddNode(op_type, inputs, outputs, name, domain, opsets_);
     added_nodes_.push_back(node);
     return node;
 }

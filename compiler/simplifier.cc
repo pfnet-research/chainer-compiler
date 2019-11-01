@@ -16,6 +16,7 @@
 #include <compiler/node.h>
 #include <compiler/value.h>
 #include <configs/backend_config.h>
+#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 namespace {
@@ -226,6 +227,8 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         std::vector<Value*> input_seqs;
         for (Value* v : scan_inputs) {
             Value* inputs = gb.Op(Node::kSplitToSequence, {v});
+            // TODO(take-cheeze): Make more general for node with sequence output
+            inputs->set_type(new Type(Type::Kind::kSequence));
             inputs->producer()->set_axis(input_axis)->set_keepdims(false);
             input_seqs.push_back(inputs);
         }
@@ -374,7 +377,6 @@ bool HasImbalancedPad(const Node* node) {
 }
 
 Value* PadForPool(GraphBuilder* gb, Node* node, double value) {
-    Value* padded = gb->Op(Node::kPad, node->inputs());
     std::vector<int64_t> pads = {0, 0};
     size_t i = 0;
     for (; i < node->pads().size() / 2; ++i) {
@@ -385,8 +387,12 @@ Value* PadForPool(GraphBuilder* gb, Node* node, double value) {
     for (; i < node->pads().size(); ++i) {
         pads.push_back(node->pads()[i]);
     }
-    padded->producer()->set_pads(pads)->set_value(value);
-    return padded;
+    std::vector<Value*> inputs = node->inputs();
+    inputs.push_back(gb->Const(ArrayBuilder({static_cast<int64_t>(pads.size())}).WithData<int64_t>(pads).Build()));
+    if (value != 0) {
+        inputs.push_back(gb->ScalarConst(value, node->input(0)->type().dtype()));
+    }
+    return gb->Op(Node::kPad, inputs);
 }
 
 bool ReplaceMaxPool(Graph* graph, Node* node) {
@@ -653,7 +659,14 @@ bool ReplaceSplit(Graph* graph, Node* node) {
     for (size_t i = 0; i < node->outputs().size(); ++i) {
         int64_t end = start + split[i];
         Value* output = node->output(i);
-        gb.Op(Node::kSlice, {input}, output)->producer()->set_axes({axis})->set_starts({start})->set_ends({end});
+        gb.Op(Node::kSlice,
+              {
+                      input,
+                      gb.Const(ArrayBuilder({1}).WithData<int64_t>({start}).Build()),
+                      gb.Const(ArrayBuilder({1}).WithData<int64_t>({end}).Build()),
+                      gb.Const(ArrayBuilder({1}).WithData<int64_t>({axis}).Build()),
+              },
+              output);
         start = end;
     }
     return true;
@@ -753,8 +766,59 @@ bool ReplaceUpsample(Graph* graph, Node* node) {
     CHECK(node->scales().size() > 0);
     GraphBuilder gb(graph, "SimplifyUpsample", node->output(0));
     Value* scales = gb.Const(ArrayBuilder({static_cast<int64_t>(node->scales().size())}).WithData<float>(node->scales()).Build());
-    gb.MOp(Node::kResize, {node->input(0), scales}, node->outputs())->set_mode(node->mode());
+    gb.MOp(Node::kResize, {node->input(0), scales, scales}, node->outputs())->set_mode(node->mode());
 
+    return true;
+}
+
+bool ReplacePad(Graph* graph, Node* node) {
+    // No need to upgrade to Pad-11.
+    if (node->inputs().size() > 1) {
+        return false;
+    }
+    GraphBuilder gb(graph, "SimplifyPad", node->output(0));
+    Dtype dtype = node->input(0)->type().dtype();
+    CHECK_NE(Dtype::kUnknown, dtype);
+    Value* pads = gb.Const(ArrayBuilder({static_cast<int64_t>(node->pads().size())}).WithData<int64_t>(node->pads()).Build());
+    Value* value = gb.ScalarConst(node->value(), dtype);
+    gb.Op(Node::kPad, {node->input(0), pads, value}, node->output(0))
+            ->producer()
+            ->set_pads(node->pads())
+            ->set_value(node->value())
+            ->set_mode(node->mode());
+    return true;
+}
+
+bool ReplaceToOldPad(Graph* graph, Node* node) {
+    if (node->inputs().size() == 1) {
+        return false;
+    }
+
+    OpsetList opsets;
+    opsets.emplace_back();
+    opsets.back().set_domain("");
+    opsets.back().set_version(2);
+    GraphBuilder gb(graph, "SimplifyToOldPad", node->output(0), opsets);
+
+    const Tensor* pads_tensor = node->input(1)->GetConstTensor();
+    CHECK(pads_tensor);
+    float value = 0;
+    if (node->inputs().size() >= 3) {
+        const Tensor* value_tensor = node->input(2)->GetConstTensor();
+        CHECK(value_tensor);
+        value = float(chainerx::AsScalar(value_tensor->chx()));
+    }
+
+    chainerx::Array pads = chainerx::AsContiguous(pads_tensor->chx().AsType(chainerx::Dtype::kInt64));
+    CHECK_EQ(1, pads.ndim());
+    const int64_t* pads_start_ptr = reinterpret_cast<const int64_t*>(runtime::RawStartPtr(pads));
+
+    // Use chainer domain to disable shape inference. Otherwise,
+    // ONNX's shape inference will access the second input.
+    gb.MOp(Node::kPad, {node->input(0)}, node->outputs())
+            ->set_mode(node->mode())
+            ->set_pads(std::vector<int64_t>(pads_start_ptr, pads_start_ptr + pads.GetTotalSize()))
+            ->set_value(value);
     return true;
 }
 
@@ -770,7 +834,7 @@ SimplifierFn FunctionExpander(const std::string& fn, const onnx::OpSchema* schem
 
         GraphBuilder gb(graph, "Expand" + fn, fn_nd->output(0));
         onnx::NodeProto onnx_fn_nd;
-        fn_nd->ToONNX(&onnx_fn_nd);
+        fn_nd->ToONNX(&onnx_fn_nd, {});
 
         for (const onnx::NodeProto& src_nd : schema->GetFunction()->node()) {
             // Map inputs/outputs
@@ -879,9 +943,11 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     REGISTER_SIMPLIFIER(Clip);
     REGISTER_SIMPLIFIER(TopK);
     REGISTER_SIMPLIFIER(Upsample);
+    REGISTER_SIMPLIFIER(Pad);
 
     register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
     register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);
+    register_simplifier(Node::kPad, "ReplaceToOldPad", ReplaceToOldPad);
 
     // Validate `simplifier_names`.
     for (const std::string& name : simplifier_names) {
@@ -895,7 +961,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     if (simplifier_names.count("ExpandFunction")) {
         for (const std::string& fn : bc.GetExpandingFunctions()) {
             Node::OpType op_enum = Node::StringToOpType(fn);
-            const onnx::OpSchema* schema = onnx::OpSchemaRegistry::Schema(fn);
+            const onnx::OpSchema* schema = onnx::OpSchemaRegistry::Schema(fn, DEFAULT_OPSET_VERSION);
             CHECK(schema) << "unregistered onnx function: " << fn;
 
             auto simplifier = Simplifier("ExpandFunction", FunctionExpander(fn, schema));
@@ -913,7 +979,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
             }
             const Simplifier& simplifier = found->second;
             if (simplifier.fn(graph, node)) {
-                CLOG() << node->op_type() << " simplified" << std::endl;
+                CLOG() << node->op_type() << " simplified with " << simplifier.name << std::endl;
                 graph->DetachNode(node);
                 replaced = true;
             }

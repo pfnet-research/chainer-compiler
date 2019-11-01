@@ -16,7 +16,7 @@ TEST(ShapeEvaluatorTest, EvaluateShapes) {
     chainerx::testing::ContextSession sess;
 
     Value dummy_for_test("test");
-    Graph graph("test");
+    Graph graph({}, "test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);
     Value* a = gb.Const(ArrayBuilder({2, 1, 1}).WithData<int32_t>({0, 0}).Build());
     Value* b = gb.Const(ArrayBuilder({1, 1, 3}).WithData<int32_t>({0, 0, 0}).Build());

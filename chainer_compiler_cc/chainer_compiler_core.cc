@@ -42,7 +42,7 @@ typedef std::shared_ptr<runtime::ChxVMVar> VarPtr;
 
 std::shared_ptr<Graph> LoadGraph(const std::string& onnx_path) {
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
-    return std::make_shared<Graph>(xmodel.graph());
+    return std::make_shared<Graph>(OpsetList(xmodel.opset_import().begin(), xmodel.opset_import().end()), xmodel.graph());
 }
 
 std::map<std::string, VarPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
@@ -101,7 +101,7 @@ std::vector<std::string> GetOutputNames(const std::shared_ptr<Graph>& graph) {
 }
 
 std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackward(const std::shared_ptr<Graph>& graph) {
-    auto backprop = std::make_shared<Graph>(graph->name() + "_backprop");
+    auto backprop = std::make_shared<Graph>(graph->opset_imports(), graph->name() + "_backprop");
     RunDefaultPassesBeforeGradient(graph.get());
     GenerateGradientNodes(graph.get(), backprop.get());
     return std::make_pair(graph, backprop);
@@ -109,7 +109,7 @@ std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackward(const
 
 std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackwardTo(
         const std::shared_ptr<Graph>& graph, const std::vector<std::string>& param_names) {
-    auto backprop = std::make_shared<Graph>(graph->name() + "_backprop");
+    auto backprop = std::make_shared<Graph>(graph->opset_imports(), graph->name() + "_backprop");
     RunDefaultPassesBeforeGradient(graph.get());
     GenerateGradientNodesTo(graph.get(), backprop.get(), param_names);
     return std::make_pair(graph, backprop);
@@ -117,7 +117,7 @@ std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackwardTo(
 
 std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackwardToWithOrder(
         const std::shared_ptr<Graph>& graph, const std::string& computation_order) {
-    auto backprop = std::make_shared<Graph>(graph->name() + "_backprop");
+    auto backprop = std::make_shared<Graph>(graph->opset_imports(), graph->name() + "_backprop");
     RunDefaultPassesBeforeGradient(graph.get());
     auto orders = GetComputationOrder(*graph.get(), computation_order);
     AddGradientNodesForTrainingWithOrders(graph.get(), backprop.get(), orders);

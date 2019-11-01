@@ -34,7 +34,7 @@ public:
     int64_t ir_version() const {
         return ir_version_;
     }
-    const std::vector<onnx::OperatorSetIdProto>& opset_import() const {
+    const OpsetList& opset_import() const {
         return opset_import_;
     }
     const std::string& producer_name() const {
@@ -60,7 +60,7 @@ public:
 
 private:
     int64_t ir_version_;
-    std::vector<onnx::OperatorSetIdProto> opset_import_;
+    OpsetList opset_import_;
     std::string producer_name_;
     std::string producer_version_;
     std::string domain_;
