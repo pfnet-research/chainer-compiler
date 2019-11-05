@@ -206,12 +206,13 @@ class Function_Concat(Callable):
 
 
 class Function_SoftmaxCrossEntropy(Callable):
-    def call_impl(self, env, x, t, normalize, cache_score, class_weight, ignore_label, reduce, enable_double_backprop):
+    def call_impl(self, env, x, t, normalize, cache_score, class_weight, ignore_label, reduce, enable_double_backprop, soft_target_loss):
         assert normalize.value  # TODO(hamaji): Not supported yet.
         assert cache_score.value  # TODO(hamaji): Not supported yet.
         assert class_weight.value is None  # TODO(hamaji): Not supported yet.
         assert ignore_label.value == -1  # TODO(hamaji): Not supported yet.
         assert reduce.value == 'mean'  # TODO(hamaji): Not supported yet.
+        assert soft_target_loss.value == 'cross-entropy' # TODO(take-cheeze): Not supported yet.
         assert not enable_double_backprop.value  # TODO(hamaji): Not supported yet.
         return env.calc(
             "ChainerSoftmaxCrossEntropy",
