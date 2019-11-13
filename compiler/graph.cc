@@ -59,9 +59,17 @@ void Graph::Construct(const onnx::GraphProto& xgraph) {
     for (const onnx::TensorProto& xtensor : xgraph.initializer()) {
         std::unique_ptr<Tensor> tensor(new Tensor(xtensor));
         auto found = values_by_name.find(tensor->name());
-        CHECK(found != values_by_name.end()) << "Invalid name for an initializer: " << tensor->name();
-        CHECK(found->second->IsInput()) << "Only input can have an initializer but " << found->second->DebugString();
-        found->second->ResetInitializer(std::move(tensor));
+        if (found != values_by_name.end()) {
+            CHECK(found->second->IsInput()) << "Only input can have an initializer but " << found->second->DebugString();
+            found->second->ResetInitializer(std::move(tensor));
+        } else {
+            Type type(tensor->dtype(), tensor->dims());
+            Value* value = new Value(tensor->name(), type, Value::kInput);
+            value->ResetInitializer(std::move(tensor));
+            all_values_.emplace_back(value);
+            input_values_.push_back(value);
+            CHECK(values_by_name.emplace(value->name(), value).second);
+        }
     }
 
     auto get_value = [&](const std::string& name) {
