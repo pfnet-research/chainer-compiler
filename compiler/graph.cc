@@ -50,10 +50,16 @@ void Graph::Construct(const onnx::GraphProto& xgraph) {
         }
     }
     for (const onnx::ValueInfoProto& temp : xgraph.value_info()) {
-        Value* value = new Value(temp, Value::Kind::kTemp);
-        all_values_.emplace_back(value);
-        temp_values_.push_back(value);
-        CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
+        std::unique_ptr<Value> value(new Value(temp, Value::Kind::kTemp));
+        auto p = values_by_name.emplace(value->name(), value.get());
+        if (!p.second) {
+            // Allow having both output and value_info for old torch exporter.
+            CHECK_EQ(value->type().DebugString(), p.first->second->type().DebugString())
+                    << "Duplicated value name with different type: " << value->ToString();
+            continue;
+        }
+        temp_values_.push_back(value.get());
+        all_values_.emplace_back(std::move(value));
     }
 
     for (const onnx::TensorProto& xtensor : xgraph.initializer()) {
