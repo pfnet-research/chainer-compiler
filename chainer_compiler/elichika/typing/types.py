@@ -25,8 +25,6 @@ class TyObj():  # base type, meaning 'unknown'
 
     def is_mutable(self):
         pass
-    def unset(self):
-        return
     # dereference internal type
     def deref(self):
         return self
@@ -120,11 +118,6 @@ class TyArrow(TyObj):
     def is_mutable(self):
         return False
 
-    def unset(self):
-        for t in self.argty:
-            t.unset()
-        self.retty.unset()
-
     def deref(self):
         self.argty = [t.deref() for t in self.argty]
         self.retty = self.retty.deref()
@@ -188,13 +181,6 @@ class TySequence(TyObj):
     def size(self):
         assert self.is_fixed_len
         return len(self._ty)
-
-    def unset(self):
-        if self.is_fixed_len:
-            for t in self._ty:
-                t.unset()
-            return
-        self._ty.unset()
 
     def deref(self):
         if self.is_fixed_len is not None:
@@ -260,10 +246,6 @@ class TyDict(TyObj):
 
     def is_mutable(self):
         return True
-
-    def unset(self):
-        self.keyty.unset()
-        self.valty.unset()
 
     def deref(self):
         self.keyty = self.keyty.deref()
@@ -381,40 +363,9 @@ class TyVar(TyObj):
         self.is_set = True
         self.ty = ty
 
-    def unset(self):
-        self.is_set = False
-        self.ty = None
-
     def deref(self):
         if self.is_set:
             return self.ty.deref()
-        return self
-
-
-# TODO(momohatt): Deprecate TyUnion (and 'unset')
-class TyUnion(TyObj):
-    def __init__(self, *tys):
-        assert len(tys) >= 2
-        super().__init__()
-        self.tys = list(tys)  # tys : tuple of TyObj
-        self.is_set = False
-
-    def show(self):
-        if self.is_set:
-            return str(self.tys)
-        return str(self.tys[0]) + "".join([" \/ " + str(t) for t in self.tys[1:]])
-
-    def set(self, ty):
-        assert not self.is_set
-        self.is_set = True
-        self.tys = ty
-
-    def deref(self):
-        if self.is_set:
-            self.tys = self.tys.deref()
-            return self.tys
-
-        self.tys = [t.deref() for t in self.tys]
         return self
 
 
@@ -628,23 +579,6 @@ def unify(ty1, ty2, inspect_shape=True):
     ty1 = ty1.deref()
     ty2 = ty2.deref()
 
-    # XXX: TyUnion is only allowed in ty1
-    # if ty1 is TyUnion, try unification one by one.
-    if isinstance(ty1, TyUnion):
-        for ty1_ in ty1.tys:
-            try:
-                unify(ty1_, ty2)
-                ty1.set(ty1_)
-                return
-            except UnifyError:
-                ty2.unset()
-                print_warning("unify error with {} and {}. continuing...".format(
-                    ty1_, ty2))
-                continue
-
-        raise UnifyError(ty1, ty2)
-
-    # if ty1 is not TyUnion, just do normal unification
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
         return
 

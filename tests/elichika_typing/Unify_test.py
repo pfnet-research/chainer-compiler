@@ -26,16 +26,6 @@ class TestUnify(unittest.TestCase):
         ty2 = TyArrow([TyString()], TyInt())
         self.assertFalse(is_unifiable(ty1, ty2))
 
-    def test_union(self):
-        x = TyVar()
-        ty1 = TyUnion(
-                TyArrow([TyInt()], TyString()),
-                TyArrow([TyFloat()], TyFloat()),
-                )
-        ty2 = TyArrow([x], TyFloat())
-        self.assertTrue(is_unifiable(ty1, ty2))
-
-
 
 def main():
     unittest.main()
