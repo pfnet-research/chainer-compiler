@@ -19,15 +19,15 @@ root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(root))
 sys.path.insert(0, os.path.join(root, 'tests'))
 
-from chainer_compiler.elichika.testtools import type_checker_tools
+from chainer_compiler.elichika.testtools import type_inference_tools
 
 
 def rebase_testcase(filename, model_name, gen_model_fn):
     model, forward_args = gen_model_fn()
-    id2type, id2node = type_checker_tools.generate_type_inference_results(
+    id2type, id2node = type_inference_tools.generate_type_inference_results(
         model, forward_args, is_debug=False)
     sio = six.StringIO()
-    type_checker_tools.generate_assertion("id2type", id2type, id2node, sio)
+    type_inference_tools.generate_assertion("id2type", id2type, id2node, sio)
 
     with open(filename) as f:
         code = f.read()

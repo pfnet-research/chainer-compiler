@@ -163,10 +163,10 @@ class TestEspNet(unittest.TestCase):
         # === BEGIN ASSERTIONS for AttDot ===
         self.assertEqual(str(id2type[1]), "class AttDot -> [ndarray(dtype=float32, shape=(4, 3)), ndarray(dtype=float32, shape=(3, 3)), ndarray(dtype=float32, shape=(3, 3))] -> NoneType -> NoneType -> (Variable(dtype=float32, shape=(3, 3)), Variable(dtype=float32, shape=(3, 4)))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[11]), "NoneType")	# Expr
-        self.assertEqual(str(id2type[12]), "string")	# Str "..." (line 8)
+        self.assertEqual(str(id2type[12]), "string")	# Constant "..." (line 8)
         self.assertEqual(str(id2type[13]), "NoneType")	# Assign
         self.assertEqual(str(id2type[14]), "float")	# Name scaling (line 10)
-        self.assertEqual(str(id2type[16]), "float")	# Num 2.0 (line 10)
+        self.assertEqual(str(id2type[16]), "float")	# Constant 2.0 (line 10)
         self.assertEqual(str(id2type[17]), "NoneType")	# Assign
         self.assertEqual(str(id2type[18]), "int")	# Name batch (line 11)
         self.assertEqual(str(id2type[20]), "int")	# Call len(enc_hs) (line 11)
@@ -189,7 +189,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[51]), "(int, optional(int), int)")	# Attribute self.enc_h.shape (line 15)
         self.assertEqual(str(id2type[52]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Attribute self.enc_h (line 15)
         self.assertEqual(str(id2type[53]), "class AttDot")	# Name self (line 15)
-        self.assertEqual(str(id2type[58]), "int")	# Num 1 (line 15)
+        self.assertEqual(str(id2type[58]), "int")	# Constant 1 (line 15)
         self.assertEqual(str(id2type[60]), "NoneType")	# Assign
         self.assertEqual(str(id2type[61]), "NoneType")	# Attribute self.pre_compute_enc_h (line 17)
         self.assertEqual(str(id2type[62]), "class AttDot")	# Name self (line 17)
@@ -238,7 +238,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[152]), "Variable(dtype=float32, shape=(3, 4)) -> Variable(dtype=float32, shape=(3, 5))")	# Attribute self.mlp_dec (line 27)
         self.assertEqual(str(id2type[153]), "class AttDot")	# Name self (line 27)
         self.assertEqual(str(id2type[156]), "Variable(dtype=float32, shape=(3, 4))")	# Name dec_z (line 27)
-        self.assertEqual(str(id2type[158]), "int")	# Num 1 (line 27)
+        self.assertEqual(str(id2type[158]), "int")	# Constant 1 (line 27)
         self.assertEqual(str(id2type[159]), "(int, int, int)")	# Attribute self.pre_compute_enc_h.shape (line 28)
         self.assertEqual(str(id2type[160]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Attribute self.pre_compute_enc_h (line 28)
         self.assertEqual(str(id2type[161]), "class AttDot")	# Name self (line 28)
@@ -251,7 +251,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[175]), "class AttDot")	# Name self (line 29)
         self.assertEqual(str(id2type[178]), "Variable(dtype=float32, shape=(3, 4, 5)) -> Variable(dtype=float32, shape=(3, 4, 5)) -> Variable(dtype=float32, shape=(3, 4, 5))")	# Mult
         self.assertEqual(str(id2type[179]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Name u (line 29)
-        self.assertEqual(str(id2type[182]), "int")	# Num 2 (line 29)
+        self.assertEqual(str(id2type[182]), "int")	# Constant 2 (line 29)
         self.assertEqual(str(id2type[183]), "NoneType")	# Assign
         self.assertEqual(str(id2type[184]), "Variable(dtype=float32, shape=(3, 4))")	# Name w (line 33)
         self.assertEqual(str(id2type[186]), "Variable(dtype=float32, shape=(3, 4))")	# Call F.softmax(scaling * e) (line 33)
@@ -273,18 +273,18 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[216]), "Variable(dtype=float32, shape=(3, 4, 1))")	# Call F.expand_dims(w, 2) (line 36)
         self.assertEqual(str(id2type[217]), "Variable(dtype=float32, shape=(3, 4)) -> int -> Variable(dtype=float32, shape=(3, 4, 1))")	# Attribute F.expand_dims (line 36)
         self.assertEqual(str(id2type[221]), "Variable(dtype=float32, shape=(3, 4))")	# Name w (line 36)
-        self.assertEqual(str(id2type[223]), "int")	# Num 2 (line 36)
+        self.assertEqual(str(id2type[223]), "int")	# Constant 2 (line 36)
         self.assertEqual(str(id2type[224]), "(int, int, int)")	# Attribute self.enc_h.shape (line 36)
         self.assertEqual(str(id2type[225]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Attribute self.enc_h (line 36)
         self.assertEqual(str(id2type[226]), "class AttDot")	# Name self (line 36)
-        self.assertEqual(str(id2type[231]), "int")	# Num 1 (line 36)
+        self.assertEqual(str(id2type[231]), "int")	# Constant 1 (line 36)
         self.assertEqual(str(id2type[232]), "(Variable(dtype=float32, shape=(3, 3)), Variable(dtype=float32, shape=(3, 4)))")	# Return
         self.assertEqual(str(id2type[233]), "(Variable(dtype=float32, shape=(3, 3)), Variable(dtype=float32, shape=(3, 4)))")	# Tuple (c, w) (line 38)
         self.assertEqual(str(id2type[234]), "Variable(dtype=float32, shape=(3, 3))")	# Name c (line 38)
         self.assertEqual(str(id2type[236]), "Variable(dtype=float32, shape=(3, 4))")	# Name w (line 38)
         self.assertEqual(str(id2type[239]), "class Linear -> optional(Variable(dtype=float32, shape=(3, 4, 3))) -> Variable(dtype=float32, shape=(3, 4, 5))")	# FunctionDef linear_tensor (line 1)
         self.assertEqual(str(id2type[245]), "NoneType")	# Expr
-        self.assertEqual(str(id2type[246]), "string")	# Str "..." (line 8)
+        self.assertEqual(str(id2type[246]), "string")	# Constant "..." (line 8)
         self.assertEqual(str(id2type[247]), "NoneType")	# Assign
         self.assertEqual(str(id2type[248]), "Variable(dtype=float32, shape=(12, 5))")	# Name y (line 9)
         self.assertEqual(str(id2type[250]), "Variable(dtype=float32, shape=(12, 5))")	# Call linear(F.reshape(x, (-1, x.shape[-1]))) (line 9)
@@ -294,12 +294,12 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[258]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Name x (line 9)
         self.assertEqual(str(id2type[260]), "(int, int)")	# Tuple (-1, x.shape[-1]) (line 9)
         self.assertEqual(str(id2type[261]), "int")	# UnaryOp -1 (line 9)
-        self.assertEqual(str(id2type[263]), "int")	# Num 1 (line 9)
+        self.assertEqual(str(id2type[263]), "int")	# Constant 1 (line 9)
         self.assertEqual(str(id2type[264]), "int")	# Subscript x.shape[-1] (line 9)
         self.assertEqual(str(id2type[265]), "int tuple")	# Attribute x.shape (line 9)
         self.assertEqual(str(id2type[266]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Name x (line 9)
         self.assertEqual(str(id2type[270]), "int")	# UnaryOp -1 (line 9)
-        self.assertEqual(str(id2type[272]), "int")	# Num 1 (line 9)
+        self.assertEqual(str(id2type[272]), "int")	# Constant 1 (line 9)
         self.assertEqual(str(id2type[275]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Return
         self.assertEqual(str(id2type[276]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Call F.reshape(y, x.shape[:-1:] + (-1)) (line 10)
         self.assertEqual(str(id2type[277]), "Variable(dtype=float32, shape=(12, 5)) -> (int, int, int) -> Variable(dtype=float32, shape=(3, 4, 5))")	# Attribute F.reshape (line 10)
@@ -309,11 +309,11 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[285]), "(int, int, int)")	# Attribute x.shape (line 10)
         self.assertEqual(str(id2type[286]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Name x (line 10)
         self.assertEqual(str(id2type[290]), "int")	# UnaryOp -1 (line 10)
-        self.assertEqual(str(id2type[292]), "int")	# Num 1 (line 10)
+        self.assertEqual(str(id2type[292]), "int")	# Constant 1 (line 10)
         self.assertEqual(str(id2type[294]), "(int, int) -> (int,) -> (int, int, int)")	# Add
         self.assertEqual(str(id2type[295]), "(int,)")	# Tuple (-1) (line 10)
         self.assertEqual(str(id2type[296]), "int")	# UnaryOp -1 (line 10)
-        self.assertEqual(str(id2type[298]), "int")	# Num 1 (line 10)
+        self.assertEqual(str(id2type[298]), "int")	# Constant 1 (line 10)
         # === END ASSERTIONS for AttDot ===
 
 
@@ -326,10 +326,10 @@ class TestEspNet(unittest.TestCase):
         # === BEGIN ASSERTIONS for AttLoc ===
         self.assertEqual(str(id2type[1]), "class AttLoc -> [ndarray(dtype=float32, shape=(4, 3)), ndarray(dtype=float32, shape=(2, 3)), ndarray(dtype=float32, shape=(2, 3))] -> NoneType -> NoneType -> (a60, a51)")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[11]), "NoneType")	# Expr
-        self.assertEqual(str(id2type[12]), "string")	# Str "..." (line 9)
+        self.assertEqual(str(id2type[12]), "string")	# Constant "..." (line 9)
         self.assertEqual(str(id2type[13]), "NoneType")	# Assign
         self.assertEqual(str(id2type[14]), "float")	# Name scaling (line 11)
-        self.assertEqual(str(id2type[16]), "float")	# Num 2.0 (line 11)
+        self.assertEqual(str(id2type[16]), "float")	# Constant 2.0 (line 11)
         self.assertEqual(str(id2type[17]), "NoneType")	# Assign
         self.assertEqual(str(id2type[18]), "int")	# Name batch (line 12)
         self.assertEqual(str(id2type[20]), "int")	# Call len(enc_hs) (line 12)
@@ -352,7 +352,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[51]), "(int, optional(int), int)")	# Attribute self.enc_h.shape (line 16)
         self.assertEqual(str(id2type[52]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Attribute self.enc_h (line 16)
         self.assertEqual(str(id2type[53]), "class AttLoc")	# Name self (line 16)
-        self.assertEqual(str(id2type[58]), "int")	# Num 1 (line 16)
+        self.assertEqual(str(id2type[58]), "int")	# Constant 1 (line 16)
         self.assertEqual(str(id2type[60]), "NoneType")	# Assign
         self.assertEqual(str(id2type[61]), "NoneType")	# Attribute self.pre_compute_enc_h (line 18)
         self.assertEqual(str(id2type[62]), "class AttLoc")	# Name self (line 18)
@@ -364,9 +364,8 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[73]), "class AttLoc")	# Name self (line 18)
         self.assertEqual(str(id2type[76]), "NoneType")	# If
         self.assertEqual(str(id2type[77]), "bool")	# Compare  (line 20)
-        self.assertEqual(str(id2type[78]), "Variable(dtype=float32, shape=(3, 4))")	# Name dec_z (line 20)
         self.assertEqual(str(id2type[82]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[83]), "Variable(dtype=float32, shape=(3, 4))")	# Name dec_z (line 21)
+        self.assertEqual(str(id2type[83]), "Variable(dtype=float32, shape=(3, 4))")	# Name dec_z_new (line 21)
         self.assertEqual(str(id2type[85]), "Variable(dtype=float32, shape=(3, 4))")	# Call chainer.Variable(self.xp.zeros((batch, self.dunits), dtype=np.float32)) (line 21)
         self.assertEqual(str(id2type[86]), "ndarray(dtype=float32, shape=(3, 4)) -> Variable(dtype=float32, shape=(3, 4))")	# Attribute chainer.Variable (line 21)
         self.assertEqual(str(id2type[90]), "ndarray(dtype=float32, shape=(3, 4))")	# Call self.xp.zeros((batch, self.dunits), dtype=np.float32) (line 21)
@@ -379,7 +378,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[101]), "class AttLoc")	# Name self (line 22)
         self.assertEqual(str(id2type[106]), "dtype(float32)")	# Attribute np.float32 (line 22)
         self.assertEqual(str(id2type[110]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[111]), "a12")	# Name dec_z (line 24)
+        self.assertEqual(str(id2type[111]), "a12")	# Name dec_z_new (line 24)
         self.assertEqual(str(id2type[113]), "a10 (from line 24)")	# Call F.reshape(dec_z, (batch, self.dunits)) (line 24)
         self.assertEqual(str(id2type[114]), "NoneType -> (int, int) -> a10 (from line 24)")	# Attribute F.reshape (line 24)
         self.assertEqual(str(id2type[118]), "NoneType")	# Name dec_z (line 24)
@@ -400,14 +399,14 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[145]), "int")	# Subscript hh.shape[0] (line 29)
         self.assertEqual(str(id2type[146]), "(int, int)")	# Attribute hh.shape (line 29)
         self.assertEqual(str(id2type[147]), "ndarray(dtype=float32, shape=(4, 3))")	# Name hh (line 29)
-        self.assertEqual(str(id2type[151]), "int")	# Num 0 (line 29)
+        self.assertEqual(str(id2type[151]), "int")	# Constant 0 (line 29)
         self.assertEqual(str(id2type[153]), "float")	# BinOp 1.0 / hh.shape[0] (line 29)
-        self.assertEqual(str(id2type[154]), "float")	# Num 1.0 (line 29)
+        self.assertEqual(str(id2type[154]), "float")	# Constant 1.0 (line 29)
         self.assertEqual(str(id2type[155]), "float -> int -> float")	# Div
         self.assertEqual(str(id2type[156]), "int")	# Subscript hh.shape[0] (line 29)
         self.assertEqual(str(id2type[157]), "(int, int)")	# Attribute hh.shape (line 29)
         self.assertEqual(str(id2type[158]), "ndarray(dtype=float32, shape=(4, 3))")	# Name hh (line 29)
-        self.assertEqual(str(id2type[162]), "int")	# Num 0 (line 29)
+        self.assertEqual(str(id2type[162]), "int")	# Constant 0 (line 29)
         self.assertEqual(str(id2type[165]), "dtype(float32)")	# Attribute np.float32 (line 29)
         self.assertEqual(str(id2type[170]), "ndarray(dtype=float32, shape=(4, 3))")	# Name hh (line 29)
         self.assertEqual(str(id2type[172]), "ndarray(dtype=float32, shape=(4, 3)) list")	# Name enc_hs (line 29)
@@ -434,8 +433,8 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[213]), "Variable(dtype=float32, shape=(None, None))")	# Name att_prev (line 36)
         self.assertEqual(str(id2type[215]), "(int, int, int, optional(int))")	# Tuple (batch, 1, 1, self.h_length) (line 36)
         self.assertEqual(str(id2type[216]), "int")	# Name batch (line 36)
-        self.assertEqual(str(id2type[218]), "int")	# Num 1 (line 36)
-        self.assertEqual(str(id2type[219]), "int")	# Num 1 (line 36)
+        self.assertEqual(str(id2type[218]), "int")	# Constant 1 (line 36)
+        self.assertEqual(str(id2type[219]), "int")	# Constant 1 (line 36)
         self.assertEqual(str(id2type[220]), "optional(int)")	# Attribute self.h_length (line 36)
         self.assertEqual(str(id2type[221]), "class AttLoc")	# Name self (line 36)
         self.assertEqual(str(id2type[225]), "NoneType")	# Assign
@@ -445,9 +444,9 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[233]), "Variable(dtype=float32, shape=(3, 7, 4))")	# Call F.squeeze(att_conv, axis=2) (line 38)
         self.assertEqual(str(id2type[234]), "Variable(dtype=float32, shape=(3, 7, 1, 4)) -> Variable(dtype=float32, shape=(3, 7, 4))")	# Attribute F.squeeze (line 38)
         self.assertEqual(str(id2type[238]), "Variable(dtype=float32, shape=(3, 7, 1, 4))")	# Name att_conv (line 38)
-        self.assertEqual(str(id2type[241]), "int")	# Num 2 (line 38)
-        self.assertEqual(str(id2type[242]), "int")	# Num 1 (line 38)
-        self.assertEqual(str(id2type[243]), "int")	# Num 2 (line 38)
+        self.assertEqual(str(id2type[241]), "int")	# Constant 2 (line 38)
+        self.assertEqual(str(id2type[242]), "int")	# Constant 1 (line 38)
+        self.assertEqual(str(id2type[243]), "int")	# Constant 2 (line 38)
         self.assertEqual(str(id2type[244]), "NoneType")	# Assign
         self.assertEqual(str(id2type[245]), "a29")	# Name att_conv (line 40)
         self.assertEqual(str(id2type[247]), "a25")	# Call linear_tensor_3d(self.mlp_att, att_conv) (line 40)
@@ -457,15 +456,15 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[254]), "Variable(dtype=float32, shape=(3, 4, 7))")	# Name att_conv (line 40)
         self.assertEqual(str(id2type[256]), "NoneType")	# Assign
         self.assertEqual(str(id2type[257]), "a36")	# Name dec_z_tiled (line 43)
-        self.assertEqual(str(id2type[259]), "a34 (from line 43)")	# Call F.broadcast_to(F.expand_dims(self.mlp_dec(dec_z), 1), self.pre_compute_enc_h.shape) (line 43)
+        self.assertEqual(str(id2type[259]), "a34 (from line 43)")	# Call F.broadcast_to(F.expand_dims(self.mlp_dec(dec_z_new), 1), self.pre_compute_enc_h.shape) (line 43)
         self.assertEqual(str(id2type[260]), "Variable(dtype=float32, shape=(3, 1, 5)) -> a32 -> a34 (from line 43)")	# Attribute F.broadcast_to (line 43)
-        self.assertEqual(str(id2type[264]), "Variable(dtype=float32, shape=(3, 1, 5))")	# Call F.expand_dims(self.mlp_dec(dec_z), 1) (line 44)
+        self.assertEqual(str(id2type[264]), "Variable(dtype=float32, shape=(3, 1, 5))")	# Call F.expand_dims(self.mlp_dec(dec_z_new), 1) (line 44)
         self.assertEqual(str(id2type[265]), "Variable(dtype=float32, shape=(3, 5)) -> int -> Variable(dtype=float32, shape=(3, 1, 5))")	# Attribute F.expand_dims (line 44)
-        self.assertEqual(str(id2type[269]), "Variable(dtype=float32, shape=(3, 5))")	# Call self.mlp_dec(dec_z) (line 44)
+        self.assertEqual(str(id2type[269]), "Variable(dtype=float32, shape=(3, 5))")	# Call self.mlp_dec(dec_z_new) (line 44)
         self.assertEqual(str(id2type[270]), "Variable(dtype=float32, shape=(3, 4)) -> Variable(dtype=float32, shape=(3, 5))")	# Attribute self.mlp_dec (line 44)
         self.assertEqual(str(id2type[271]), "class AttLoc")	# Name self (line 44)
-        self.assertEqual(str(id2type[274]), "Variable(dtype=float32, shape=(3, 4))")	# Name dec_z (line 44)
-        self.assertEqual(str(id2type[276]), "int")	# Num 1 (line 44)
+        self.assertEqual(str(id2type[274]), "Variable(dtype=float32, shape=(3, 4))")	# Name dec_z_new (line 44)
+        self.assertEqual(str(id2type[276]), "int")	# Constant 1 (line 44)
         self.assertEqual(str(id2type[277]), "a32")	# Attribute self.pre_compute_enc_h.shape (line 44)
         self.assertEqual(str(id2type[278]), "NoneType")	# Attribute self.pre_compute_enc_h (line 44)
         self.assertEqual(str(id2type[279]), "class AttLoc")	# Name self (line 44)
@@ -487,7 +486,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[309]), "class AttLoc")	# Name self (line 50)
         self.assertEqual(str(id2type[312]), "a37 (from line 50) -> a35 -> a38 (from line 50)")	# Add
         self.assertEqual(str(id2type[313]), "a35")	# Name dec_z_tiled (line 50)
-        self.assertEqual(str(id2type[316]), "int")	# Num 2 (line 50)
+        self.assertEqual(str(id2type[316]), "int")	# Constant 2 (line 50)
         self.assertEqual(str(id2type[317]), "NoneType")	# Assign
         self.assertEqual(str(id2type[318]), "a52")	# Name w (line 54)
         self.assertEqual(str(id2type[320]), "a50 (from line 54)")	# Call F.softmax(scaling * e) (line 54)
@@ -509,39 +508,39 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[350]), "a54 (from line 58)")	# Call F.expand_dims(w, 2) (line 58)
         self.assertEqual(str(id2type[351]), "a51 -> int -> a54 (from line 58)")	# Attribute F.expand_dims (line 58)
         self.assertEqual(str(id2type[355]), "a51")	# Name w (line 58)
-        self.assertEqual(str(id2type[357]), "int")	# Num 2 (line 58)
+        self.assertEqual(str(id2type[357]), "int")	# Constant 2 (line 58)
         self.assertEqual(str(id2type[358]), "(int, int, int)")	# Attribute self.enc_h.shape (line 58)
         self.assertEqual(str(id2type[359]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Attribute self.enc_h (line 58)
         self.assertEqual(str(id2type[360]), "class AttLoc")	# Name self (line 58)
-        self.assertEqual(str(id2type[365]), "int")	# Num 1 (line 58)
+        self.assertEqual(str(id2type[365]), "int")	# Constant 1 (line 58)
         self.assertEqual(str(id2type[366]), "(a60, a51)")	# Return
         self.assertEqual(str(id2type[367]), "(a60, a51)")	# Tuple (c, w) (line 60)
         self.assertEqual(str(id2type[368]), "a60")	# Name c (line 60)
         self.assertEqual(str(id2type[370]), "a51")	# Name w (line 60)
         self.assertEqual(str(id2type[373]), "class Linear -> optional(Variable(dtype=float32, shape=(3, 4, 3))) -> NoneType")	# FunctionDef linear_tensor_3d (line 1)
         self.assertEqual(str(id2type[379]), "NoneType")	# Expr
-        self.assertEqual(str(id2type[380]), "string")	# Str "..." (line 8)
+        self.assertEqual(str(id2type[380]), "string")	# Constant "..." (line 8)
         self.assertEqual(str(id2type[381]), "NoneType")	# Return
         self.assertEqual(str(id2type[382]), "NoneType")	# Call linear(x, n_batch_axes=2) (line 9)
         self.assertEqual(str(id2type[383]), "optional(Variable(dtype=float32, shape=(3, 4, 3))) -> NoneType")	# Name linear (line 9)
         self.assertEqual(str(id2type[385]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Name x (line 9)
-        self.assertEqual(str(id2type[388]), "int")	# Num 2 (line 9)
+        self.assertEqual(str(id2type[388]), "int")	# Constant 2 (line 9)
         self.assertEqual(str(id2type[389]), "class Linear -> Variable(dtype=float32, shape=(3, 4, 7)) -> a25")	# FunctionDef linear_tensor_3d (line 1)
         self.assertEqual(str(id2type[395]), "NoneType")	# Expr
-        self.assertEqual(str(id2type[396]), "string")	# Str "..." (line 8)
+        self.assertEqual(str(id2type[396]), "string")	# Constant "..." (line 8)
         self.assertEqual(str(id2type[397]), "a25")	# Return
         self.assertEqual(str(id2type[398]), "a25")	# Call linear(x, n_batch_axes=2) (line 9)
         self.assertEqual(str(id2type[399]), "Variable(dtype=float32, shape=(3, 4, 7)) -> a25")	# Name linear (line 9)
         self.assertEqual(str(id2type[401]), "Variable(dtype=float32, shape=(3, 4, 7))")	# Name x (line 9)
-        self.assertEqual(str(id2type[404]), "int")	# Num 2 (line 9)
+        self.assertEqual(str(id2type[404]), "int")	# Constant 2 (line 9)
         self.assertEqual(str(id2type[405]), "class Linear -> a40 (from line 49) -> a41")	# FunctionDef linear_tensor_3d (line 1)
         self.assertEqual(str(id2type[411]), "NoneType")	# Expr
-        self.assertEqual(str(id2type[412]), "string")	# Str "..." (line 8)
+        self.assertEqual(str(id2type[412]), "string")	# Constant "..." (line 8)
         self.assertEqual(str(id2type[413]), "a41")	# Return
         self.assertEqual(str(id2type[414]), "a41")	# Call linear(x, n_batch_axes=2) (line 9)
         self.assertEqual(str(id2type[415]), "a40 (from line 49) -> a41")	# Name linear (line 9)
         self.assertEqual(str(id2type[417]), "a40 (from line 49)")	# Name x (line 9)
-        self.assertEqual(str(id2type[420]), "int")	# Num 2 (line 9)
+        self.assertEqual(str(id2type[420]), "int")	# Constant 2 (line 9)
         # === END ASSERTIONS for AttLoc ===
 
 
@@ -554,7 +553,7 @@ class TestEspNet(unittest.TestCase):
         # === BEGIN ASSERTIONS for StatelessLSTM ===
         self.assertEqual(str(id2type[1]), "class StatelessLSTM -> ndarray(dtype=float32, shape=(3, 4)) -> ndarray(dtype=float32, shape=(3, 4)) -> ndarray(dtype=float32, shape=(3, 7)) -> (Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[11]), "NoneType")	# Expr
-        self.assertEqual(str(id2type[12]), "string")	# Str "..." (line 14)
+        self.assertEqual(str(id2type[12]), "string")	# Constant "..." (line 14)
         self.assertEqual(str(id2type[13]), "NoneType")	# Assign
         self.assertEqual(str(id2type[14]), "Variable(dtype=float32, shape=(3, 16))")	# Name lstm_in (line 22)
         self.assertEqual(str(id2type[16]), "Variable(dtype=float32, shape=(3, 16))")	# Call self.upward(x) (line 22)
@@ -585,7 +584,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[62]), "int")	# Subscript x.shape[0] (line 32)
         self.assertEqual(str(id2type[63]), "(int, int)")	# Attribute x.shape (line 32)
         self.assertEqual(str(id2type[64]), "ndarray(dtype=float32, shape=(3, 7))")	# Name x (line 32)
-        self.assertEqual(str(id2type[68]), "int")	# Num 0 (line 32)
+        self.assertEqual(str(id2type[68]), "int")	# Constant 0 (line 32)
         self.assertEqual(str(id2type[70]), "int")	# Attribute self.state_size (line 32)
         self.assertEqual(str(id2type[71]), "class StatelessLSTM")	# Name self (line 32)
         self.assertEqual(str(id2type[76]), "dtype(float32)")	# Attribute self.xp.float32 (line 32)
@@ -670,35 +669,35 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[220]), "int")	# Subscript x.shape[1] (line 2)
         self.assertEqual(str(id2type[221]), "(int, int)")	# Attribute x.shape (line 2)
         self.assertEqual(str(id2type[222]), "Variable(dtype=float32, shape=(3, 16))")	# Name x (line 2)
-        self.assertEqual(str(id2type[226]), "int")	# Num 1 (line 2)
+        self.assertEqual(str(id2type[226]), "int")	# Constant 1 (line 2)
         self.assertEqual(str(id2type[228]), "int -> int -> int")	# FloorDiv
-        self.assertEqual(str(id2type[229]), "int")	# Num 4 (line 2)
-        self.assertEqual(str(id2type[230]), "int")	# Num 4 (line 2)
+        self.assertEqual(str(id2type[229]), "int")	# Constant 4 (line 2)
+        self.assertEqual(str(id2type[230]), "int")	# Constant 4 (line 2)
         self.assertEqual(str(id2type[232]), "(int, int, int) -> () -> (int, int, int)")	# Add
         self.assertEqual(str(id2type[233]), "()")	# Subscript x.shape[2::] (line 2)
         self.assertEqual(str(id2type[234]), "(int, int)")	# Attribute x.shape (line 2)
         self.assertEqual(str(id2type[235]), "Variable(dtype=float32, shape=(3, 16))")	# Name x (line 2)
-        self.assertEqual(str(id2type[239]), "int")	# Num 2 (line 2)
+        self.assertEqual(str(id2type[239]), "int")	# Constant 2 (line 2)
         self.assertEqual(str(id2type[241]), "NoneType")	# Assign
         self.assertEqual(str(id2type[242]), "(Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# Name r (line 3)
         self.assertEqual(str(id2type[244]), "(Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# Call F.separate(r, axis=2) (line 3)
         self.assertEqual(str(id2type[245]), "Variable(dtype=float32, shape=(3, 4, 4)) -> (Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# Attribute F.separate (line 3)
         self.assertEqual(str(id2type[249]), "Variable(dtype=float32, shape=(3, 4, 4))")	# Name r (line 3)
-        self.assertEqual(str(id2type[252]), "int")	# Num 2 (line 3)
+        self.assertEqual(str(id2type[252]), "int")	# Constant 2 (line 3)
         self.assertEqual(str(id2type[253]), "(Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# Return
         self.assertEqual(str(id2type[254]), "(Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# Tuple (r[0], r[1], r[2], r[3]) (line 4)
         self.assertEqual(str(id2type[255]), "Variable(dtype=float32, shape=(3, 4))")	# Subscript r[0] (line 4)
         self.assertEqual(str(id2type[256]), "(Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# Name r (line 4)
-        self.assertEqual(str(id2type[259]), "int")	# Num 0 (line 4)
+        self.assertEqual(str(id2type[259]), "int")	# Constant 0 (line 4)
         self.assertEqual(str(id2type[261]), "Variable(dtype=float32, shape=(3, 4))")	# Subscript r[1] (line 4)
         self.assertEqual(str(id2type[262]), "(Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# Name r (line 4)
-        self.assertEqual(str(id2type[265]), "int")	# Num 1 (line 4)
+        self.assertEqual(str(id2type[265]), "int")	# Constant 1 (line 4)
         self.assertEqual(str(id2type[267]), "Variable(dtype=float32, shape=(3, 4))")	# Subscript r[2] (line 4)
         self.assertEqual(str(id2type[268]), "(Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# Name r (line 4)
-        self.assertEqual(str(id2type[271]), "int")	# Num 2 (line 4)
+        self.assertEqual(str(id2type[271]), "int")	# Constant 2 (line 4)
         self.assertEqual(str(id2type[273]), "Variable(dtype=float32, shape=(3, 4))")	# Subscript r[3] (line 4)
         self.assertEqual(str(id2type[274]), "(Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)), Variable(dtype=float32, shape=(3, 4)))")	# Name r (line 4)
-        self.assertEqual(str(id2type[277]), "int")	# Num 3 (line 4)
+        self.assertEqual(str(id2type[277]), "int")	# Constant 3 (line 4)
         # === END ASSERTIONS for StatelessLSTM ===
 
 
@@ -709,7 +708,7 @@ class TestEspNet(unittest.TestCase):
         # === BEGIN ASSERTIONS for VGG2L ===
         self.assertEqual(str(id2type[1]), "class VGG2L -> [ndarray(dtype=float32, shape=(4, 5)), ndarray(dtype=float32, shape=(2, 5)), ndarray(dtype=float32, shape=(2, 5))] -> ndarray(dtype=int64, shape=(3,)) -> (Variable(dtype=float32, shape=(None, 256)) list, ndarray(dtype=int64, shape=(3,)))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[9]), "NoneType")	# Expr
-        self.assertEqual(str(id2type[10]), "string")	# Str "..." (line 7)
+        self.assertEqual(str(id2type[10]), "string")	# Constant "..." (line 7)
         self.assertEqual(str(id2type[11]), "NoneType")	# Expr
         self.assertEqual(str(id2type[12]), "NoneType")	# Call logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens)) (line 8)
         self.assertEqual(str(id2type[17]), "string")	# BinOp self.__class__.__name__ + ' input lengths: ' + str(ilens) (line 8)
@@ -718,7 +717,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[20]), "class base_metaclass")	# Attribute self.__class__ (line 8)
         self.assertEqual(str(id2type[21]), "class VGG2L")	# Name self (line 8)
         self.assertEqual(str(id2type[25]), "string -> string -> string")	# Add
-        self.assertEqual(str(id2type[26]), "string")	# Str ' input lengths: ' (line 8)
+        self.assertEqual(str(id2type[26]), "string")	# Constant ' input lengths: ' (line 8)
         self.assertEqual(str(id2type[27]), "string -> string -> string")	# Add
         self.assertEqual(str(id2type[28]), "string")	# Call str(ilens) (line 8)
         self.assertEqual(str(id2type[29]), "ndarray(dtype=int64, shape=(3,)) -> string")	# Name str (line 8)
@@ -739,23 +738,23 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[59]), "int")	# Subscript xs.shape[0] (line 15)
         self.assertEqual(str(id2type[60]), "(int, int, int)")	# Attribute xs.shape (line 15)
         self.assertEqual(str(id2type[61]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Name xs (line 15)
-        self.assertEqual(str(id2type[65]), "int")	# Num 0 (line 15)
+        self.assertEqual(str(id2type[65]), "int")	# Constant 0 (line 15)
         self.assertEqual(str(id2type[67]), "int")	# Subscript xs.shape[1] (line 15)
         self.assertEqual(str(id2type[68]), "(int, int, int)")	# Attribute xs.shape (line 15)
         self.assertEqual(str(id2type[69]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Name xs (line 15)
-        self.assertEqual(str(id2type[73]), "int")	# Num 1 (line 15)
+        self.assertEqual(str(id2type[73]), "int")	# Constant 1 (line 15)
         self.assertEqual(str(id2type[75]), "int")	# Attribute self.in_channel (line 15)
         self.assertEqual(str(id2type[76]), "class VGG2L")	# Name self (line 15)
         self.assertEqual(str(id2type[79]), "int")	# BinOp xs.shape[2] // self.in_channel (line 15)
         self.assertEqual(str(id2type[80]), "int")	# Subscript xs.shape[2] (line 15)
         self.assertEqual(str(id2type[81]), "(int, int, int)")	# Attribute xs.shape (line 15)
         self.assertEqual(str(id2type[82]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Name xs (line 15)
-        self.assertEqual(str(id2type[86]), "int")	# Num 2 (line 15)
+        self.assertEqual(str(id2type[86]), "int")	# Constant 2 (line 15)
         self.assertEqual(str(id2type[88]), "int -> int -> int")	# FloorDiv
         self.assertEqual(str(id2type[89]), "int")	# Attribute self.in_channel (line 15)
         self.assertEqual(str(id2type[90]), "class VGG2L")	# Name self (line 15)
-        self.assertEqual(str(id2type[94]), "int")	# Num 1 (line 15)
-        self.assertEqual(str(id2type[95]), "int")	# Num 2 (line 15)
+        self.assertEqual(str(id2type[94]), "int")	# Constant 1 (line 15)
+        self.assertEqual(str(id2type[95]), "int")	# Constant 2 (line 15)
         self.assertEqual(str(id2type[96]), "NoneType")	# Assign
         self.assertEqual(str(id2type[97]), "Variable(dtype=float32, shape=(3, 64, 4, 5))")	# Name xs (line 17)
         self.assertEqual(str(id2type[99]), "Variable(dtype=float32, shape=(3, 64, 4, 5))")	# Call F.relu(self.conv1_1(xs)) (line 17)
@@ -777,8 +776,8 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[129]), "Variable(dtype=float32, shape=(3, 64, 2, 3))")	# Call F.max_pooling_2d(xs, 2, stride=2) (line 19)
         self.assertEqual(str(id2type[130]), "Variable(dtype=float32, shape=(3, 64, 4, 5)) -> int -> Variable(dtype=float32, shape=(3, 64, 2, 3))")	# Attribute F.max_pooling_2d (line 19)
         self.assertEqual(str(id2type[134]), "Variable(dtype=float32, shape=(3, 64, 4, 5))")	# Name xs (line 19)
-        self.assertEqual(str(id2type[136]), "int")	# Num 2 (line 19)
-        self.assertEqual(str(id2type[138]), "int")	# Num 2 (line 19)
+        self.assertEqual(str(id2type[136]), "int")	# Constant 2 (line 19)
+        self.assertEqual(str(id2type[138]), "int")	# Constant 2 (line 19)
         self.assertEqual(str(id2type[139]), "NoneType")	# Assign
         self.assertEqual(str(id2type[140]), "Variable(dtype=float32, shape=(3, 128, 2, 3))")	# Name xs (line 21)
         self.assertEqual(str(id2type[142]), "Variable(dtype=float32, shape=(3, 128, 2, 3))")	# Call F.relu(self.conv2_1(xs)) (line 21)
@@ -800,33 +799,33 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[172]), "Variable(dtype=float32, shape=(3, 128, 1, 2))")	# Call F.max_pooling_2d(xs, 2, stride=2) (line 23)
         self.assertEqual(str(id2type[173]), "Variable(dtype=float32, shape=(3, 128, 2, 3)) -> int -> Variable(dtype=float32, shape=(3, 128, 1, 2))")	# Attribute F.max_pooling_2d (line 23)
         self.assertEqual(str(id2type[177]), "Variable(dtype=float32, shape=(3, 128, 2, 3))")	# Name xs (line 23)
-        self.assertEqual(str(id2type[179]), "int")	# Num 2 (line 23)
-        self.assertEqual(str(id2type[181]), "int")	# Num 2 (line 23)
+        self.assertEqual(str(id2type[179]), "int")	# Constant 2 (line 23)
+        self.assertEqual(str(id2type[181]), "int")	# Constant 2 (line 23)
         self.assertEqual(str(id2type[182]), "NoneType")	# Assign
         self.assertEqual(str(id2type[183]), "ndarray(dtype=int64, shape=(3,))")	# Name ilens (line 28)
         self.assertEqual(str(id2type[185]), "ndarray(dtype=int64, shape=(3,))")	# BinOp ilens + 1 // 2 (line 28)
         self.assertEqual(str(id2type[186]), "ndarray(dtype=int64, shape=(3,))")	# BinOp ilens + 1 (line 28)
         self.assertEqual(str(id2type[187]), "ndarray(dtype=int64, shape=(3,))")	# Name ilens (line 28)
         self.assertEqual(str(id2type[189]), "ndarray(dtype=int64, shape=(3,)) -> int -> ndarray(dtype=int64, shape=(3,))")	# Add
-        self.assertEqual(str(id2type[190]), "int")	# Num 1 (line 28)
+        self.assertEqual(str(id2type[190]), "int")	# Constant 1 (line 28)
         self.assertEqual(str(id2type[191]), "ndarray(dtype=int64, shape=(3,)) -> int -> ndarray(dtype=int64, shape=(3,))")	# FloorDiv
-        self.assertEqual(str(id2type[192]), "int")	# Num 2 (line 28)
+        self.assertEqual(str(id2type[192]), "int")	# Constant 2 (line 28)
         self.assertEqual(str(id2type[193]), "NoneType")	# Assign
         self.assertEqual(str(id2type[194]), "ndarray(dtype=int64, shape=(3,))")	# Name ilens (line 29)
         self.assertEqual(str(id2type[196]), "ndarray(dtype=int64, shape=(3,))")	# BinOp ilens + 1 // 2 (line 29)
         self.assertEqual(str(id2type[197]), "ndarray(dtype=int64, shape=(3,))")	# BinOp ilens + 1 (line 29)
         self.assertEqual(str(id2type[198]), "ndarray(dtype=int64, shape=(3,))")	# Name ilens (line 29)
         self.assertEqual(str(id2type[200]), "ndarray(dtype=int64, shape=(3,)) -> int -> ndarray(dtype=int64, shape=(3,))")	# Add
-        self.assertEqual(str(id2type[201]), "int")	# Num 1 (line 29)
+        self.assertEqual(str(id2type[201]), "int")	# Constant 1 (line 29)
         self.assertEqual(str(id2type[202]), "ndarray(dtype=int64, shape=(3,)) -> int -> ndarray(dtype=int64, shape=(3,))")	# FloorDiv
-        self.assertEqual(str(id2type[203]), "int")	# Num 2 (line 29)
+        self.assertEqual(str(id2type[203]), "int")	# Constant 2 (line 29)
         self.assertEqual(str(id2type[204]), "NoneType")	# Assign
         self.assertEqual(str(id2type[205]), "Variable(dtype=float32, shape=(3, 1, 128, 2))")	# Name xs (line 36)
         self.assertEqual(str(id2type[207]), "Variable(dtype=float32, shape=(3, 1, 128, 2))")	# Call F.swapaxes(xs, 1, 2) (line 36)
         self.assertEqual(str(id2type[208]), "Variable(dtype=float32, shape=(3, 128, 1, 2)) -> int -> int -> Variable(dtype=float32, shape=(3, 1, 128, 2))")	# Attribute F.swapaxes (line 36)
         self.assertEqual(str(id2type[212]), "Variable(dtype=float32, shape=(3, 128, 1, 2))")	# Name xs (line 36)
-        self.assertEqual(str(id2type[214]), "int")	# Num 1 (line 36)
-        self.assertEqual(str(id2type[215]), "int")	# Num 2 (line 36)
+        self.assertEqual(str(id2type[214]), "int")	# Constant 1 (line 36)
+        self.assertEqual(str(id2type[215]), "int")	# Constant 2 (line 36)
         self.assertEqual(str(id2type[216]), "NoneType")	# Assign
         self.assertEqual(str(id2type[217]), "Variable(dtype=float32, shape=(3, 1, 256))")	# Name xs (line 37)
         self.assertEqual(str(id2type[219]), "Variable(dtype=float32, shape=(3, 1, 256))")	# Call F.reshape(xs, (xs.shape[0], xs.shape[1], xs.shape[2] * xs.shape[3])) (line 37)
@@ -836,21 +835,21 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[227]), "int")	# Subscript xs.shape[0] (line 38)
         self.assertEqual(str(id2type[228]), "(int, int, int, int)")	# Attribute xs.shape (line 38)
         self.assertEqual(str(id2type[229]), "Variable(dtype=float32, shape=(3, 1, 128, 2))")	# Name xs (line 38)
-        self.assertEqual(str(id2type[233]), "int")	# Num 0 (line 38)
+        self.assertEqual(str(id2type[233]), "int")	# Constant 0 (line 38)
         self.assertEqual(str(id2type[235]), "int")	# Subscript xs.shape[1] (line 38)
         self.assertEqual(str(id2type[236]), "(int, int, int, int)")	# Attribute xs.shape (line 38)
         self.assertEqual(str(id2type[237]), "Variable(dtype=float32, shape=(3, 1, 128, 2))")	# Name xs (line 38)
-        self.assertEqual(str(id2type[241]), "int")	# Num 1 (line 38)
+        self.assertEqual(str(id2type[241]), "int")	# Constant 1 (line 38)
         self.assertEqual(str(id2type[243]), "int")	# BinOp xs.shape[2] * xs.shape[3] (line 38)
         self.assertEqual(str(id2type[244]), "int")	# Subscript xs.shape[2] (line 38)
         self.assertEqual(str(id2type[245]), "(int, int, int, int)")	# Attribute xs.shape (line 38)
         self.assertEqual(str(id2type[246]), "Variable(dtype=float32, shape=(3, 1, 128, 2))")	# Name xs (line 38)
-        self.assertEqual(str(id2type[250]), "int")	# Num 2 (line 38)
+        self.assertEqual(str(id2type[250]), "int")	# Constant 2 (line 38)
         self.assertEqual(str(id2type[252]), "int -> int -> int")	# Mult
         self.assertEqual(str(id2type[253]), "int")	# Subscript xs.shape[3] (line 38)
         self.assertEqual(str(id2type[254]), "(int, int, int, int)")	# Attribute xs.shape (line 38)
         self.assertEqual(str(id2type[255]), "Variable(dtype=float32, shape=(3, 1, 128, 2))")	# Name xs (line 38)
-        self.assertEqual(str(id2type[259]), "int")	# Num 3 (line 38)
+        self.assertEqual(str(id2type[259]), "int")	# Constant 3 (line 38)
         self.assertEqual(str(id2type[262]), "NoneType")	# Assign
         self.assertEqual(str(id2type[263]), "Variable(dtype=float32, shape=(None, 256)) list")	# Name xs (line 39)
         self.assertEqual(str(id2type[265]), "Variable(dtype=float32, shape=(None, 256)) list")	# ListComp  (line 39)
@@ -880,7 +879,7 @@ class TestEspNet(unittest.TestCase):
         # === BEGIN ASSERTIONS for BLSTM ===
         self.assertEqual(str(id2type[1]), "class BLSTM -> [ndarray(dtype=float32, shape=(4, 5)), ndarray(dtype=float32, shape=(2, 5)), ndarray(dtype=float32, shape=(2, 5))] -> ndarray(dtype=int64, shape=(3,)) -> ((Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7))), ndarray(dtype=int64, shape=(3,)))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[9]), "NoneType")	# Expr
-        self.assertEqual(str(id2type[10]), "string")	# Str "..." (line 7)
+        self.assertEqual(str(id2type[10]), "string")	# Constant "..." (line 7)
         self.assertEqual(str(id2type[11]), "NoneType")	# Expr
         self.assertEqual(str(id2type[12]), "NoneType")	# Call logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens)) (line 8)
         self.assertEqual(str(id2type[17]), "string")	# BinOp self.__class__.__name__ + ' input lengths: ' + str(ilens) (line 8)
@@ -889,7 +888,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[20]), "class base_metaclass")	# Attribute self.__class__ (line 8)
         self.assertEqual(str(id2type[21]), "class BLSTM")	# Name self (line 8)
         self.assertEqual(str(id2type[25]), "string -> string -> string")	# Add
-        self.assertEqual(str(id2type[26]), "string")	# Str ' input lengths: ' (line 8)
+        self.assertEqual(str(id2type[26]), "string")	# Constant ' input lengths: ' (line 8)
         self.assertEqual(str(id2type[27]), "string -> string -> string")	# Add
         self.assertEqual(str(id2type[28]), "string")	# Call str(ilens) (line 8)
         self.assertEqual(str(id2type[29]), "ndarray(dtype=int64, shape=(3,)) -> string")	# Name str (line 8)
@@ -907,8 +906,8 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[52]), "(Variable(dtype=float32, shape=(4, 3, 3)), Variable(dtype=float32, shape=(4, 3, 3)), [Variable(dtype=float32, shape=(4, 6)), Variable(dtype=float32, shape=(2, 6)), Variable(dtype=float32, shape=(2, 6))])")	# Call self.nblstm(None, None, xs) (line 11)
         self.assertEqual(str(id2type[53]), "NoneType -> NoneType -> [ndarray(dtype=float32, shape=(4, 5)), ndarray(dtype=float32, shape=(2, 5)), ndarray(dtype=float32, shape=(2, 5))] -> (Variable(dtype=float32, shape=(4, 3, 3)), Variable(dtype=float32, shape=(4, 3, 3)), [Variable(dtype=float32, shape=(4, 6)), Variable(dtype=float32, shape=(2, 6)), Variable(dtype=float32, shape=(2, 6))])")	# Attribute self.nblstm (line 11)
         self.assertEqual(str(id2type[54]), "class BLSTM")	# Name self (line 11)
-        self.assertEqual(str(id2type[57]), "NoneType")	# NameConstant None (line 11)
-        self.assertEqual(str(id2type[58]), "NoneType")	# NameConstant None (line 11)
+        self.assertEqual(str(id2type[57]), "NoneType")	# Constant None (line 11)
+        self.assertEqual(str(id2type[58]), "NoneType")	# Constant None (line 11)
         self.assertEqual(str(id2type[59]), "[ndarray(dtype=float32, shape=(4, 5)), ndarray(dtype=float32, shape=(2, 5)), ndarray(dtype=float32, shape=(2, 5))]")	# Name xs (line 11)
         self.assertEqual(str(id2type[61]), "NoneType")	# Assign
         self.assertEqual(str(id2type[62]), "Variable(dtype=float32, shape=(8, 7))")	# Name ys (line 12)
@@ -928,8 +927,8 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[91]), "ndarray(dtype=int64, shape=(2,))")	# Subscript ilens[:-1:] (line 13)
         self.assertEqual(str(id2type[92]), "ndarray(dtype=int64, shape=(3,))")	# Name ilens (line 13)
         self.assertEqual(str(id2type[95]), "int")	# UnaryOp -1 (line 13)
-        self.assertEqual(str(id2type[97]), "int")	# Num 1 (line 13)
-        self.assertEqual(str(id2type[99]), "int")	# Num 0 (line 13)
+        self.assertEqual(str(id2type[97]), "int")	# Constant 1 (line 13)
+        self.assertEqual(str(id2type[99]), "int")	# Constant 0 (line 13)
         self.assertEqual(str(id2type[100]), "NoneType")	# Delete
         self.assertEqual(str(id2type[105]), "NoneType")	# Assign
         self.assertEqual(str(id2type[106]), "(Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7)))")	# Name xs (line 17)
@@ -945,8 +944,8 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[130]), "ndarray(dtype=int64, shape=(2,))")	# Subscript ilens[:-1:] (line 17)
         self.assertEqual(str(id2type[131]), "ndarray(dtype=int64, shape=(3,))")	# Name ilens (line 17)
         self.assertEqual(str(id2type[134]), "int")	# UnaryOp -1 (line 17)
-        self.assertEqual(str(id2type[136]), "int")	# Num 1 (line 17)
-        self.assertEqual(str(id2type[138]), "int")	# Num 0 (line 17)
+        self.assertEqual(str(id2type[136]), "int")	# Constant 1 (line 17)
+        self.assertEqual(str(id2type[138]), "int")	# Constant 0 (line 17)
         self.assertEqual(str(id2type[139]), "((Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7))), ndarray(dtype=int64, shape=(3,)))")	# Return
         self.assertEqual(str(id2type[140]), "((Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7))), ndarray(dtype=int64, shape=(3,)))")	# Tuple (xs, ilens) (line 24)
         self.assertEqual(str(id2type[141]), "(Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7)), Variable(dtype=float32, shape=(None, 7)))")	# Name xs (line 24)
