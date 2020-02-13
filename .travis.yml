@@ -34,7 +34,8 @@ matrix:
       before_cache:
         - brew cleanup
       before_install:
-        - brew install protobuf opencv python cmake openblas
+        - brew unlink python@2
+        - brew install opencv python cmake openblas
       script:
         - bash ./scripts/run-travis-tests.sh
 
