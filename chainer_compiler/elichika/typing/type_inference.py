@@ -783,10 +783,10 @@ class InferenceEngine():
             if ty_obj.is_fixed_len and \
                     isinstance(node.slice, gast.Slice) and \
                     self.is_const_slice(node.slice):
-                get_slice = eval('lambda s: s[{}]'.format(utils.slice_to_str(node.slice)))
+                slice_ = self.extract_slice(node.slice)
                 if ty_obj.is_list():
-                    return TyList(get_slice(ty_obj.get_tys()))
-                return TyTuple(get_slice(ty_obj.get_tys()))
+                    return TyList(ty_obj.get_tys()[slice_])
+                return TyTuple(ty_obj.get_tys()[slice_])
 
             ty_obj.coerce_to_variable_len()
             if isinstance(node.slice, gast.Index):
@@ -816,8 +816,8 @@ class InferenceEngine():
             if shape[0].value is None and (node_slice.upper is None or
                     extract_value_from_ty(self.nodetype[node_slice.upper]) < 0):
                 return (None,) + shape[1:]
-            get_slice = eval('lambda s: s[{}]'.format(utils.slice_to_str(node_slice)))
-            shape_0 = ShapeElem(len(get_slice((0,) * shape[0].value)))  # TODO
+            slice_ = self.extract_slice(node_slice)
+            shape_0 = ShapeElem(len(((0,) * shape[0].value)[slice_]))
             return (shape_0,) + shape[1:]
         if isinstance(node_slice, gast.ExtSlice):
             ret_shape = ()
@@ -890,6 +890,16 @@ class InferenceEngine():
         if node_slice.step and not is_constnum(self.infer_expr(node_slice.step)):
             return False
         return True
+
+    def extract_slice(self, node_slice) -> slice:
+        lower, upper, step = None, None, None
+        if node_slice.lower:
+            lower = self.infer_expr(node_slice.lower).value
+        if node_slice.upper:
+            upper = self.infer_expr(node_slice.upper).value
+        if node_slice.step:
+            step = self.infer_expr(node_slice.step).value
+        return slice(lower, upper, step)
 
 
 if __name__ == '__main__':
