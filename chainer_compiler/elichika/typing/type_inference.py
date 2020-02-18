@@ -774,11 +774,12 @@ class InferenceEngine():
 
         if isinstance(ty_obj, TySequence):
             self.infer_slice(node.slice)
+
             if ty_obj.is_fixed_len and \
-                    isinstance(node.slice, gast.Index) and \
-                    isinstance(node.slice.value, gast.Constant) and \
-                    isinstance(node.slice.value.value, numbers.Number):
-                return ty_obj.get_tys()[node.slice.value.value]
+                    isinstance(node.slice, gast.Index):
+                t = self.infer_expr(node.slice.value)
+                if isinstance(t, TyNum) and t.value is not None:
+                    return ty_obj.get_tys()[t.value]
 
             if ty_obj.is_fixed_len and \
                     isinstance(node.slice, gast.Slice) and \
