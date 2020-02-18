@@ -90,34 +90,15 @@ def slice_to_str(node):
     if isinstance(node, gast.Index):
         return expr_to_str(node.value)
 
-
 def is_expr(node):
-    return isinstance(node, gast.BoolOp) \
-            or isinstance(node, gast.BinOp) \
-            or isinstance(node, gast.UnaryOp) \
-            or isinstance(node, gast.Lambda) \
-            or isinstance(node, gast.IfExp) \
-            or isinstance(node, gast.Dict) \
-            or isinstance(node, gast.Set) \
-            or isinstance(node, gast.ListComp) \
-            or isinstance(node, gast.SetComp) \
-            or isinstance(node, gast.DictComp) \
-            or isinstance(node, gast.GeneratorExp) \
-            or isinstance(node, gast.Await) \
-            or isinstance(node, gast.Yield) \
-            or isinstance(node, gast.YieldFrom) \
-            or isinstance(node, gast.Compare) \
-            or isinstance(node, gast.Call) \
-            or isinstance(node, gast.Repr) \
-            or isinstance(node, gast.Constant) \
-            or isinstance(node, gast.FormattedValue) \
-            or isinstance(node, gast.JoinedStr) \
-            or isinstance(node, gast.Attribute) \
-            or isinstance(node, gast.Subscript) \
-            or isinstance(node, gast.Starred) \
-            or isinstance(node, gast.Name) \
-            or isinstance(node, gast.List) \
-            or isinstance(node, gast.Tuple)
+    expr_types = ( gast.BoolOp, gast.BinOp, gast.UnaryOp, gast.Lambda
+                 , gast.IfExp, gast.Dict, gast.Set, gast.ListComp, gast.SetComp
+                 , gast.DictComp, gast.GeneratorExp, gast.Await, gast.Yield
+                 , gast.YieldFrom, gast.Compare, gast.Call, gast.Repr
+                 , gast.Constant, gast.FormattedValue, gast.JoinedStr
+                 , gast.Attribute, gast.Subscript, gast.Starred, gast.Name
+                 , gast.List, gast.Tuple)
+    return isinstance(node, expr_types)
 
 
 def node_description(node):

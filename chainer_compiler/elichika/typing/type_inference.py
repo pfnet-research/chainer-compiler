@@ -53,8 +53,7 @@ def lazy_initializer(node):
     #
     # The reverse, 'if x is not None: ... else: ...' is not supported.
     if isinstance(node.test, gast.Compare) and \
-            (isinstance(node.test.left, gast.Name) or \
-            isinstance(node.test.left, gast.Attribute)) and \
+            isinstance(node.test.left, (gast.Name, gast.Attribute)) and \
             isinstance(node.test.ops[0], gast.Is) and \
             isinstance(node.test.comparators[0], gast.Constant) and \
             node.test.comparators[0].value is None:
@@ -345,8 +344,7 @@ class InferenceEngine():
 
 
     def infer_user_defined_function(self, func, ty_args, node):
-        if isinstance(func, types.FunctionType) or \
-                isinstance(func, types.MethodType):
+        if isinstance(func, (types.FunctionType, types.MethodType)):
             func_body = func
 
             if isinstance(node.func, gast.Attribute):
@@ -451,9 +449,8 @@ class InferenceEngine():
         ty_val = self.infer_expr(node.value)
 
         if isinstance(target, gast.Name):
-            if (isinstance(node.value, gast.Name) or \
-                    isinstance(node.value, gast.Attribute)) and \
-                    ty_val.is_mutable():
+            if ty_val.is_mutable() and \
+                    isinstance(node.value, (gast.Name, gast.Attribute)):
                 # XXX: alias
                 self.tyenv[target.id] = ty_val
                 self.nodetype[target] = ty_val

@@ -517,8 +517,7 @@ def choose_stronger_ty(ty1, ty2):
 
 
 def copy_ty(ty):
-    if isinstance(ty, TyNone) or isinstance(ty, TyNum) or \
-            isinstance(ty, TyString):
+    if isinstance(ty, (TyNone, TyNum, TyString)):
         ret = deepcopy(ty)
     elif isinstance(ty, TyArrow):
         ret = TyArrow([copy_ty(t) for t in ty.argty], copy_ty(ty.retty))
