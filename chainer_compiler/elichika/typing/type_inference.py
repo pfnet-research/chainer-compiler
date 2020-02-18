@@ -169,9 +169,6 @@ class InferenceEngine():
         # Node (Call) -> Node (FunctionDef)
         self.subroutine_node = {}
 
-        # Path from the root of current AST to the current node (only stmt and expr)
-        self.stack = []
-
         # typing type hints
         # string -> TyObj
         self.type_hints = {}
@@ -204,20 +201,6 @@ class InferenceEngine():
             return
         print("{} : \x1b[36m{}\x1b[39m".format(
             utils.node_description(node), self.nodetype[node]))
-
-
-    def dump_stack(self):
-        print("=== stack ===\x1b[32m")
-        for node in self.stack:
-            print(utils.node_description(node))
-        print("\x1b[39m")
-
-
-    def is_called(self, node):
-        if len(self.stack) < 2:
-            return False
-        return isinstance(self.stack[-2], gast.Call) and \
-                self.stack[-2].func is node
 
 
     def generate_fresh_TyVar(self, node):
@@ -388,8 +371,6 @@ class InferenceEngine():
         if self.is_debug:
             debug(gast.dump(node))
 
-        self.stack.append(node)
-
         if isinstance(node, gast.FunctionDef):
             self.nodetype[node] = self.infer_FunctionDef(node)
         elif isinstance(node, gast.Return):
@@ -425,7 +406,6 @@ class InferenceEngine():
             self.nodetype[node] = TyNone()
 
         assert node in self.nodetype.keys(), type(node).__name__
-        self.stack.pop()
         return self.nodetype[node]
 
 
@@ -559,16 +539,13 @@ class InferenceEngine():
 
 
     # ================================= expr ===================================
-    def infer_expr(self, node):
+    def infer_expr(self, node, is_callee=False):
         if node in self.nodetype.keys():
             return self.nodetype[node]
-
-        self.stack.append(node)
 
         if self.is_debug:
             pass
             # debug(gast.dump(node))
-            # self.dump_stack()
             # self.dump_tyenv()
 
         if isinstance(node, gast.BoolOp):
@@ -590,11 +567,11 @@ class InferenceEngine():
             # Constant(constant value)
             self.nodetype[node] = type_of_value(node.value)
         elif isinstance(node, gast.Attribute):
-            self.nodetype[node] = self.infer_Attribute(node)
+            self.nodetype[node] = self.infer_Attribute(node, is_callee)
         elif isinstance(node, gast.Subscript):
             self.nodetype[node] = self.infer_Subscript(node)
         elif isinstance(node, gast.Name):
-            self.nodetype[node] = self.infer_Name(node)
+            self.nodetype[node] = self.infer_Name(node, is_callee)
         elif isinstance(node, gast.List):
             # List(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
@@ -606,7 +583,6 @@ class InferenceEngine():
 
         assert node in self.nodetype.keys() and \
                 self.nodetype[node] is not None, type(node).__name__
-        self.stack.pop()
         if self.is_debug:
             self.dump_one_node(node)
         return self.nodetype[node]
@@ -696,10 +672,8 @@ class InferenceEngine():
         ty_ret = TyVar()
 
         try:
-            ty_fun = self.infer_expr(node.func)
+            ty_fun = self.infer_expr(node.func, is_callee=True)
         except self.ArgumentRequired as e:
-            self.stack.pop()  # for node.func
-
             if e.func in func_to_ignore:
                 return TyNone()
 
@@ -743,7 +717,7 @@ class InferenceEngine():
         return ty_ret.deref()
 
 
-    def infer_Attribute(self, node):
+    def infer_Attribute(self, node, is_callee):
         # Attribute(expr value, identifier attr, expr_context ctx)
 
         if isinstance(node.value, gast.Name) and \
@@ -751,7 +725,7 @@ class InferenceEngine():
             # function of imported libraries (eg. np, chainer, F, L)
             module = getattr(self.module, node.value.id)
             attr = getattr(module, node.attr)
-            if self.is_called(node):
+            if is_callee:
                 raise self.ArgumentRequired(func=attr)
             return type_of_value(attr)
 
@@ -785,7 +759,7 @@ class InferenceEngine():
             else:
                 ty_node = type_of_value(x)
 
-            if self.is_called(node):
+            if is_callee:
                 raise self.ArgumentRequired(func=x)
 
             return ty_node
@@ -854,22 +828,22 @@ class InferenceEngine():
             return ret_shape
 
 
-    def infer_Name(self, node):
+    def infer_Name(self, node, is_callee):
         # Name(identifier id, expr_context ctx, expr? annotation)
         if node.id in self.tyenv.keys():
             ty = self.tyenv[node.id]
-            if self.is_called(node) and isinstance(ty, TyUserDefinedClass) and \
+            if is_callee and isinstance(ty, TyUserDefinedClass) and \
                     callable(ty.instance):
                 raise self.ArgumentRequired(func=ty.instance)
             return self.tyenv[node.id]
         if node.id in __builtins__.keys():
             value = __builtins__[node.id]
-            if callable(value) and self.is_called(node):
+            if callable(value) and is_callee:
                 raise self.ArgumentRequired(func=value)
             return type_of_value(value)
         if hasattr(self.module, node.id):
             x = getattr(self.module, node.id)
-            if self.is_called(node):
+            if is_callee:
                 raise self.ArgumentRequired(func=x)
             return type_of_value(x)
 
