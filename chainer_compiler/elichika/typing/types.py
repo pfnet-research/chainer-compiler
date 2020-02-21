@@ -2,8 +2,6 @@ from   copy import deepcopy
 from   enum import Enum, IntEnum
 
 import chainer
-import chainer.functions as F
-import chainer.links as L
 import numpy as np
 
 import torch

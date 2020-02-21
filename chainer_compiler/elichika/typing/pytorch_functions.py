@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import numpy as np
-
 import math
 
 from   chainer.utils.conv import get_conv_outsize
@@ -875,9 +874,8 @@ class ty_ChainerNStepBiLSTM():
 
 
 pytorch_func_ty = {
-        torch.tensor             : ty_TorchTensor(),
-        # F.relu does not work. Why?
-        torch.nn.functional.relu : ty_TorchIdentical(),
+        torch.tensor : ty_TorchTensor(),
+        F.relu       : ty_TorchIdentical(),
         }
 
 
