@@ -188,19 +188,18 @@ class ty_TorchNNCrossEntropyLoss():
         return TyTorchTensor(x_type.dtype, shape=())
 
 
-class ty_ChainerConcat():
-    def __init__(self, axis=None):
-        self.axis = axis
+class ty_TorchCat():
+    def __init__(self, dim=None):
+        self.dim = dim
 
     def __call__(self, ty_args, ty_kwargs):
         xs_type, = ty_args
-
         assert isinstance(xs_type, TySequence)
-        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', default=1)
+        self.dim, lacks_dim = get_kwarg(ty_kwargs, 'dim', default=0)
 
-        if lacks_value(xs_type) or lacks_axis:
+        if lacks_value(xs_type) or lacks_dim:
             x_type = xs_type.get()
-            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
+            return TyTorchTensor(x_type.dtype, ndim=x_type.ndim)
 
         self.check_type_forward(type_check.Variable(xs_type, 'xs'))
         return self.infer_return(xs_type)
@@ -208,53 +207,53 @@ class ty_ChainerConcat():
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
         type_check.expect(in_types[0].ndim >
-                          type_check.make_variable(self.axis, 'axis'))
+                          type_check.make_variable(self.dim, 'dim'))
 
         type_check.expect(
-            -in_types[0].ndim <= self.axis,
-            self.axis < in_types[0].ndim
+            -in_types[0].ndim <= self.dim,
+            self.dim < in_types[0].ndim
         )
         ndim = type_check.eval(in_types[0].ndim)
-        axis = self.axis % ndim
+        dim = self.dim % ndim
         for i in range(1, type_check.eval(in_types.size())):
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
             )
             for d in range(0, ndim):
-                if d == axis:
+                if d == dim:
                     continue
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def infer_return(self, xs_type):
         ret_shape = list(xs_type[0].shape)
-        ret_shape[self.axis] = sum([x_type.shape[self.axis] for x_type in xs_type])
-        return TyChainerVariable(dtype=xs_type[0].dtype, shape=ret_shape)
+        ret_shape[self.dim] = sum([x_type.shape[self.dim] for x_type in xs_type])
+        return TyTorchTensor(dtype=xs_type[0].dtype, shape=ret_shape)
 
 
-class ty_ChainerStack():
-    def __init__(self, axis=None):
-        self.axis = axis
+class ty_TorchStack():
+    def __init__(self, dim=None):
+        self.dim = dim
 
     def __call__(self, ty_args, ty_kwargs):
         xs_type, = ty_args
 
         assert isinstance(xs_type, TySequence)
-        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', default=1)
+        self.dim, lacks_dim = get_kwarg(ty_kwargs, 'dim', default=0)
 
-        if lacks_value(xs_type) or lacks_axis:
+        if lacks_value(xs_type) or lacks_dim:
             x_type = xs_type.get()
-            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim + 1)
+            return TyTorchTensor(x_type.dtype, ndim=x_type.ndim + 1)
 
         self.check_type_forward(type_check.Variable(xs_type, 'xs'))
-        self.axis = xs_type.get().ndim + 1 - abs(self.axis)
+        self.dim %= xs_type.get().ndim + 1
         return self.infer_return(xs_type)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
         type_check.expect(
-            -in_types[0].ndim - 1 <= self.axis,
-            self.axis <= in_types[0].ndim
+            -in_types[0].ndim - 1 <= self.dim,
+            self.dim <= in_types[0].ndim
         )
 
         # XXX: modified
@@ -275,85 +274,8 @@ class ty_ChainerStack():
 
     def infer_return(self, xs_type):
         ret_shape = list(xs_type[0].shape)
-        ret_shape.insert(self.axis, len(xs_type))
-        return TyChainerVariable(xs_type.get().dtype, shape=ret_shape)
-
-
-class ty_ChainerHstack():
-    def __call__(self, ty_args, ty_kwargs):
-        xs_type, = ty_args
-
-        assert isinstance(xs_type, TySequence)
-        if not xs_type.is_fixed_len:
-            x_type = xs_type.get()
-            if x_type.ndim < 2:
-                ret_shape = (None,)
-            else:
-                ret_shape = (x_type.shape[0], None)
-            return TyChainerVariable(x_type.dtype, shape=ret_shape)
-
-        self.check_type_forward(type_check.Variable(xs_type, 'xs'))
-        return self.infer_return(xs_type)
-
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() > 0)
-        type_check._argname((in_types[0],), ('x0',))
-
-        ndim = type_check.eval(in_types[0].ndim)
-        for i in range(1, type_check.eval(in_types.size())):
-            type_check._argname((in_types[i],), ('x{}'.format(i),))
-            type_check.expect(
-                in_types[0].dtype == in_types[i].dtype,
-                in_types[0].ndim == in_types[i].ndim,
-            )
-            if ndim <= 1:
-                continue
-            for d in range(0, ndim):
-                if d == 1:
-                    continue
-                type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
-
-    def infer_return(self, xs_type):
-        if xs_type[0].ndim <= 1:
-            return ty_ChainerConcat(axis=0).infer_return(xs_type)
-        return ty_ChainerConcat(axis=1).infer_return(xs_type)
-
-
-class ty_ChainerVstack():
-    def __call__(self, ty_args, ty_kwargs):
-        xs_type, = ty_args
-
-        assert isinstance(xs_type, TySequence)
-        if not xs_type.is_fixed_len:
-            x_type = xs_type.get()
-            if x_type.ndim < 2:
-                ret_shape = (None, x_type.shape[0])
-            else:
-                ret_shape = (None, x_type.shape[1])
-            return TyChainerVariable(x_type.dtype, shape=ret_shape)
-
-        self.check_type_forward(type_check.Variable(xs_type, 'xs'))
-        return self.infer_return(xs_type)
-
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() > 0)
-
-        ndim = type_check.eval(in_types[0].ndim)
-        for i in range(1, type_check.eval(in_types.size())):
-            type_check.expect(
-                in_types[0].dtype == in_types[i].dtype,
-                in_types[0].ndim == in_types[i].ndim,
-            )
-            if ndim <= 1:
-                type_check.expect(in_types[0].shape == in_types[i].shape)
-                continue
-            for d in range(1, ndim):
-                type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
-
-    def infer_return(self, xs_type):
-        if xs_type[0].ndim <= 1:
-            return ty_ChainerStack(axis=0).infer_return(xs_type)
-        return ty_ChainerConcat(axis=0).infer_return(xs_type)
+        ret_shape.insert(self.dim, len(xs_type))
+        return TyTorchTensor(xs_type.get().dtype, shape=ret_shape)
 
 
 class ty_ChainerExpandDims():
@@ -830,12 +752,12 @@ class ty_ChainerNStepBiLSTM():
 
 
 pytorch_func_ty = {
-        torch.Tensor.view : ty_TorchView(),
-        torch.Tensor.add_ : ty_TorchArith(torch.add),
-        torch.Tensor.mul  : ty_TorchArith(torch.mul),
-
+        # https://pytorch.org/docs/stable/torch.html#creation-ops
         torch.tensor  : ty_TorchTensor(),
-        torch.flatten : ty_TorchFlatten(),
+
+        # https://pytorch.org/docs/stable/torch.html#indexing-slicing-joining-mutating-ops
+        torch.cat     : ty_TorchCat(),
+        torch.stack   : ty_TorchStack(),
 
         # https://pytorch.org/docs/stable/torch.html#random-sampling
         torch.rand_like  : ty_TorchIdentical(),
@@ -856,6 +778,8 @@ pytorch_func_ty = {
 
         torch.mul     : ty_TorchArith(torch.mul),
 
+        torch.flatten : ty_TorchFlatten(),
+
         # https://pytorch.org/docs/stable/nn.functional.html#pooling-functions
         F.avg_pool1d  : ty_TorchPooling(dim=1),
         F.avg_pool2d  : ty_TorchPooling(dim=2),
@@ -869,6 +793,15 @@ pytorch_func_ty = {
         F.log_softmax : ty_TorchIdentical(),
         F.tanh        : ty_TorchIdentical(),
         F.sigmoid     : ty_TorchIdentical(),
+
+        torch.Tensor.add  : ty_TorchArith(torch.add),
+        torch.Tensor.add_ : ty_TorchArith(torch.add),
+        torch.Tensor.sub  : ty_TorchArith(torch.sub),
+        torch.Tensor.sub_ : ty_TorchArith(torch.sub),
+        torch.Tensor.mul  : ty_TorchArith(torch.mul),
+        torch.Tensor.mul_ : ty_TorchArith(torch.mul),
+
+        torch.Tensor.view : ty_TorchView(),
         }
 
 
