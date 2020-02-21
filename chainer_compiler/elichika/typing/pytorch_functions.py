@@ -129,16 +129,23 @@ class ty_NumpyFull():
             shape = (shape,)
         return TyNdarray(dtype, shape=shape)
 
+# ==============================================================================
 
-class ty_ChainerVariable():
+class ty_TorchFlatten():
     def __call__(self, ty_args, ty_kwargs):
-        # XXX: data=Noneはkwargsでないと仮定
-        assert len(ty_args) > 0
-        data_type, = ty_args
-        return TyChainerVariable(data_type.dtype, shape=data_type.shape)
+        input_type, = ty_args
+        shape = input_type.shape
+        start_dim, _ = get_kwarg(ty_kwargs, 'start_dim', default=0)
+        end_dim, _   = get_kwarg(ty_kwargs, 'end_dim', default=-1)
 
+        prefix_shape = shape[:start_dim]
+        middle_shape = shape[start_dim:end_dim] + (shape[end_dim],)
+        postfix_shape = shape[end_dim:][2:]
+        size = size_of_shape(middle_shape)
+        out_shape = prefix_shape + (size,) + postfix_shape
+        return TyTorchTensor(shape=out_shape, dtype=input_type.dtype)
 
-class ty_ChainerPooling2d():
+class ty_TorchPooling2d():
     # max_pooling_2d / average_pooling_2d
     def __init__(self, cover_all=None):
         self.cover_all = cover_all
@@ -179,11 +186,11 @@ class ty_ChainerPooling2d():
             shape_2 = (x_type.shape[2] + pad[0] * 2 - ksize[0]) // stride[0] + 1
             shape_3 = (x_type.shape[3] + pad[1] * 2 - ksize[1]) // stride[1] + 1
 
-        return TyChainerVariable(x_type.dtype,
+        return TyTorchTensor(x_type.dtype,
                 shape=(shape_0, shape_1, shape_2, shape_3))
 
 
-class ty_ChainerSoftmaxCrossEntropy():
+class ty_TorchNNCrossEntropyLoss():
     def __call__(self, _, ty_args, ty_kwargs):
         x_type, t_type = ty_args
         self.check_type_forward(make_multiple_tc_variable(ty_args, ('x', 't')))
@@ -207,14 +214,23 @@ class ty_ChainerSoftmaxCrossEntropy():
 class ty_TorchIdentical():
     # functions that doesn't change shapes or dtypes
 
-    def __init__(self, is_float_only=True):
-        self.is_float_only = is_float_only
-
     def __call__(self, ty_args, ty_kwargs):
         x_type = ty_args[0]
         assert isinstance(x_type, TyTensor)
-        if self.is_float_only:
-            assert x_type.dtype.kind == 'f'
+        assert x_type.dtype.kind == 'f'
+        return copy_ty(x_type)
+
+
+class ty_TorchNNIdentical():
+    def __init__(self, ndim_min=None):
+        self.ndim_min = ndim_min
+
+    def __call__(self, _, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+        assert isinstance(x_type, TyTensor)
+        assert x_type.dtype.kind == 'f'
+        if self.ndim_min:
+            assert x_type.ndim >= self.ndim_min
         return copy_ty(x_type)
 
 
@@ -780,13 +796,11 @@ class ty_TorchNNLinear():
         return y_shape
 
 
-class ty_ChainerConvolution2D():
+class ty_TorchNNConv2D():
     def __call__(self, conv, ty_args, ty_kwargs):
         x_type, = ty_args
 
-        assert x_type.dtype.kind == 'f'
-        if conv.b is not None:
-            assert x_type.dtype == conv.b.dtype
+        assert x_type.dtype == np.dtype('float32')
         assert x_type.ndim == 4
 
         if conv.in_channels is not None:
@@ -795,15 +809,15 @@ class ty_ChainerConvolution2D():
         return self.infer_return(conv, x_type)
 
     def infer_return(self, conv, x_type):
-        ksize = make_pair(conv.ksize)
+        kernel_size = make_pair(conv.kernel_size)
         stride = make_pair(conv.stride)
-        pad = make_pair(conv.pad)
-        dilate = make_pair(conv.dilate)
+        padding = make_pair(conv.padding)
+        dilation = make_pair(conv.dilation)
 
         shape_2 = get_conv_outsize(
-                x_type.shape[2], ksize[0], stride[0], pad[0], d=dilate[0])
+                x_type.shape[2], kernel_size[0], stride[0], padding[0], d=dilation[0])
         shape_3 = get_conv_outsize(
-                x_type.shape[3], ksize[1], stride[1], pad[1], d=dilate[1])
+                x_type.shape[3], kernel_size[1], stride[1], padding[1], d=dilation[1])
         ret_shape = (x_type.shape[0], conv.out_channels, shape_2, shape_3)
         return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
@@ -874,12 +888,24 @@ class ty_ChainerNStepBiLSTM():
 
 
 pytorch_func_ty = {
-        torch.tensor : ty_TorchTensor(),
-        F.relu       : ty_TorchIdentical(),
+        torch.tensor  : ty_TorchTensor(),
+        torch.flatten : ty_TorchFlatten(),
+        F.max_pool2d  : ty_TorchPooling2d(),
+
+        # https://pytorch.org/docs/stable/nn.functional.html#non-linear-activation-functions
+        F.relu        : ty_TorchIdentical(),
+        F.log_softmax : ty_TorchIdentical(),
+        F.tanh        : ty_TorchIdentical(),
+        F.sigmoid     : ty_TorchIdentical(),
         }
 
 
 pytorch_callable_ty = {
+        nn.Conv2d           : ty_TorchNNConv2D(),
+        nn.CrossEntropyLoss : ty_TorchNNCrossEntropyLoss(),
         nn.Linear           : ty_TorchNNLinear(),
-        nn.CrossEntropyLoss : ty_ChainerSoftmaxCrossEntropy(),
+        nn.Dropout          : ty_TorchNNIdentical(),
+        nn.Dropout2d        : ty_TorchNNIdentical(ndim_min=1),
+        nn.Dropout3d        : ty_TorchNNIdentical(ndim_min=1),
+        nn.AlphaDropout     : ty_TorchNNIdentical(),
         }
