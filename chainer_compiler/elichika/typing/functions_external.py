@@ -5,9 +5,6 @@ import chainer.links as L
 import numpy as np
 import math
 
-import six
-from   typing import List
-
 from   chainer.utils.conv import get_conv_outsize
 from   chainer.utils import type_check
 
@@ -159,7 +156,7 @@ class ty_ChainerPooling2d():
 
         return self.infer_return(x_type, ksize, stride, pad)
 
-    def check_type_forward(self, in_types: List['type_check.Variable']):
+    def check_type_forward(self, in_types):
         x_type = in_types[0]
 
         type_check.expect(
@@ -251,12 +248,12 @@ class ty_ChainerConcat():
         )
         ndim = type_check.eval(in_types[0].ndim)
         axis = self.axis % ndim
-        for i in six.moves.range(1, type_check.eval(in_types.size())):
+        for i in range(1, type_check.eval(in_types.size())):
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
             )
-            for d in six.moves.range(0, ndim):
+            for d in range(0, ndim):
                 if d == axis:
                     continue
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
@@ -293,7 +290,7 @@ class ty_ChainerStack():
         )
 
         # XXX: modified
-        for i in six.moves.range(1, type_check.eval(in_types.size())):
+        for i in range(1, type_check.eval(in_types.size())):
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].shape == in_types[i].shape,
@@ -335,7 +332,7 @@ class ty_ChainerHstack():
         type_check._argname((in_types[0],), ('x0',))
 
         ndim = type_check.eval(in_types[0].ndim)
-        for i in six.moves.range(1, type_check.eval(in_types.size())):
+        for i in range(1, type_check.eval(in_types.size())):
             type_check._argname((in_types[i],), ('x{}'.format(i),))
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
@@ -343,7 +340,7 @@ class ty_ChainerHstack():
             )
             if ndim <= 1:
                 continue
-            for d in six.moves.range(0, ndim):
+            for d in range(0, ndim):
                 if d == 1:
                     continue
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
@@ -374,7 +371,7 @@ class ty_ChainerVstack():
         type_check.expect(in_types.size() > 0)
 
         ndim = type_check.eval(in_types[0].ndim)
-        for i in six.moves.range(1, type_check.eval(in_types.size())):
+        for i in range(1, type_check.eval(in_types.size())):
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
@@ -382,7 +379,7 @@ class ty_ChainerVstack():
             if ndim <= 1:
                 type_check.expect(in_types[0].shape == in_types[i].shape)
                 continue
-            for d in six.moves.range(1, ndim):
+            for d in range(1, ndim):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def infer_return(self, xs_type):
