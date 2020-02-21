@@ -72,7 +72,7 @@ def handle_inference_error(exception, name, node):
     print_warning(str(exception))
     print_warning("Failed to infer type of " + name +
             ". Falling back to TyVar...")
-    # raise Exception
+    raise Exception
     return TyVar(lineno=getattr(node, 'lineno', None))
 
 
