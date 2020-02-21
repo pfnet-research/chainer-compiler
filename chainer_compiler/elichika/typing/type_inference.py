@@ -106,7 +106,7 @@ def call_pytorch_function(func, node, ty_args, ty_kwargs):
 def call_pytorch_callable(obj, node, ty_args, ty_kwargs):
     inference_logic = pytorch_callable_ty[type(obj)]
     try:
-        ty_ret = inference_logic(obj, ty_args, ty_kwargs)
+        ty_ret = inference_logic.nn(obj, ty_args, ty_kwargs)
     except Exception as e:
         ty_ret = handle_inference_error(e, obj.__class__.__name__, node)
     return ty_ret

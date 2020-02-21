@@ -18,6 +18,11 @@ def size_of_shape(shape):
     return size
 
 
+def make_tuple(x, n):
+    if isinstance(x, tuple):
+        return x
+    return (x,) * n
+
 def make_pair(x):
     if isinstance(x, int):
         return (x, x)
@@ -145,100 +150,65 @@ class ty_TorchFlatten():
         out_shape = prefix_shape + (size,) + postfix_shape
         return TyTorchTensor(shape=out_shape, dtype=input_type.dtype)
 
-class ty_TorchNNPooling2d():
-    def __call__(self, obj, ty_args, ty_kwargs):
-        self.check_type_forward(make_multiple_tc_variable(ty_args, ('x',)))
 
+class ty_TorchPooling():
+    def __init__(self, dim):
+        self.dim = dim
+
+    # TOOD(momohatt): in_channels, out_channels
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, kernel_size_type = ty_args
+        assert x_type.ndim == self.dim + 2
+        assert x_type.dtype.kind == 'f'
+
+        kernel_size = extract_value_from_ty(kernel_size_type)
+        stride, _    = get_kwarg(ty_kwargs, 'stride', default=kernel_size)
+        padding, _   = get_kwarg(ty_kwargs, 'padding', default=0)
+        ceil_mode, _ = get_kwarg(ty_kwargs, 'ceil_mode', default=False)
+        return self.infer_return(x_type, kernel_size, stride, padding, ceil_mode)
+
+    def nn(self, obj, ty_args, ty_kwargs):
         x_type, = ty_args
+        assert x_type.ndim == self.dim + 2
+        assert x_type.dtype.kind == 'f'
+
         kernel_size = obj.kernel_size
         stride = obj.stride
         padding = obj.padding
         ceil_mode = obj.ceil_mode
-
         return self.infer_return(x_type, kernel_size, stride, padding, ceil_mode)
 
-    def check_type_forward(self, in_types):
-        x_type, = in_types
-
-        type_check.expect(
-                x_type.dtype.kind == 'f',
-                )
-
     def infer_return(self, x_type, kernel_size, stride, padding, ceil_mode):
-        padding = make_pair(padding)
-        kernel_size = make_pair(kernel_size)
-        stride = make_pair(stride)
+        padding = make_tuple(padding, self.dim)
+        kernel_size = make_tuple(kernel_size, self.dim)
+        stride = make_tuple(stride, self.dim)
+        shape = [0] * (self.dim + 2)
 
-        shape_0 = x_type.shape[0]
-        shape_1 = x_type.shape[1]
+        shape[0] = x_type.shape[0]
+        shape[1] = x_type.shape[1]
         if ceil_mode:
-            shape_2 = math.ceil((x_type.shape[2] + padding[0] * 2 - kernel_size[0]) / stride[0]) + 1
-            shape_3 = math.ceil((x_type.shape[3] + padding[1] * 2 - kernel_size[1]) / stride[1]) + 1
+            for i in range(self.dim):
+                shape[i + 2] = math.ceil((x_type.shape[i + 2] + padding[i] * 2 - kernel_size[i]) / stride[i]) + 1
         else:
-            shape_2 = (x_type.shape[2] + padding[0] * 2 - kernel_size[0]) // stride[0] + 1
-            shape_3 = (x_type.shape[3] + padding[1] * 2 - kernel_size[1]) // stride[1] + 1
+            for i in range(self.dim):
+                shape[i + 2] = (x_type.shape[i + 2] + padding[i] * 2 - kernel_size[i]) // stride[i] + 1
 
-        return TyTorchTensor(x_type.dtype,
-                shape=(shape_0, shape_1, shape_2, shape_3))
-
-
-# TODO(momohatt): Unify with nn. version and other dimensions
-class ty_TorchPooling2d():
-    def __call__(self, ty_args, ty_kwargs):
-        self.check_type_forward(make_multiple_tc_variable(ty_args, ('x', 'kernel_size')))
-
-        x_type, kernel_size_type = ty_args
-        kernel_size = extract_value_from_ty(kernel_size_type)
-        stride, _ = get_kwarg(ty_kwargs, 'stride', default=kernel_size)
-        padding, _ = get_kwarg(ty_kwargs, 'padding', default=0)
-        print('---')
-        ceil_mode, _ = get_kwarg(ty_kwargs, 'ceil_mode', default=False)
-
-        return self.infer_return(x_type, kernel_size, stride, padding, ceil_mode)
-
-    def check_type_forward(self, in_types):
-        x_type = in_types[0]
-
-        type_check.expect(
-                x_type.dtype.kind == 'f',
-                )
-
-        # assert isinstance(kernel_size_type, TyNum)
-
-    def infer_return(self, x_type, kernel_size, stride, padding, ceil_mode):
-        padding = make_pair(padding)
-        kernel_size = make_pair(kernel_size)
-        stride = make_pair(stride)
-
-        shape_0 = x_type.shape[0]
-        shape_1 = x_type.shape[1]
-        if ceil_mode:
-            shape_2 = math.ceil((x_type.shape[2] + padding[0] * 2 - kernel_size[0]) / stride[0]) + 1
-            shape_3 = math.ceil((x_type.shape[3] + padding[1] * 2 - kernel_size[1]) / stride[1]) + 1
-        else:
-            shape_2 = (x_type.shape[2] + padding[0] * 2 - kernel_size[0]) // stride[0] + 1
-            shape_3 = (x_type.shape[3] + padding[1] * 2 - kernel_size[1]) // stride[1] + 1
-
-        return TyTorchTensor(x_type.dtype,
-                shape=(shape_0, shape_1, shape_2, shape_3))
+        return TyTorchTensor(x_type.dtype, shape=tuple(shape))
 
 
-class ty_TorchNNAdaptivePooling():
+class ty_TorchAdaptivePooling():
     def __init__(self, dim):
         self.dim = dim
 
-    def __call__(self, obj, ty_args, ty_kwargs):
+    def nn(self, obj, ty_args, ty_kwargs):
         x_type, = ty_args
         output_size = obj.output_size
-        return self.infer_return(x_type, output_size)
-
-    def infer_return(self, x_type, output_size):
         shape = x_type.shape[:-self.dim] + wrap_shape(output_size)
         return TyTorchTensor(x_type.dtype, shape=shape)
 
 
 class ty_TorchNNCrossEntropyLoss():
-    def __call__(self, _, ty_args, ty_kwargs):
+    def nn(self, _, ty_args, ty_kwargs):
         x_type, t_type = ty_args
         self.check_type_forward(make_multiple_tc_variable(ty_args, ('x', 't')))
         return self.infer_return(x_type, t_type)
@@ -259,26 +229,19 @@ class ty_TorchNNCrossEntropyLoss():
 
 
 class ty_TorchIdentical():
-    # functions that doesn't change shapes or dtypes
-
-    def __call__(self, ty_args, ty_kwargs):
-        x_type = ty_args[0]
-        assert isinstance(x_type, TyTensor)
-        assert x_type.dtype.kind == 'f'
-        return copy_ty(x_type)
-
-
-class ty_TorchNNIdentical():
     def __init__(self, ndim_min=None):
         self.ndim_min = ndim_min
 
-    def __call__(self, _, ty_args, ty_kwargs):
+    def __call__(self, ty_args, ty_kwargs):
         x_type = ty_args[0]
         assert isinstance(x_type, TyTensor)
         assert x_type.dtype.kind == 'f'
         if self.ndim_min:
             assert x_type.ndim >= self.ndim_min
         return copy_ty(x_type)
+
+    def nn(self, _, ty_args, ty_kwargs):
+        return self(ty_args, ty_kwargs)
 
 
 # ========================= chainer.functions.array ============================
@@ -808,75 +771,54 @@ class ty_ChainerLocalResponseNormalization():
         return TyChainerVariable(dtype=x_type.dtype, shape=x_type.shape)
 
 
-# ================================= Links ======================================
-
-class ty_TorchNNLinear():
-    def __call__(self, linear, ty_args, ty_kwargs):
+class ty_TorchLinear():
+    def nn(self, obj, ty_args, ty_kwargs):
         x_type, = ty_args
-        self.n_batch_axes, lacks_n_batch_axes = \
-                get_kwarg(ty_kwargs, 'n_batch_axes', default=1)
-
         assert x_type.dtype == np.dtype('float32')
-        if lacks_n_batch_axes:
-            return TyTorchTensor(x_type.dtype, ndim=x_type.ndim)
+        assert x_type.shape[-1] == obj.in_features
 
-        assert self.n_batch_axes >= 1
+        return self.infer_return_shape(x_type, obj.out_features)
 
-        out_shape = self.infer_return_shape(linear, x_type)
+    def infer_return_shape(self, x_type, out_features):
+        out_shape = x_type.shape[:-1] + (out_features,)
         return TyTorchTensor(x_type.dtype, shape=out_shape)
 
-    def infer_return_shape(self, linear, x_type):
-        x_shape = x_type.shape
 
-        if linear.in_features is not None:
-            assert x_shape[1] == linear.in_features
+class ty_TorchConv():
+    def __init__(self, dim):
+        self.dim = dim
 
-        if self.n_batch_axes > 1:
-            batch_shape = x_shape[:self.n_batch_axes]
-            x_shape = calculate_reshape(x_shape, (size_of_shape(batch_shape), -1))
-        elif x_type.ndim > 2:
-            x_shape = calculate_reshape(x_shape, (x_shape[0], -1))
-
-        y_shape = wrap_shape((x_shape[0], linear.out_features))
-        if self.n_batch_axes > 1:
-            y_shape = calculate_reshape(y_shape, (batch_shape + (-1,)))
-        return y_shape
-
-
-class ty_TorchNNConv2D():
-    def __call__(self, conv, ty_args, ty_kwargs):
+    def nn(self, obj, ty_args, ty_kwargs):
         x_type, = ty_args
 
         assert x_type.dtype == np.dtype('float32')
-        assert x_type.ndim == 4
+        assert x_type.ndim == self.dim + 2
+        assert x_type.shape[1] == obj.in_channels
 
-        if conv.in_channels is not None:
-            assert x_type.shape[1] == conv.in_channels
+        return self.infer_return(x_type, obj)
 
-        return self.infer_return(conv, x_type)
+    def infer_return(self, x_type, obj):
+        kernel_size = make_tuple(obj.kernel_size, self.dim)
+        stride      = make_tuple(obj.stride,      self.dim)
+        padding     = make_tuple(obj.padding,     self.dim)
+        dilation    = make_tuple(obj.dilation,    self.dim)
 
-    def infer_return(self, conv, x_type):
-        kernel_size = make_pair(conv.kernel_size)
-        stride = make_pair(conv.stride)
-        padding = make_pair(conv.padding)
-        dilation = make_pair(conv.dilation)
-
-        shape_2 = get_conv_outsize(
-                x_type.shape[2], kernel_size[0], stride[0], padding[0], d=dilation[0])
-        shape_3 = get_conv_outsize(
-                x_type.shape[3], kernel_size[1], stride[1], padding[1], d=dilation[1])
-        ret_shape = (x_type.shape[0], conv.out_channels, shape_2, shape_3)
+        shape = [0] * self.dim
+        for i in range(self.dim):
+            shape[i] = get_conv_outsize(
+                x_type.shape[i + 2], kernel_size[i], stride[i], padding[i], d=dilation[i])
+        ret_shape = (x_type.shape[0], obj.out_channels) + tuple(shape)
         return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
 class ty_TorchSequential():
-    def __call__(self, seq, ty_args, ty_kwargs):
+    def nn(self, seq, ty_args, ty_kwargs):
         x_type, = ty_args
         for idx, module in enumerate(seq.modules()):
             if idx == 0: continue
             print("---", module)
             logic = pytorch_callable_ty[type(module)]
-            x_type = logic(module, [x_type], {})
+            x_type = logic.nn(module, [x_type], {})
         return x_type
 
 
@@ -946,9 +888,20 @@ class ty_ChainerNStepBiLSTM():
 
 
 pytorch_func_ty = {
+        np.full       : ty_NumpyFull(),
+        np.ones       : ty_NumpyOnes(),
+        np.zeros      : ty_NumpyOnes(),
+
         torch.tensor  : ty_TorchTensor(),
         torch.flatten : ty_TorchFlatten(),
-        F.max_pool2d  : ty_TorchPooling2d(),
+
+        # https://pytorch.org/docs/stable/nn.functional.html#pooling-functions
+        F.avg_pool1d  : ty_TorchPooling(dim=1),
+        F.avg_pool2d  : ty_TorchPooling(dim=2),
+        F.avg_pool3d  : ty_TorchPooling(dim=3),
+        F.max_pool1d  : ty_TorchPooling(dim=1),
+        F.max_pool2d  : ty_TorchPooling(dim=2),
+        F.max_pool3d  : ty_TorchPooling(dim=3),
 
         # https://pytorch.org/docs/stable/nn.functional.html#non-linear-activation-functions
         F.relu        : ty_TorchIdentical(),
@@ -963,27 +916,32 @@ pytorch_callable_ty = {
         nn.Sequential       : ty_TorchSequential(),
 
         # https://pytorch.org/docs/stable/nn.html#convolution-layers
-        nn.Conv2d           : ty_TorchNNConv2D(),
+        nn.Conv2d           : ty_TorchConv(dim=2),
 
         # https://pytorch.org/docs/stable/nn.html#pooling-layers
-        nn.MaxPool2d         : ty_TorchNNPooling2d(),
-        nn.AdaptiveAvgPool1d : ty_TorchNNAdaptivePooling(dim=1),
-        nn.AdaptiveAvgPool2d : ty_TorchNNAdaptivePooling(dim=2),
-        nn.AdaptiveAvgPool3d : ty_TorchNNAdaptivePooling(dim=3),
+        nn.AvgPool1d         : ty_TorchPooling(dim=1),
+        nn.AvgPool2d         : ty_TorchPooling(dim=2),
+        nn.AvgPool3d         : ty_TorchPooling(dim=3),
+        nn.MaxPool1d         : ty_TorchPooling(dim=1),
+        nn.MaxPool2d         : ty_TorchPooling(dim=2),
+        nn.MaxPool3d         : ty_TorchPooling(dim=3),
+        nn.AdaptiveAvgPool1d : ty_TorchAdaptivePooling(dim=1),
+        nn.AdaptiveAvgPool2d : ty_TorchAdaptivePooling(dim=2),
+        nn.AdaptiveAvgPool3d : ty_TorchAdaptivePooling(dim=3),
 
         # https://pytorch.org/docs/stable/nn.html#padding-layers
 
         # https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
-        nn.ReLU             : ty_TorchNNIdentical(),
+        nn.ReLU             : ty_TorchIdentical(),
 
         # https://pytorch.org/docs/stable/nn.html#linear-layers
-        nn.Linear           : ty_TorchNNLinear(),
+        nn.Linear           : ty_TorchLinear(),
 
         # https://pytorch.org/docs/stable/nn.html#dropout-layers
-        nn.Dropout          : ty_TorchNNIdentical(),
-        nn.Dropout2d        : ty_TorchNNIdentical(ndim_min=1),
-        nn.Dropout3d        : ty_TorchNNIdentical(ndim_min=1),
-        nn.AlphaDropout     : ty_TorchNNIdentical(),
+        nn.Dropout          : ty_TorchIdentical(),
+        nn.Dropout2d        : ty_TorchIdentical(ndim_min=1),
+        nn.Dropout3d        : ty_TorchIdentical(ndim_min=1),
+        nn.AlphaDropout     : ty_TorchIdentical(),
 
         # https://pytorch.org/docs/stable/nn.html#loss-functions
         nn.CrossEntropyLoss : ty_TorchNNCrossEntropyLoss(),
