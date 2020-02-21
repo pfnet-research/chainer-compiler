@@ -61,19 +61,6 @@ def generate_id2type(node2type, node2id):
     return id2type
 
 
-def generate_id2type_from_forward(model, args, is_debug=False):
-    code = utils.clip_head(inspect.getsource(model.forward))
-    tree = gast.ast_to_gast(ast.parse(code))
-    module = sys.modules[model.forward.__module__]
-    args = (model,) + args
-    node2type, subroutine_node = generate_node2type(
-            tree, args, is_debug=is_debug, module=module,
-            type_hints=typing.get_type_hints(model.forward))
-    node2id = generate_node2id(tree, subroutine_node)
-    id2type = generate_id2type(node2type, node2id)
-    return id2type
-
-
 def generate_assertion(type_table_name, id2type, id2node, ofile=None):
     for i, t in sorted(id2type.items()):
         node = id2node[i]
@@ -86,6 +73,20 @@ def generate_assertion(type_table_name, id2type, id2node, ofile=None):
             ofile.write(output + '\n')
 
 
+# For testing
+def generate_id2type_from_forward(model, args, is_debug=False):
+    code = utils.clip_head(inspect.getsource(model.forward))
+    tree = gast.ast_to_gast(ast.parse(code))
+    module = sys.modules[model.forward.__module__]
+    node2type, subroutine_node = generate_node2type(
+            tree, (model,) + args, is_debug=is_debug, module=module,
+            type_hints=typing.get_type_hints(model.forward))
+    node2id = generate_node2id(tree, subroutine_node)
+    id2type = generate_id2type(node2type, node2id)
+    return id2type
+
+
+# For debug
 def generate_type_inference_results(model, forward_args, is_debug=True):
     code = utils.clip_head(inspect.getsource(model.forward))
     node = gast.ast_to_gast(ast.parse(code))
