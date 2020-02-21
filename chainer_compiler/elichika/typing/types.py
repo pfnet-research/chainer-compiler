@@ -503,6 +503,8 @@ def generate_dummy_value(ty) -> object:
             return ret
         if ty.is_chainer_variable():
             return chainer.Variable(ret)
+        if ty.is_torch_tensor():
+            return torch.as_tensor(ret)
     if isinstance(ty, TyDType):
         return ty.t
 

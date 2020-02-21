@@ -8,64 +8,11 @@ import math
 from   chainer.utils.conv import get_conv_outsize
 from   chainer.utils import type_check
 
+from   chainer_compiler.elichika.typing.ext_functions_utils import *
 from   chainer_compiler.elichika.typing.types import *
-from   chainer_compiler.elichika.typing.shape_elem import is_incomplete_shape
-
-def size_of_shape(shape):
-    size = 1
-    for i in shape:
-        size *= i
-    return size
 
 
-def make_tuple(x, n):
-    if isinstance(x, tuple):
-        return x
-    return (x,) * n
-
-def make_pair(x):
-    if isinstance(x, int):
-        return (x, x)
-    return x
-
-
-def get_kwarg(ty_kwargs, key, default):
-    if key in ty_kwargs.keys():
-        # when unable to get the correct value, returns None
-        return extract_value_from_ty(ty_kwargs[key]), lacks_value(ty_kwargs[key])
-    return default, False
-
-
-def extract_kwarg(ty_kwargs, key, default):
-    if key in ty_kwargs.keys():
-        return extract_kwarg(ty_kwargs[key])
-    return default
-
-
-def make_multiple_tc_variable(ty_args, names):
-    assert len(ty_args) == len(names)
-    return [type_check.Variable(t, n) for t, n in zip(ty_args, names)]
-
-
-def calculate_reshape(orig_shape, input_shape):
-    # orig_shape must be wrapped
-    if is_incomplete_shape(orig_shape):
-        if any([i == -1 for i in input_shape]):
-            return wrap_shape([i if i != -1 else None for i in input_shape])
-        return input_shape
-    orig_shape = unwrap_shape(orig_shape)
-    fill = abs(size_of_shape(orig_shape) // size_of_shape(input_shape))
-    ret_shape = tuple([i if i != -1 else fill for i in input_shape])
-    assert size_of_shape(orig_shape) == size_of_shape(ret_shape)
-    return wrap_shape(ret_shape)
-
-
-def remove_dims(shape, dims_to_remove):
-    # dims_to_remove can have negative indices
-    dims_to_remove = [d % len(shape) for d in dims_to_remove]
-    return tuple([shape[i] for i in range(len(shape)) if i not in dims_to_remove])
-
-
+# TODO: Unify with NumpyArray
 class ty_TorchTensor():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
@@ -99,6 +46,14 @@ class ty_TorchTensor():
         if isinstance(ty, TySequence):
             return self.get_element_dtype(ty.get())
         return tyobj2dtype(ty)
+
+
+class ty_NumpyAstype():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, dtype_type = ty_args
+        if isinstance(dtype_type, TyString):
+            return TyNdarray(np.dtype(dtype_type.value), x_type.shape)
+        return TyNdarray(dtype_type.t, x_type.shape)
 
 
 class ty_NumpyOnes():
@@ -149,6 +104,17 @@ class ty_TorchFlatten():
         size = size_of_shape(middle_shape)
         out_shape = prefix_shape + (size,) + postfix_shape
         return TyTorchTensor(shape=out_shape, dtype=input_type.dtype)
+
+
+class ty_TorchView():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+        shape_type = ty_args[1:]
+        assert isinstance(x_type, TyTensor)
+
+        out_shape = wrap_shape([extract_value_from_ty(t) for t in shape_type])
+        ret_shape = calculate_reshape(x_type.shape, out_shape)
+        return TyTorchTensor(x_type.dtype, shape=ret_shape)
 
 
 class ty_TorchPooling():
@@ -888,12 +854,23 @@ class ty_ChainerNStepBiLSTM():
 
 
 pytorch_func_ty = {
-        np.full       : ty_NumpyFull(),
-        np.ones       : ty_NumpyOnes(),
-        np.zeros      : ty_NumpyOnes(),
+        torch.Tensor.view : ty_TorchView(),
 
         torch.tensor  : ty_TorchTensor(),
         torch.flatten : ty_TorchFlatten(),
+
+        # https://pytorch.org/docs/stable/torch.html#math-operations
+        torch.abs     : ty_TorchIdentical(),
+        torch.cos     : ty_TorchIdentical(),
+        torch.cosh    : ty_TorchIdentical(),
+        torch.exp     : ty_TorchIdentical(),
+        torch.log     : ty_TorchIdentical(),
+        torch.sigmoid : ty_TorchIdentical(),
+        torch.sin     : ty_TorchIdentical(),
+        torch.sinh    : ty_TorchIdentical(),
+        torch.sqrt    : ty_TorchIdentical(),
+        torch.tan     : ty_TorchIdentical(),
+        torch.tanh    : ty_TorchIdentical(),
 
         # https://pytorch.org/docs/stable/nn.functional.html#pooling-functions
         F.avg_pool1d  : ty_TorchPooling(dim=1),
@@ -913,35 +890,35 @@ pytorch_func_ty = {
 
 pytorch_callable_ty = {
         # https://pytorch.org/docs/stable/nn.html#containers
-        nn.Sequential       : ty_TorchSequential(),
+        nn.Sequential       : ty_TorchSequential().nn,
 
         # https://pytorch.org/docs/stable/nn.html#convolution-layers
-        nn.Conv2d           : ty_TorchConv(dim=2),
+        nn.Conv2d           : ty_TorchConv(dim=2).nn,
 
         # https://pytorch.org/docs/stable/nn.html#pooling-layers
-        nn.AvgPool1d         : ty_TorchPooling(dim=1),
-        nn.AvgPool2d         : ty_TorchPooling(dim=2),
-        nn.AvgPool3d         : ty_TorchPooling(dim=3),
-        nn.MaxPool1d         : ty_TorchPooling(dim=1),
-        nn.MaxPool2d         : ty_TorchPooling(dim=2),
-        nn.MaxPool3d         : ty_TorchPooling(dim=3),
-        nn.AdaptiveAvgPool1d : ty_TorchAdaptivePooling(dim=1),
-        nn.AdaptiveAvgPool2d : ty_TorchAdaptivePooling(dim=2),
-        nn.AdaptiveAvgPool3d : ty_TorchAdaptivePooling(dim=3),
+        nn.AvgPool1d         : ty_TorchPooling(dim=1).nn,
+        nn.AvgPool2d         : ty_TorchPooling(dim=2).nn,
+        nn.AvgPool3d         : ty_TorchPooling(dim=3).nn,
+        nn.MaxPool1d         : ty_TorchPooling(dim=1).nn,
+        nn.MaxPool2d         : ty_TorchPooling(dim=2).nn,
+        nn.MaxPool3d         : ty_TorchPooling(dim=3).nn,
+        nn.AdaptiveAvgPool1d : ty_TorchAdaptivePooling(dim=1).nn,
+        nn.AdaptiveAvgPool2d : ty_TorchAdaptivePooling(dim=2).nn,
+        nn.AdaptiveAvgPool3d : ty_TorchAdaptivePooling(dim=3).nn,
 
         # https://pytorch.org/docs/stable/nn.html#padding-layers
 
         # https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
-        nn.ReLU             : ty_TorchIdentical(),
+        nn.ReLU             : ty_TorchIdentical().nn,
 
         # https://pytorch.org/docs/stable/nn.html#linear-layers
-        nn.Linear           : ty_TorchLinear(),
+        nn.Linear           : ty_TorchLinear().nn,
 
         # https://pytorch.org/docs/stable/nn.html#dropout-layers
-        nn.Dropout          : ty_TorchIdentical(),
-        nn.Dropout2d        : ty_TorchIdentical(ndim_min=1),
-        nn.Dropout3d        : ty_TorchIdentical(ndim_min=1),
-        nn.AlphaDropout     : ty_TorchIdentical(),
+        nn.Dropout          : ty_TorchIdentical().nn,
+        nn.Dropout2d        : ty_TorchIdentical(ndim_min=1).nn,
+        nn.Dropout3d        : ty_TorchIdentical(ndim_min=1).nn,
+        nn.AlphaDropout     : ty_TorchIdentical().nn,
 
         # https://pytorch.org/docs/stable/nn.html#loss-functions
         nn.CrossEntropyLoss : ty_TorchNNCrossEntropyLoss(),

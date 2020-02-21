@@ -8,126 +8,8 @@ import math
 from   chainer.utils.conv import get_conv_outsize
 from   chainer.utils import type_check
 
+from   chainer_compiler.elichika.typing.ext_functions_utils import *
 from   chainer_compiler.elichika.typing.types import *
-from   chainer_compiler.elichika.typing.shape_elem import is_incomplete_shape
-
-def size_of_shape(shape):
-    size = 1
-    for i in shape:
-        size *= i
-    return size
-
-
-def make_pair(x):
-    if isinstance(x, int):
-        return (x, x)
-    return x
-
-
-def get_kwarg(ty_kwargs, key, default):
-    if key in ty_kwargs.keys():
-        # when unable to get the correct value, returns None
-        return extract_value_from_ty(ty_kwargs[key]), lacks_value(ty_kwargs[key])
-    return default, False
-
-
-def extract_kwarg(ty_kwargs, key, default):
-    if key in ty_kwargs.keys():
-        return extract_kwarg(ty_kwargs[key])
-    return default
-
-
-def make_multiple_tc_variable(ty_args, names):
-    assert len(ty_args) == len(names)
-    return [type_check.Variable(t, n) for t, n in zip(ty_args, names)]
-
-
-def calculate_reshape(orig_shape, input_shape):
-    # orig_shape must be wrapped
-    if is_incomplete_shape(orig_shape):
-        if any([i == -1 for i in input_shape]):
-            return wrap_shape([i if i != -1 else None for i in input_shape])
-        return input_shape
-    orig_shape = unwrap_shape(orig_shape)
-    fill = abs(size_of_shape(orig_shape) // size_of_shape(input_shape))
-    ret_shape = tuple([i if i != -1 else fill for i in input_shape])
-    assert size_of_shape(orig_shape) == size_of_shape(ret_shape)
-    return wrap_shape(ret_shape)
-
-
-def remove_dims(shape, dims_to_remove):
-    # dims_to_remove can have negative indices
-    dims_to_remove = [d % len(shape) for d in dims_to_remove]
-    return tuple([shape[i] for i in range(len(shape)) if i not in dims_to_remove])
-
-
-class ty_NumpyArray():
-    def __call__(self, ty_args, ty_kwargs):
-        x_type, = ty_args
-        default_dtype = self.get_element_dtype(x_type)
-        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', default_dtype)
-        assert not lacks_dtype, "numpy.array: dtype couldn't inferred"
-
-        return TyNdarray(dtype,
-                shape=self.calculate_shape(x_type))
-
-    def calculate_shape(self, x_type):
-        if not isinstance(x_type, TySequence):
-            return ()
-        if not x_type.is_fixed_len:
-            return (None,)
-
-        x_tys = x_type.get_tys()
-
-        if isinstance(x_tys[0], TySequence):
-            list_lengths = [t.size() if t.is_fixed_len else None for t in x_tys]
-            list_lengths_nonnull = [l for l in list_lengths if l is not None]
-
-            # for example, we will not accept np.array([[1,2,3], [4,5]])
-            assert all_same(list_lengths_nonnull), \
-                    "numpy.array: incompatible list length"
-
-        return (len(x_tys),) + self.calculate_shape(x_tys[0])
-
-    def get_element_dtype(self, ty):
-        # get element dtype of nested TySequence
-        if isinstance(ty, TySequence):
-            return self.get_element_dtype(ty.get())
-        return tyobj2dtype(ty)
-
-
-class ty_NumpyOnes():
-    def __call__(self, ty_args, ty_kwargs):
-        shape_type, = ty_args
-        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', np.dtype('float64'))
-
-        assert not lacks_dtype
-
-        if isinstance(shape_type, TyNum):
-            assert shape_type.is_int()
-        else:
-            assert shape_type.is_fixed_len
-
-        shape = extract_value_from_ty(shape_type)
-        if isinstance(shape, int):
-            shape = (shape,)
-
-        return TyNdarray(dtype, shape=shape)
-
-
-class ty_NumpyFull():
-    def __call__(self, ty_args, ty_kwargs):
-        shape_type, value_type = ty_args
-        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', tyobj2dtype(value_type))
-
-        assert not lacks_dtype
-
-        assert isinstance(shape_type, (TyNum, TyTuple))
-
-        shape = extract_value_from_ty(shape_type)
-        if not isinstance(shape_type, TySequence):
-            shape = (shape,)
-        return TyNdarray(dtype, shape=shape)
 
 
 class ty_ChainerVariable():
@@ -875,11 +757,6 @@ class ty_ChainerNStepBiLSTM():
 
 
 chainer_func_ty = {
-        np.array                       : ty_NumpyArray(),
-        np.cumsum                      : ty_ChainerIdentical(is_float_only=False),
-        np.full                        : ty_NumpyFull(),
-        np.ones                        : ty_NumpyOnes(),
-        np.zeros                       : ty_NumpyOnes(),
         chainer.Variable               : ty_ChainerVariable(),
         cuda.to_cpu                    : ty_ChainerIdentical(is_float_only=False),
         F.average_pooling_2d           : ty_ChainerPooling2d(cover_all=False),
