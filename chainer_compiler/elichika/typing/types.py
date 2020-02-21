@@ -6,6 +6,8 @@ import chainer.functions as F
 import chainer.links as L
 import numpy as np
 
+import torch
+
 from   chainer_compiler.elichika.typing import utils
 from   chainer_compiler.elichika.typing.shape_elem import ShapeElem, wrap_shape, unwrap_shape, unify_shape
 
@@ -272,6 +274,7 @@ class TyUserDefinedClass(TyObj):
 class TensorKind(Enum):
     ndarray = 0
     chainer_variable = 1
+    torch_tensor = 2
 
 
 class TyDType(TyObj):
@@ -290,7 +293,10 @@ class TyDType(TyObj):
 class TyTensor(TyObj):
     def __init__(self, dtype, kind, ndim, shape=None):  # we do not allow heterogeneous type ndarray
         super().__init__()
-        self.dtype = np.dtype(dtype)
+        if isinstance(dtype, torch.dtype):
+            self.dtype = torch_dtype_to_np_dtype(dtype)
+        else:
+            self.dtype = np.dtype(dtype)
         self.kind = kind
         self.ndim = ndim
         if shape is None:
@@ -302,6 +308,8 @@ class TyTensor(TyObj):
             return "ndarray(dtype={}, shape={})".format(self.dtype, self.shape)
         if self.kind == TensorKind.chainer_variable:
             return "Variable(dtype={}, shape={})".format(self.dtype, self.shape)
+        if self.kind == TensorKind.torch_tensor:
+            return "torch.Tensor(dtype={}, shape={})".format(self.dtype, self.shape)
 
     def __eq__(self, other):
         # TODO: shape?
@@ -316,6 +324,9 @@ class TyTensor(TyObj):
     def is_chainer_variable(self):
         return self.kind == TensorKind.chainer_variable
 
+    def is_torch_tensor(self):
+        return self.kind == TensorKind.torch_tensor
+
 
 def TyNdarray(dtype, ndim=None, shape=None):
     # ndim and shape cannot be None at the same time
@@ -327,6 +338,25 @@ def TyChainerVariable(dtype, ndim=None, shape=None):
     if ndim is None:
         ndim = len(shape)
     return TyTensor(dtype, TensorKind.chainer_variable, ndim=ndim, shape=shape)
+
+def TyTorchTensor(dtype, ndim=None, shape=None):
+    if ndim is None:
+        ndim = len(shape)
+    return TyTensor(dtype, TensorKind.torch_tensor, ndim=ndim, shape=shape)
+
+def torch_dtype_to_np_dtype(dtype):
+    dtype_dict = {
+            torch.bool    : np.dtype(np.bool),
+            torch.uint8   : np.dtype(np.uint8),
+            torch.int8    : np.dtype(np.int8),
+            torch.int16   : np.dtype(np.int16),
+            torch.int32   : np.dtype(np.int32),
+            torch.int64   : np.dtype(np.int64),
+            torch.float16 : np.dtype(np.float16),
+            torch.float32 : np.dtype(np.float32),
+            torch.float64 : np.dtype(np.float64),
+            }
+    return dtype_dict[dtype]
 
 
 # ---------------------- InferenceEngine internal types ------------------------
@@ -400,12 +430,16 @@ def type_of_value(value):
     if isinstance(value, tuple):
         return TyTuple([type_of_value(v) for v in value])
     if isinstance(value, dict):
+        if len(value) == 0:
+            return TyDict(TyVar(), TyVar())
         return TyDict(type_of_value(list(value.keys())[0]),
                 type_of_value(list(value.items())[0]))
     if isinstance(value, np.ndarray):
         return TyNdarray(value.dtype, shape=wrap_shape(value.shape))
     if isinstance(value, chainer.Variable):
         return TyChainerVariable(value.dtype, shape=wrap_shape(value.shape))
+    if isinstance(value, torch.Tensor):
+        return TyTorchTensor(value.dtype, shape=wrap_shape(value.shape))
     if isinstance(value, np.dtype):
         return TyDType(value)
     if isinstance(value, type) and value in np.typeDict.values():

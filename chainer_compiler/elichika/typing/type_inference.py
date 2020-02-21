@@ -8,16 +8,19 @@ import typing
 
 from   chainer_compiler.elichika.parser.utils import clip_head
 from   chainer_compiler.elichika.typing.chainer_functions import chainer_func_ty, chainer_callable_ty
+from   chainer_compiler.elichika.typing.pytorch_functions import pytorch_func_ty, pytorch_callable_ty
 from   chainer_compiler.elichika.typing.types import *
 from   chainer_compiler.elichika.typing.shape_elem import is_incomplete_shape
 from   chainer_compiler.elichika.typing import utils
 
 import chainer
 from   chainer.backends import cuda
-import chainer.functions as F
 import chainer.links as L
 import numpy as np
 import logging
+
+import torch
+import torch.nn as nn
 
 # ==============================================================================
 
@@ -74,7 +77,6 @@ def handle_inference_error(exception, name, node):
 
 
 def call_chainer_function(func, node, ty_args, ty_kwargs):
-    # Non-tensor arguments
     inference_logic = chainer_func_ty[func]
     try:
         ty_ret = inference_logic(ty_args, ty_kwargs)
@@ -85,6 +87,24 @@ def call_chainer_function(func, node, ty_args, ty_kwargs):
 
 def call_chainer_callable(obj, node, ty_args, ty_kwargs):
     inference_logic = chainer_callable_ty[type(obj)]
+    try:
+        ty_ret = inference_logic(obj, ty_args, ty_kwargs)
+    except Exception as e:
+        ty_ret = handle_inference_error(e, obj.__class__.__name__, node)
+    return ty_ret
+
+
+def call_pytorch_function(func, node, ty_args, ty_kwargs):
+    inference_logic = pytorch_func_ty[func]
+    try:
+        ty_ret = inference_logic(ty_args, ty_kwargs)
+    except Exception as e:
+        ty_ret = handle_inference_error(e, func.__name__, node)
+    return ty_ret
+
+
+def call_pytorch_callable(obj, node, ty_args, ty_kwargs):
+    inference_logic = pytorch_callable_ty[type(obj)]
     try:
         ty_ret = inference_logic(obj, ty_args, ty_kwargs)
     except Exception as e:
@@ -699,6 +719,17 @@ class InferenceEngine():
             if type(e.func) in L.__dict__.values():
                 # chainer links
                 ty_ret = call_chainer_callable(e.func, node, ty_args, ty_kwargs)
+                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+                return ty_ret
+
+            if e.func in pytorch_func_ty.keys():
+                ty_ret = call_pytorch_function(e.func, node, ty_args, ty_kwargs)
+                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+                return ty_ret
+
+            if type(e.func) in nn.__dict__.values():
+                # torch.nn
+                ty_ret = call_pytorch_callable(e.func, node, ty_args, ty_kwargs)
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 
