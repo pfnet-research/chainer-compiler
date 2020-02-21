@@ -284,7 +284,7 @@ class InferenceEngine():
 
     def infer_block(self, tc, stmts):  # use in if (without else), for, while
         for stmt in stmts:
-            tc.infer_stmt(stmt)
+            ty_ret = tc.infer_stmt(stmt)
 
         # unify the intersection of 2 tyenvs and update local tyenv
         for name, ty in tc.tyenv.items():
@@ -297,12 +297,15 @@ class InferenceEngine():
                 unify(ty, self.attribute_tyenv[(obj, name)])
             self.attribute_tyenv[(obj, name)] = ty
 
+        unify(ty_ret, TyNone())
+        return TyNone()
+
 
     def infer_2blocks(self, tc1, tc2, stmts1, stmts2):
         for stmt in stmts1:
-            tc1.infer_stmt(stmt)
+            ty_ret1 = tc1.infer_stmt(stmt)
         for stmt in stmts2:
-            tc2.infer_stmt(stmt)
+            ty_ret2 = tc2.infer_stmt(stmt)
 
         # unify the intersection of 2 tyenvs and update local tyenv
         for name, ty in tc1.tyenv.items():
@@ -327,6 +330,9 @@ class InferenceEngine():
             if (obj, name) in tc1.attribute_tyenv.keys():
                 continue
             self.attribute_tyenv[(obj, name)] = ty
+
+        unify(ty_ret1, ty_ret2)
+        return choose_stronger_ty(ty_ret1, ty_ret2)
 
 
     def infer_user_defined_function(self, func, ty_args, node):
@@ -399,8 +405,7 @@ class InferenceEngine():
             # While(expr test, stmt* body, stmt* orelse)
             pass
         elif isinstance(node, gast.If):
-            self.infer_If(node)
-            self.nodetype[node] = TyNone()
+            self.nodetype[node] = self.infer_If(node)
         elif isinstance(node, gast.Expr):
             # Expr(expr value)
             self.infer_expr(node.value)
@@ -516,7 +521,6 @@ class InferenceEngine():
         utils.add_dict(self.nodetype, tc.nodetype)
         utils.add_dict(self.subroutine_node, tc.subroutine_node)
 
-
     def infer_If(self, node):
         # If(expr test, stmt* body, stmt* orelse)
         # XXX: type of node.test can be anything
@@ -525,13 +529,13 @@ class InferenceEngine():
 
         if node.orelse == []:
             tc = copy_InferenceEngine(self)
-            self.infer_block(tc, node.body)
+            ty_ret = self.infer_block(tc, node.body)
             utils.add_dict(self.nodetype, tc.nodetype)
             utils.add_dict(self.subroutine_node, tc.subroutine_node)
         else:
             tc1 = copy_InferenceEngine(self)
             tc2 = copy_InferenceEngine(self)
-            self.infer_2blocks(tc1, tc2, node.body, node.orelse)
+            ty_ret = self.infer_2blocks(tc1, tc2, node.body, node.orelse)
             utils.add_dict(self.nodetype, tc1.nodetype)
             utils.add_dict(self.nodetype, tc2.nodetype)
             utils.add_dict(self.subroutine_node, tc1.subroutine_node)
@@ -539,6 +543,8 @@ class InferenceEngine():
 
         if x is not None:
             self.infer_expr(x).is_optional = False
+
+        return ty_ret
 
 
     # ================================= expr ===================================
@@ -762,7 +768,7 @@ class InferenceEngine():
                 raise self.ArgumentRequired((func, ty_obj))
             if ty_obj.is_torch_tensor() and is_callee:
                 func = getattr(torch.Tensor, node.attr)
-                raise self.ArgumentRequired((torch.Tensor.view, ty_obj))
+                raise self.ArgumentRequired((func, ty_obj))
             assert False
 
         if isinstance(ty_obj, TyUserDefinedClass):
