@@ -125,7 +125,7 @@ class ty_NumpyFull():
 
         assert not lacks_dtype
 
-        assert isinstance(shape_type, TyNum) or isinstance(shape_type, TyTuple)
+        assert isinstance(shape_type, (TyNum, TyTuple))
 
         shape = extract_value_from_ty(shape_type)
         if not isinstance(shape_type, TySequence):

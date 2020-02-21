@@ -53,8 +53,7 @@ def lazy_initializer(node):
     #
     # The reverse, 'if x is not None: ... else: ...' is not supported.
     if isinstance(node.test, gast.Compare) and \
-            (isinstance(node.test.left, gast.Name) or \
-            isinstance(node.test.left, gast.Attribute)) and \
+            isinstance(node.test.left, (gast.Name, gast.Attribute)) and \
             isinstance(node.test.ops[0], gast.Is) and \
             isinstance(node.test.comparators[0], gast.Constant) and \
             node.test.comparators[0].value is None:
@@ -170,9 +169,6 @@ class InferenceEngine():
         # Node (Call) -> Node (FunctionDef)
         self.subroutine_node = {}
 
-        # Path from the root of current AST to the current node (only stmt and expr)
-        self.stack = []
-
         # typing type hints
         # string -> TyObj
         self.type_hints = {}
@@ -205,20 +201,6 @@ class InferenceEngine():
             return
         print("{} : \x1b[36m{}\x1b[39m".format(
             utils.node_description(node), self.nodetype[node]))
-
-
-    def dump_stack(self):
-        print("=== stack ===\x1b[32m")
-        for node in self.stack:
-            print(utils.node_description(node))
-        print("\x1b[39m")
-
-
-    def is_called(self, node):
-        if len(self.stack) < 2:
-            return False
-        return isinstance(self.stack[-2], gast.Call) and \
-                self.stack[-2].func is node
 
 
     def generate_fresh_TyVar(self, node):
@@ -345,8 +327,7 @@ class InferenceEngine():
 
 
     def infer_user_defined_function(self, func, ty_args, node):
-        if isinstance(func, types.FunctionType) or \
-                isinstance(func, types.MethodType):
+        if isinstance(func, (types.FunctionType, types.MethodType)):
             func_body = func
 
             if isinstance(node.func, gast.Attribute):
@@ -390,8 +371,6 @@ class InferenceEngine():
         if self.is_debug:
             debug(gast.dump(node))
 
-        self.stack.append(node)
-
         if isinstance(node, gast.FunctionDef):
             self.nodetype[node] = self.infer_FunctionDef(node)
         elif isinstance(node, gast.Return):
@@ -427,7 +406,6 @@ class InferenceEngine():
             self.nodetype[node] = TyNone()
 
         assert node in self.nodetype.keys(), type(node).__name__
-        self.stack.pop()
         return self.nodetype[node]
 
 
@@ -451,9 +429,8 @@ class InferenceEngine():
         ty_val = self.infer_expr(node.value)
 
         if isinstance(target, gast.Name):
-            if (isinstance(node.value, gast.Name) or \
-                    isinstance(node.value, gast.Attribute)) and \
-                    ty_val.is_mutable():
+            if ty_val.is_mutable() and \
+                    isinstance(node.value, (gast.Name, gast.Attribute)):
                 # XXX: alias
                 self.tyenv[target.id] = ty_val
                 self.nodetype[target] = ty_val
@@ -562,16 +539,13 @@ class InferenceEngine():
 
 
     # ================================= expr ===================================
-    def infer_expr(self, node):
+    def infer_expr(self, node, is_callee=False):
         if node in self.nodetype.keys():
             return self.nodetype[node]
-
-        self.stack.append(node)
 
         if self.is_debug:
             pass
             # debug(gast.dump(node))
-            # self.dump_stack()
             # self.dump_tyenv()
 
         if isinstance(node, gast.BoolOp):
@@ -593,11 +567,11 @@ class InferenceEngine():
             # Constant(constant value)
             self.nodetype[node] = type_of_value(node.value)
         elif isinstance(node, gast.Attribute):
-            self.nodetype[node] = self.infer_Attribute(node)
+            self.nodetype[node] = self.infer_Attribute(node, is_callee)
         elif isinstance(node, gast.Subscript):
             self.nodetype[node] = self.infer_Subscript(node)
         elif isinstance(node, gast.Name):
-            self.nodetype[node] = self.infer_Name(node)
+            self.nodetype[node] = self.infer_Name(node, is_callee)
         elif isinstance(node, gast.List):
             # List(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
@@ -609,7 +583,6 @@ class InferenceEngine():
 
         assert node in self.nodetype.keys() and \
                 self.nodetype[node] is not None, type(node).__name__
-        self.stack.pop()
         if self.is_debug:
             self.dump_one_node(node)
         return self.nodetype[node]
@@ -699,10 +672,8 @@ class InferenceEngine():
         ty_ret = TyVar()
 
         try:
-            ty_fun = self.infer_expr(node.func)
+            ty_fun = self.infer_expr(node.func, is_callee=True)
         except self.ArgumentRequired as e:
-            self.stack.pop()  # for node.func
-
             if e.func in func_to_ignore:
                 return TyNone()
 
@@ -746,7 +717,7 @@ class InferenceEngine():
         return ty_ret.deref()
 
 
-    def infer_Attribute(self, node):
+    def infer_Attribute(self, node, is_callee):
         # Attribute(expr value, identifier attr, expr_context ctx)
 
         if isinstance(node.value, gast.Name) and \
@@ -754,7 +725,7 @@ class InferenceEngine():
             # function of imported libraries (eg. np, chainer, F, L)
             module = getattr(self.module, node.value.id)
             attr = getattr(module, node.attr)
-            if self.is_called(node):
+            if is_callee:
                 raise self.ArgumentRequired(func=attr)
             return type_of_value(attr)
 
@@ -788,7 +759,7 @@ class InferenceEngine():
             else:
                 ty_node = type_of_value(x)
 
-            if self.is_called(node):
+            if is_callee:
                 raise self.ArgumentRequired(func=x)
 
             return ty_node
@@ -803,19 +774,20 @@ class InferenceEngine():
 
         if isinstance(ty_obj, TySequence):
             self.infer_slice(node.slice)
+
             if ty_obj.is_fixed_len and \
-                    isinstance(node.slice, gast.Index) and \
-                    isinstance(node.slice.value, gast.Constant) and \
-                    isinstance(node.slice.value.value, numbers.Number):
-                return ty_obj.get_tys()[node.slice.value.value]
+                    isinstance(node.slice, gast.Index):
+                t = self.infer_expr(node.slice.value)
+                if isinstance(t, TyNum) and t.value is not None:
+                    return ty_obj.get_tys()[t.value]
 
             if ty_obj.is_fixed_len and \
                     isinstance(node.slice, gast.Slice) and \
                     self.is_const_slice(node.slice):
-                get_slice = eval('lambda s: s[{}]'.format(utils.slice_to_str(node.slice)))
+                slice_ = self.extract_slice(node.slice)
                 if ty_obj.is_list():
-                    return TyList(get_slice(ty_obj.get_tys()))
-                return TyTuple(get_slice(ty_obj.get_tys()))
+                    return TyList(ty_obj.get_tys()[slice_])
+                return TyTuple(ty_obj.get_tys()[slice_])
 
             ty_obj.coerce_to_variable_len()
             if isinstance(node.slice, gast.Index):
@@ -845,8 +817,8 @@ class InferenceEngine():
             if shape[0].value is None and (node_slice.upper is None or
                     extract_value_from_ty(self.nodetype[node_slice.upper]) < 0):
                 return (None,) + shape[1:]
-            get_slice = eval('lambda s: s[{}]'.format(utils.slice_to_str(node_slice)))
-            shape_0 = ShapeElem(len(get_slice((0,) * shape[0].value)))  # TODO
+            slice_ = self.extract_slice(node_slice)
+            shape_0 = ShapeElem(len(((0,) * shape[0].value)[slice_]))
             return (shape_0,) + shape[1:]
         if isinstance(node_slice, gast.ExtSlice):
             ret_shape = ()
@@ -857,22 +829,22 @@ class InferenceEngine():
             return ret_shape
 
 
-    def infer_Name(self, node):
+    def infer_Name(self, node, is_callee):
         # Name(identifier id, expr_context ctx, expr? annotation)
         if node.id in self.tyenv.keys():
             ty = self.tyenv[node.id]
-            if self.is_called(node) and isinstance(ty, TyUserDefinedClass) and \
+            if is_callee and isinstance(ty, TyUserDefinedClass) and \
                     callable(ty.instance):
                 raise self.ArgumentRequired(func=ty.instance)
             return self.tyenv[node.id]
         if node.id in __builtins__.keys():
             value = __builtins__[node.id]
-            if callable(value) and self.is_called(node):
+            if callable(value) and is_callee:
                 raise self.ArgumentRequired(func=value)
             return type_of_value(value)
         if hasattr(self.module, node.id):
             x = getattr(self.module, node.id)
-            if self.is_called(node):
+            if is_callee:
                 raise self.ArgumentRequired(func=x)
             return type_of_value(x)
 
@@ -919,6 +891,16 @@ class InferenceEngine():
         if node_slice.step and not is_constnum(self.infer_expr(node_slice.step)):
             return False
         return True
+
+    def extract_slice(self, node_slice) -> slice:
+        lower, upper, step = None, None, None
+        if node_slice.lower:
+            lower = self.infer_expr(node_slice.lower).value
+        if node_slice.upper:
+            upper = self.infer_expr(node_slice.upper).value
+        if node_slice.step:
+            step = self.infer_expr(node_slice.step).value
+        return slice(lower, upper, step)
 
 
 if __name__ == '__main__':

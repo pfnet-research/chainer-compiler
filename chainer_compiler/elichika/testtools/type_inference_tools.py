@@ -49,7 +49,6 @@ def generate_node2type(tree, args, is_debug=False, module=None, type_hints={}):
         node2type = tc.infer_function_value_args(func_body, args, type_hints=type_hints)
         return node2type, tc.subroutine_node
     except Exception as e:
-        tc.dump_stack()
         tc.dump_tyenv()
         raise e
 
