@@ -757,9 +757,11 @@ class InferenceEngine():
                 return type_of_value(ty_obj.shape)
             if node.attr == 'size':
                 return TyInt()
-            if ty_obj.is_ndarray() and node.attr == 'astype':
-                raise self.ArgumentRequired((np.ndarray.astype, ty_obj))
-            if ty_obj.is_torch_tensor() and node.attr == 'view':
+            if ty_obj.is_ndarray() and is_callee:
+                func = getattr(np.ndarray, node.attr)
+                raise self.ArgumentRequired((func, ty_obj))
+            if ty_obj.is_torch_tensor() and is_callee:
+                func = getattr(torch.Tensor, node.attr)
                 raise self.ArgumentRequired((torch.Tensor.view, ty_obj))
             assert False
 

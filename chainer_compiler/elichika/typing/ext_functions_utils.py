@@ -60,5 +60,3 @@ def remove_dims(shape, dims_to_remove):
     # dims_to_remove can have negative indices
     dims_to_remove = [d % len(shape) for d in dims_to_remove]
     return tuple([shape[i] for i in range(len(shape)) if i not in dims_to_remove])
-
-

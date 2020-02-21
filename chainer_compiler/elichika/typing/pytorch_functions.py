@@ -48,48 +48,42 @@ class ty_TorchTensor():
         return tyobj2dtype(ty)
 
 
-class ty_NumpyAstype():
-    def __call__(self, ty_args, ty_kwargs):
-        x_type, dtype_type = ty_args
-        if isinstance(dtype_type, TyString):
-            return TyNdarray(np.dtype(dtype_type.value), x_type.shape)
-        return TyNdarray(dtype_type.t, x_type.shape)
-
-
-class ty_NumpyOnes():
-    def __call__(self, ty_args, ty_kwargs):
-        shape_type, = ty_args
-        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', np.dtype('float64'))
-
-        assert not lacks_dtype
-
-        if isinstance(shape_type, TyNum):
-            assert shape_type.is_int()
-        else:
-            assert shape_type.is_fixed_len
-
-        shape = extract_value_from_ty(shape_type)
-        if isinstance(shape, int):
-            shape = (shape,)
-
-        return TyNdarray(dtype, shape=shape)
-
-
-class ty_NumpyFull():
-    def __call__(self, ty_args, ty_kwargs):
-        shape_type, value_type = ty_args
-        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', tyobj2dtype(value_type))
-
-        assert not lacks_dtype
-
-        assert isinstance(shape_type, TyNum) or isinstance(shape_type, TyTuple)
-
-        shape = extract_value_from_ty(shape_type)
-        if not isinstance(shape_type, TySequence):
-            shape = (shape,)
-        return TyNdarray(dtype, shape=shape)
-
 # ==============================================================================
+
+class ty_TorchIdentical():
+    def __init__(self, ndim_min=None):
+        self.ndim_min = ndim_min
+
+    def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+        assert isinstance(x_type, TyTensor)
+        assert x_type.dtype.kind == 'f'
+        if self.ndim_min:
+            assert x_type.ndim >= self.ndim_min
+        return copy_ty(x_type)
+
+    def nn(self, _, ty_args, ty_kwargs):
+        return self(ty_args, ty_kwargs)
+
+
+class ty_TorchArith():
+    def __init__(self, fn):
+        self.fn = fn
+
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, y_type = ty_args
+        x, y = generate_dummy_value(x_type), generate_dummy_value(y_type)
+
+        try:
+            ty_ret = type_of_value(self.fn(x, y))
+        except Exception as e:
+            ty_ret = handle_inference_error(e, op.__class__.__name__, node)
+
+        if is_incomplete_shape(x_type.shape) or \
+                is_incomplete_shape(y_type.shape):
+            ty_ret.shape = (ShapeElem(None),) * ty_ret.ndim
+        return ty_ret
+
 
 class ty_TorchFlatten():
     def __call__(self, ty_args, ty_kwargs):
@@ -193,24 +187,6 @@ class ty_TorchNNCrossEntropyLoss():
     def infer_return(self, x_type, t_type):
         return TyTorchTensor(x_type.dtype, shape=())
 
-
-class ty_TorchIdentical():
-    def __init__(self, ndim_min=None):
-        self.ndim_min = ndim_min
-
-    def __call__(self, ty_args, ty_kwargs):
-        x_type = ty_args[0]
-        assert isinstance(x_type, TyTensor)
-        assert x_type.dtype.kind == 'f'
-        if self.ndim_min:
-            assert x_type.ndim >= self.ndim_min
-        return copy_ty(x_type)
-
-    def nn(self, _, ty_args, ty_kwargs):
-        return self(ty_args, ty_kwargs)
-
-
-# ========================= chainer.functions.array ============================
 
 class ty_ChainerConcat():
     def __init__(self, axis=None):
@@ -855,9 +831,15 @@ class ty_ChainerNStepBiLSTM():
 
 pytorch_func_ty = {
         torch.Tensor.view : ty_TorchView(),
+        torch.Tensor.add_ : ty_TorchArith(torch.add),
+        torch.Tensor.mul  : ty_TorchArith(torch.mul),
 
         torch.tensor  : ty_TorchTensor(),
         torch.flatten : ty_TorchFlatten(),
+
+        # https://pytorch.org/docs/stable/torch.html#random-sampling
+        torch.rand_like  : ty_TorchIdentical(),
+        torch.randn_like : ty_TorchIdentical(),
 
         # https://pytorch.org/docs/stable/torch.html#math-operations
         torch.abs     : ty_TorchIdentical(),
@@ -871,6 +853,8 @@ pytorch_func_ty = {
         torch.sqrt    : ty_TorchIdentical(),
         torch.tan     : ty_TorchIdentical(),
         torch.tanh    : ty_TorchIdentical(),
+
+        torch.mul     : ty_TorchArith(torch.mul),
 
         # https://pytorch.org/docs/stable/nn.functional.html#pooling-functions
         F.avg_pool1d  : ty_TorchPooling(dim=1),
