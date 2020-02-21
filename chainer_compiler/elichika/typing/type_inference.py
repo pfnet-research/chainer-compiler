@@ -7,7 +7,7 @@ import types
 import typing
 
 from   chainer_compiler.elichika.parser.utils import clip_head
-from   chainer_compiler.elichika.typing.functions_external import ext_func_ty, ext_callable_ty
+from   chainer_compiler.elichika.typing.chainer_functions import chainer_func_ty, chainer_callable_ty
 from   chainer_compiler.elichika.typing.types import *
 from   chainer_compiler.elichika.typing.shape_elem import is_incomplete_shape
 from   chainer_compiler.elichika.typing import utils
@@ -73,9 +73,9 @@ def handle_inference_error(exception, name, node):
     return TyVar(lineno=getattr(node, 'lineno', None))
 
 
-def call_ext_function(func, node, ty_args, ty_kwargs):
+def call_chainer_function(func, node, ty_args, ty_kwargs):
     # Non-tensor arguments
-    inference_logic = ext_func_ty[func]
+    inference_logic = chainer_func_ty[func]
     try:
         ty_ret = inference_logic(ty_args, ty_kwargs)
     except Exception as e:
@@ -83,8 +83,8 @@ def call_ext_function(func, node, ty_args, ty_kwargs):
     return ty_ret
 
 
-def call_ext_callable(obj, node, ty_args, ty_kwargs):
-    inference_logic = ext_callable_ty[type(obj)]
+def call_chainer_callable(obj, node, ty_args, ty_kwargs):
+    inference_logic = chainer_callable_ty[type(obj)]
     try:
         ty_ret = inference_logic(obj, ty_args, ty_kwargs)
     except Exception as e:
@@ -690,21 +690,21 @@ class InferenceEngine():
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 
-            if e.func in ext_func_ty.keys():
+            if e.func in chainer_func_ty.keys():
                 # external (eg. np/chainer) functions
-                ty_ret = call_ext_function(e.func, node, ty_args, ty_kwargs)
+                ty_ret = call_chainer_function(e.func, node, ty_args, ty_kwargs)
+                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+                return ty_ret
+
+            if type(e.func) in L.__dict__.values():
+                # chainer links
+                ty_ret = call_chainer_callable(e.func, node, ty_args, ty_kwargs)
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 
             if e.func in __builtins__.values():
                 # builtin functions
                 ty_ret = call_builtin_function(e.func, node, ty_args)
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return ty_ret
-
-            if type(e.func) in L.__dict__.values():
-                # chainer links
-                ty_ret = call_ext_callable(e.func, node, ty_args, ty_kwargs)
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 

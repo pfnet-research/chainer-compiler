@@ -874,7 +874,7 @@ class ty_ChainerNStepBiLSTM():
         return TyTuple([hy_type, cy_type, ys_type])
 
 
-ext_func_ty = {
+chainer_func_ty = {
         np.array                       : ty_NumpyArray(),
         np.cumsum                      : ty_ChainerIdentical(is_float_only=False),
         np.full                        : ty_NumpyFull(),
@@ -909,7 +909,7 @@ ext_func_ty = {
         }
 
 
-ext_callable_ty = {
+chainer_callable_ty = {
         L.Linear             : ty_ChainerLinear(),
         L.Convolution2D      : ty_ChainerConvolution2D(),
         L.BatchNormalization : ty_ChainerBatchNormalization(),
