@@ -432,6 +432,8 @@ def type_of_value(value):
         return TyList([type_of_value(v) for v in value])
     if isinstance(value, range):
         return TyList([type_of_value(v) for v in value])
+    if isinstance(value, enumerate):
+        return TyList([type_of_value(v) for v in value])
     if isinstance(value, tuple):
         return TyTuple([type_of_value(v) for v in value])
     if isinstance(value, dict):
@@ -676,10 +678,8 @@ def unify(ty1, ty2, inspect_shape=True):
             return
         if ty1.is_fixed_len and not ty2.is_fixed_len:
             ty1.coerce_to_variable_len(ty2.get_ty())
-            return
-        if (not ty1.is_fixed_len) and ty2.is_fixed_len:
+        elif (not ty1.is_fixed_len) and ty2.is_fixed_len:
             ty2.coerce_to_variable_len(ty1.get_ty())
-            return
         unify(ty1.get_ty(), ty2.get_ty())
         return
 

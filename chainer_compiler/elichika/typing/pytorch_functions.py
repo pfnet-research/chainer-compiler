@@ -522,7 +522,26 @@ class ty_ChainerSeparate():
 
 
 class ty_TorchChunk():
-    pass
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, chunk_type = ty_args
+        assert isinstance(chunk_type, TyNum)
+        chunks = chunk_type.value
+
+        self.dim, lacks_dim = get_kwarg(ty_kwargs, 'dim', default=0)
+        assert not lacks_dim
+        return self.infer_return(x_type, chunks)
+
+    def infer_return(self, x_type, chunks):
+        ret_shape = list(x_type.shape)
+        if chunks is None:
+            ret_shape[self.dim] = None
+            return TyTuple(TyTorchTensor(x_type.dtype, shape=ret_shape))
+
+        # TODO(momohatt): Handle cases where dim is not divisible by chunks
+        ret_shape[self.dim] = ret_shape[self.dim] // chunks
+        return TyTuple([TyTorchTensor(x_type.dtype, shape=ret_shape)
+            for _ in range(chunks)])
+
 
 
 class ty_TorchSplit():
@@ -845,7 +864,8 @@ pytorch_func_ty = {
         torch.Tensor.mul  : ty_TorchArith(torch.mul),
         torch.Tensor.mul_ : ty_TorchArith(torch.mul),
 
-        torch.Tensor.view : ty_TorchView(),
+        torch.Tensor.view  : ty_TorchView(),
+        torch.Tensor.chunk : ty_TorchChunk(),
         }
 
 
