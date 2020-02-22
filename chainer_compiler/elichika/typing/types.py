@@ -343,16 +343,23 @@ def TyTorchTensor(dtype, ndim=None, shape=None):
     return TyTensor(dtype, TensorKind.torch_tensor, ndim=ndim, shape=shape)
 
 def torch_dtype_to_np_dtype(dtype):
+    # TODO(momohatt): Better way to do this?
     dtype_dict = {
             torch.bool    : np.dtype(np.bool),
             torch.uint8   : np.dtype(np.uint8),
             torch.int8    : np.dtype(np.int8),
             torch.int16   : np.dtype(np.int16),
+            torch.short   : np.dtype(np.int16),
             torch.int32   : np.dtype(np.int32),
+            torch.int     : np.dtype(np.int32),
             torch.int64   : np.dtype(np.int64),
+            torch.long    : np.dtype(np.int64),
             torch.float16 : np.dtype(np.float16),
+            torch.half    : np.dtype(np.float16),
             torch.float32 : np.dtype(np.float32),
+            torch.float   : np.dtype(np.float32),
             torch.float64 : np.dtype(np.float64),
+            torch.double  : np.dtype(np.float64),
             }
     return dtype_dict[dtype]
 
@@ -443,6 +450,8 @@ def type_of_value(value):
     if isinstance(value, type) and value in np.typeDict.values():
         # XXX: np.typeDict.values() is a list of all dtypes
         return TyDType(value)
+    if isinstance(value, torch.dtype):
+        return TyDType(torch_dtype_to_np_dtype(value))
     if isinstance(value, ShapeElem):
         if isinstance(value.value, int):
             return TyInt(value.value)

@@ -21,8 +21,7 @@ class ty_NumpyArray():
         dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', default_dtype)
         assert not lacks_dtype, "numpy.array: dtype couldn't inferred"
 
-        return TyNdarray(dtype,
-                shape=self.calculate_shape(x_type))
+        return TyNdarray(dtype, shape=self.calculate_shape(x_type))
 
     def calculate_shape(self, x_type):
         if not isinstance(x_type, TySequence):

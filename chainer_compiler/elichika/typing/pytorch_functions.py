@@ -48,6 +48,20 @@ class ty_TorchTensor():
         return tyobj2dtype(ty)
 
 
+class ty_TorchTensorOfShape():
+    def __call__(self, ty_args, ty_kwargs):
+        for ty in ty_args:
+            unify(ty, TyInt())
+
+        # TODO: use global default dtype
+        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', np.dtype('float32'))
+        assert not lacks_dtype
+
+        print(ty_args)
+        shape = wrap_shape([extract_value_from_ty(ty) for ty in ty_args])
+        return TyNdarray(dtype, shape=shape)
+
+
 # ==============================================================================
 
 class ty_TorchIdentical():
@@ -754,6 +768,10 @@ class ty_ChainerNStepBiLSTM():
 pytorch_func_ty = {
         # https://pytorch.org/docs/stable/torch.html#creation-ops
         torch.tensor  : ty_TorchTensor(),
+        torch.zeros   : ty_TorchTensorOfShape(),
+        torch.ones    : ty_TorchTensorOfShape(),
+        torch.rand    : ty_TorchTensorOfShape(),
+        torch.randn   : ty_TorchTensorOfShape(),
 
         # https://pytorch.org/docs/stable/torch.html#indexing-slicing-joining-mutating-ops
         torch.cat     : ty_TorchCat(),
