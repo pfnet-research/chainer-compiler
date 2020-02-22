@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import numpy as np
 import math
+import numpy as np
 
 from   chainer.utils.conv import get_conv_outsize
 from   chainer.utils import type_check
@@ -521,40 +521,64 @@ class ty_ChainerSeparate():
         return TyTuple([ret_ty] * n.value)
 
 
-class ty_ChainerSplitAxis():
+class ty_TorchChunk():
+    pass
+
+
+class ty_TorchSplit():
     def __call__(self, ty_args, ty_kwargs):
-        x_type, _, axis_type = ty_args
+        x_type, split_size_or_sections_type = ty_args
+        self.dim, lacks_dim = get_kwarg(ty_kwargs, 'dim', default=0)
 
-        self.axis = axis_type.value
+        # TODO: Handle cases where lacks_dim = True
 
-        if isinstance(ty_args[1], TyNum):
-            sections = ty_args[1].value
-            return self.infer_return(x_type, sections, is_indices=False)
+        if isinstance(split_size_or_sections_type, TyNum):
+            size = split_size_or_sections_type.value
+            assert size is None or size > 0
+            return self.infer_return_size(x_type, size)
 
-        # 1-D array
-        indices_type = ty_args[1]
-        assert isinstance(indices_type, TyTensor)
+        sections_type = split_size_or_sections_type
+        assert isinstance(sections_type, TySequence)
+        return self.infer_return_sections(x_type, sections_type)
 
-        assert indices_type.ndim == 1
-        n = indices_type.shape[0].value
-        return self.infer_return(x_type, n + 1, is_indices=True)
-
-    # TODO: check_type_forward
-
-    def infer_return(self, x_type, n_split, is_indices):
-        if n_split is None:
-            if self.axis is None:
-                return TyTuple(TyChainerVariable(x_type.dtype, ndim=x_type.ndim))
+    def infer_return_size(self, x_type, size):
+        if size is None:
+            if self.dim is None:
+                return TyTuple(TyTorchTensor(x_type.dtype, ndim=x_type.ndim))
             ret_shape = list(x_type.shape)
-            ret_shape[self.axis] = None
-            return TyTuple(TyChainerVariable(x_type.dtype, shape=ret_shape))
+            ret_shape[self.dim] = None
+            return TyTuple(TyTorchTensor(x_type.dtype, shape=ret_shape))
+
+        if x_type.shape[self.dim].is_null():
+            pass
+
+        n_split = math.ceil(x_type.shape[self.dim].get_value() / size)
+        if x_type.shape[self.dim] % size != 0:
+            ret_shapes = [list(x_type.shape) for _ in range(n_split)]
+            for i in range(n_split - 1):
+                ret_shapes[i][self.dim] = size
+            ret_shapes[-1][self.dim] = x_type.shape[self.dim] % size
+            print(ret_shapes)
+            return TyTuple(
+                    [TyTorchTensor(x_type.dtype, shape=shape) for shape in ret_shapes])
+
         ret_shape = list(x_type.shape)
-        if is_indices:
-            ret_shape[self.axis] = None
-        else:
-            ret_shape[self.axis] = ret_shape[self.axis] // n_split
+        ret_shape[self.dim] = size
         return TyTuple(
-            [TyChainerVariable(x_type.dtype, shape=ret_shape)] * n_split)
+            [TyTorchTensor(x_type.dtype, shape=ret_shape)] * n_split)
+
+    def infer_return_sections(self, x_type, sections_type):
+        if not sections_type.is_fixed_len:
+            ret_shape = list(x_type.shape)
+            ret_shape[self.dim] = None
+            return TyTuple(TyTorchTensor(x_type.dtype, shape=ret_shape))
+
+        sections = extract_value_from_ty(sections_type)
+        ret_shapes = [list(x_type.shape) for _ in sections]
+        for i, n in enumerate(sections):
+            ret_shapes[i][self.dim] = n
+        return TyTuple([TyTorchTensor(x_type.dtype, shape=shape)
+            for shape in ret_shapes])
 
 
 class ty_ChainerPad():
@@ -775,6 +799,8 @@ pytorch_func_ty = {
 
         # https://pytorch.org/docs/stable/torch.html#indexing-slicing-joining-mutating-ops
         torch.cat     : ty_TorchCat(),
+        torch.chunk   : ty_TorchChunk(),
+        torch.split   : ty_TorchSplit(),
         torch.stack   : ty_TorchStack(),
 
         # https://pytorch.org/docs/stable/torch.html#random-sampling
