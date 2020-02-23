@@ -188,6 +188,32 @@ class ty_TorchAdaptivePooling():
         return TyTorchTensor(x_type.dtype, shape=shape)
 
 
+class ty_TorchPad():
+    def __init__(self, dim, is_const=False):
+        self.dim = dim
+        self.is_const = is_const
+
+    def nn(self, obj, ty_args, ty_kwargs):
+        x_type, = ty_args
+        assert x_type.ndim == self.dim + 2
+
+        if self.is_const:
+            if type(obj.value) is int:
+                assert x_type.dtype.kind == 'i'
+            elif type(obj.value) is float:
+                assert x_type.dtype.kind == 'f'
+
+        padding = make_tuple(obj.padding, self.dim + 2)
+        return self.infer_return(x_type, padding)
+
+    def infer_return(self, x_type, padding):
+        shape = list(x_type.shape)
+        for i in range(self.dim):
+            shape[i + 2] = shape[i + 2] + padding[- (2 * i + 1)] + \
+                    padding[- (2 * i + 2)]
+        return TyTorchTensor(x_type.dtype, shape=shape)
+
+
 class ty_TorchNNCrossEntropyLoss():
     def nn(self, _, ty_args, ty_kwargs):
         x_type, t_type = ty_args
@@ -526,40 +552,6 @@ class ty_TorchSplit():
             for shape in ret_shapes])
 
 
-class ty_ChainerPad():
-    def __call__(self, ty_args, ty_kwargs):
-        x_type, pad_width_type, mode_type = ty_args
-
-        assert isinstance(mode_type, TyString), \
-                "chainer.functions.pad: mode_type should be string"
-        self.check_type_forward(make_multiple_tc_variable(ty_args[:1], ('x',)))
-
-        if lacks_value(pad_width_type):
-            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
-
-        assert pad_width_type.size() > 0, \
-                "chainer.functions.pad: pad_width is not specified"
-
-        pad_width = extract_value_from_ty(pad_width_type)
-        if isinstance(pad_width, int):
-            pad_width = make_pair(pad_width)
-        if isinstance(pad_width[0], int):
-            pad_width = pad_width * x_type.ndim
-        for pad in pad_width:
-            assert len(pad) == 2, "chainer.functions.pad: pad_width is invalid"
-        return self.infer_return(x_type, pad_width)
-
-    def check_type_forward(self, in_types):
-        x_type = in_types[0]
-        type_check.expect(x_type.dtype.kind == 'f')
-
-    def infer_return(self, x_type, pad_width):
-        ret_shape = list(x_type.shape)
-        for i in range(x_type.ndim):
-            ret_shape[i] += pad_width[i][0] + pad_width[i][1]
-        return TyChainerVariable(x_type.dtype, shape=ret_shape)
-
-
 class ty_ChainerPadSequence():
     def __call__(self, ty_args, ty_kwargs):
         xs_type, = ty_args
@@ -831,6 +823,17 @@ pytorch_callable_ty = {
         nn.AdaptiveAvgPool1d : ty_TorchAdaptivePooling(dim=1).nn,
         nn.AdaptiveAvgPool2d : ty_TorchAdaptivePooling(dim=2).nn,
         nn.AdaptiveAvgPool3d : ty_TorchAdaptivePooling(dim=3).nn,
+
+        # https://pytorch.org/docs/stable/nn.html#padding-layers
+        nn.ReflectionPad1d   : ty_TorchPad(dim=1).nn,
+        nn.ReflectionPad2d   : ty_TorchPad(dim=2).nn,
+        nn.ReplicationPad1d  : ty_TorchPad(dim=1).nn,
+        nn.ReplicationPad2d  : ty_TorchPad(dim=2).nn,
+        nn.ReplicationPad3d  : ty_TorchPad(dim=3).nn,
+        nn.ZeroPad2d         : ty_TorchPad(dim=2).nn,
+        nn.ConstantPad1d     : ty_TorchPad(dim=1, is_const=True).nn,
+        nn.ConstantPad2d     : ty_TorchPad(dim=2, is_const=True).nn,
+        nn.ConstantPad3d     : ty_TorchPad(dim=3, is_const=True).nn,
 
         # https://pytorch.org/docs/stable/nn.html#padding-layers
 

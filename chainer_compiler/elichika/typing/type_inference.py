@@ -345,7 +345,7 @@ class InferenceEngine():
 
         else:
             # defined with __call__
-            if isinstance(func, chainer.Chain):
+            if isinstance(func, chainer.Chain) or isinstance(func, nn.Module):
                 func_body = func.forward
             else:
                 func_body = func.__call__
