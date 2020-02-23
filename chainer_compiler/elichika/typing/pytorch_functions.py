@@ -305,54 +305,10 @@ class ty_TorchStack():
         return TyTorchTensor(xs_type.get().dtype, shape=ret_shape)
 
 
-class ty_ChainerExpandDims():
-    def __call__(self, ty_args, ty_kwargs):
-        x_type, axis_type = ty_args
-        self.axis = extract_value_from_ty(axis_type)
-
-        if self.axis is None:
-            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim + 1)
-
-        self.check_type_forward(make_multiple_tc_variable((x_type,), ('x',)))
-        return self.infer_return(x_type)
-
-    def check_type_forward(self, in_types):
-        x_type, = in_types
-        if self.axis >= 0:
-            type_check.expect(x_type.ndim >= self.axis)
-        else:
-            type_check.expect(x_type.ndim >= -self.axis - 1)
-
-    def infer_return(self, x_type):
-        if self.axis < 0:
-            self.axis = x_type.ndim + 1 - abs(self.axis)
-        ret_shape = list(x_type.shape)
-        ret_shape.insert(self.axis, 1)
-        return TyChainerVariable(x_type.dtype, shape=ret_shape)
-
-
-class ty_ChainerBroadcastTo():
+class ty_TorchReshape():
     def __call__(self, ty_args, ty_kwargs):
         x_type, shape_type = ty_args
-
-        assert shape_type.is_fixed_len
-
-        out_shape = wrap_shape(extract_value_from_ty(shape_type))
-
-        # TODO: use check_type_forward
-        ndim = len(out_shape)
-        assert x_type.ndim <= ndim
-
-        for i in range(-1, - x_type.ndim - 1, -1):
-            assert x_type.shape[i] == out_shape[i] or x_type.shape[i] == 1
-
-        return TyChainerVariable(x_type.dtype, shape=out_shape)
-
-
-class ty_ChainerReshape():
-    def __call__(self, ty_args, ty_kwargs):
-        x_type, shape_type = ty_args
-
+        assert isinstance(shape_type, TySequence)
         assert shape_type.is_fixed_len
 
         self.shape = extract_value_from_ty(shape_type)
@@ -360,7 +316,7 @@ class ty_ChainerReshape():
 
     def infer_return(self, x_type):
         ret_shape = calculate_reshape(x_type.shape, self.shape)
-        return TyChainerVariable(x_type.dtype, shape=ret_shape)
+        return TyTorchTensor(x_type.dtype, shape=ret_shape)
 
 
 class ty_ChainerRepeat():
@@ -770,6 +726,7 @@ pytorch_func_ty = {
         torch.chunk   : ty_TorchChunk(),
         torch.split   : ty_TorchSplit(),
         torch.stack   : ty_TorchStack(),
+        torch.reshape : ty_TorchReshape(),
 
         # https://pytorch.org/docs/stable/torch.html#random-sampling
         torch.rand_like  : ty_TorchIdentical(),
