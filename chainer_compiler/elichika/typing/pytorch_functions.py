@@ -10,42 +10,6 @@ from   chainer_compiler.elichika.typing.pytorch.nn          import *
 from   chainer_compiler.elichika.typing.pytorch.tensor      import *
 
 
-# TODO: port to pytorch
-class ty_ChainerRepeat():
-    def __init__(self):
-        self.axis = None
-
-    def __call__(self, ty_args, ty_kwargs):
-        x_type, repeats_type = ty_args
-        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', 0)
-
-        if lacks_value(repeats_type) or lacks_axis:
-            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
-
-        repeats = extract_value_from_ty(repeats_type)
-        self.check_type_forward(x_type, repeats)
-        return self.infer_return(x_type, repeats)
-
-    def check_type_forward(self, x_type, repeats):
-        # XXX: This is not taken from chainer nor numpy
-        if isinstance(repeats, int):
-            assert self.axis < x_type.ndim
-            return
-        assert x_type.shape[self.axis] == len(repeats), "repeat"
-
-    def infer_return(self, x_type, repeats):
-        if isinstance(repeats, int):
-            if x_type.ndim < 1:
-                ret_shape = (repeats,)
-            else:
-                ret_shape = list(x_type.shape)
-                ret_shape[self.axis] = x_type.shape[self.axis] * repeats
-        else:
-            ret_shape = list(x_type.shape)
-            ret_shape[self.axis] = sum(repeats)
-        return TyChainerVariable(x_type.dtype, shape=ret_shape)
-
-
 class ty_ChainerSum():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
@@ -248,10 +212,11 @@ pytorch_func_ty = {
         torch.Tensor.mul  : ty_TorchArith(torch.mul),
         torch.Tensor.mul_ : ty_TorchArith(torch.mul),
 
-        torch.Tensor.view      : ty_TorchView(),
         torch.Tensor.chunk     : ty_TorchChunk(),
+        torch.Tensor.repeat    : ty_TorchRepeat(),
         torch.Tensor.squeeze   : ty_TorchSqueeze(),
         torch.Tensor.unsqueeze : ty_TorchUnsqueeze(),
+        torch.Tensor.view      : ty_TorchView(),
         }
 
 

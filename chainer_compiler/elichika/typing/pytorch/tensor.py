@@ -321,3 +321,19 @@ class ty_TorchView():
         out_shape = wrap_shape([extract_value_from_ty(t) for t in shape_type])
         ret_shape = calculate_reshape(x_type.shape, out_shape)
         return TyTorchTensor(x_type.dtype, shape=ret_shape)
+
+
+class ty_TorchRepeat():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+        size_types = ty_args[1:]
+        assert len(size_types) >= x_type.ndim
+        assert all([isinstance(ty, TyNum) for ty in size_types])
+        sizes = [ty.value for ty in size_types]
+        return self.infer_return(x_type, sizes)
+
+    def infer_return(self, x_type, sizes):
+        n = len(sizes) - x_type.ndim
+        for i in range(n, len(sizes)):
+            sizes[i] *= x_type.shape[i - n]
+        return TyTorchTensor(x_type.dtype, shape=sizes)
