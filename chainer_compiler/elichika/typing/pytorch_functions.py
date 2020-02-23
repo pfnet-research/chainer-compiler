@@ -12,6 +12,14 @@ from   chainer_compiler.elichika.typing.ext_functions_utils import *
 from   chainer_compiler.elichika.typing.types import *
 
 
+def check_dtype(module, dtype):
+    for m in module.parameters():
+        assert torch_dtype_to_np_dtype(m.dtype) == dtype, \
+                "dtype mismatch in {}".format(module.__name__)
+        # Checking the first param is enough
+        return
+
+
 # TODO: Unify with NumpyArray
 class ty_TorchTensor():
     def __call__(self, ty_args, ty_kwargs):
@@ -144,7 +152,7 @@ class ty_TorchPooling():
     def nn(self, obj, ty_args, ty_kwargs):
         x_type, = ty_args
         assert x_type.ndim == self.dim + 2
-        assert x_type.dtype.kind == 'f'
+        check_dtype(obj, x_type.dtype)
 
         kernel_size = obj.kernel_size
         stride = obj.stride
@@ -251,44 +259,27 @@ class ty_TorchStack():
 
     def __call__(self, ty_args, ty_kwargs):
         xs_type, = ty_args
-
         assert isinstance(xs_type, TySequence)
+
+        if xs_type.is_fixed_len:
+            for ty in xs_type.get_tys():
+                unify(xs_type.get_ty(), ty)
+
         self.dim, lacks_dim = get_kwarg(ty_kwargs, 'dim', default=0)
 
-        if lacks_value(xs_type) or lacks_dim:
+        if lacks_dim:
             x_type = xs_type.get()
             return TyTorchTensor(x_type.dtype, ndim=x_type.ndim + 1)
 
-        self.check_type_forward(type_check.Variable(xs_type, 'xs'))
         self.dim %= xs_type.get().ndim + 1
         return self.infer_return(xs_type)
 
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() > 0)
-        type_check.expect(
-            -in_types[0].ndim - 1 <= self.dim,
-            self.dim <= in_types[0].ndim
-        )
-
-        # XXX: modified
-        for i in range(1, type_check.eval(in_types.size())):
-            type_check.expect(
-                in_types[0].dtype == in_types[i].dtype,
-                in_types[0].shape == in_types[i].shape,
-            )
-
-        # XXX: the following doesn't work
-        # dtype = in_types[0].dtype
-        # shape = in_types[0].shape
-        # for x_type in in_types[1:]:
-        #     type_check.expect(
-        #         x_type.dtype == dtype,
-        #         x_type.shape == shape,
-        #     )
-
     def infer_return(self, xs_type):
-        ret_shape = list(xs_type[0].shape)
-        ret_shape.insert(self.dim, len(xs_type))
+        ret_shape = list(xs_type.get().shape)
+        if xs_type.is_fixed_len:
+            ret_shape.insert(self.dim, len(xs_type))
+        else:
+            ret_shape.insert(self.dim, None)
         return TyTorchTensor(xs_type.get().dtype, shape=ret_shape)
 
 
@@ -695,7 +686,7 @@ class ty_ChainerLocalResponseNormalization():
 class ty_TorchLinear():
     def nn(self, obj, ty_args, ty_kwargs):
         x_type, = ty_args
-        assert x_type.dtype == np.dtype('float32')
+        check_dtype(obj, x_type.dtype)
         assert x_type.shape[-1] == obj.in_features
 
         return self.infer_return_shape(x_type, obj.out_features)
@@ -712,7 +703,7 @@ class ty_TorchConv():
     def nn(self, obj, ty_args, ty_kwargs):
         x_type, = ty_args
 
-        assert x_type.dtype == np.dtype('float32')
+        check_dtype(obj, x_type.dtype)
         assert x_type.ndim == self.dim + 2
         assert x_type.shape[1] == obj.in_channels
 
@@ -737,7 +728,6 @@ class ty_TorchSequential():
         x_type, = ty_args
         for idx, module in enumerate(seq.modules()):
             if idx == 0: continue
-            print("---", module)
             logic = pytorch_callable_ty[type(module)]
             x_type = logic.nn(module, [x_type], {})
         return x_type
@@ -760,6 +750,25 @@ class ty_ChainerEmbedID():
         if not is_incomplete_shape(x_type.shape):
             assert all([t < embed.W.shape[0] for t in x_type.shape])
         return TyChainerVariable(embed.W.dtype, shape=ret_shape)
+
+
+class ty_TorchLSTMCell():
+    def nn(self, obj, ty_args, ty_kwargs):
+        input_size = obj.input_size
+        hidden_size = obj.hidden_size
+        input_type = ty_args[0]
+        assert isinstance(ty_args[1], TySequence)
+        assert ty_args[1].is_fixed_len
+        h_0_type, c_0_type = ty_args[1].get_tys()
+
+        batch = input_type.shape[0]
+        assert input_type.shape[1] == input_size
+        assert h_0_type.shape[0] == batch
+        assert h_0_type.shape[1] == hidden_size
+        assert c_0_type.shape[0] == batch
+        assert c_0_type.shape[1] == hidden_size
+
+        return TyTuple([copy_ty(h_0_type), copy_ty(c_0_type)])
 
 
 class ty_ChainerNStepBiLSTM():
@@ -891,6 +900,9 @@ pytorch_callable_ty = {
 
         # https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
         nn.ReLU             : ty_TorchIdentical().nn,
+
+        # https://pytorch.org/docs/stable/nn.html#recurrent-layers
+        nn.LSTMCell         : ty_TorchLSTMCell().nn,
 
         # https://pytorch.org/docs/stable/nn.html#linear-layers
         nn.Linear           : ty_TorchLinear().nn,
