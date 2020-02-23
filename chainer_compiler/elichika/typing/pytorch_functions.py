@@ -391,6 +391,19 @@ class ty_TorchSqueeze():
         return TyTorchTensor(x_type.dtype, shape=ret_shape)
 
 
+class ty_TorchUnsqueeze():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, dim_type = ty_args
+        assert isinstance(dim_type, TyNum)
+        dim = extract_value_from_ty(dim_type)
+        if dim is None:
+            return TyTorchTensor(x_type.dtype, ndim=x_type.ndim + 1)
+
+        shape = list(x_type.shape)
+        shape.insert(dim, 1)
+        return TyTorchTensor(x_type.dtype, shape=shape)
+
+
 class ty_ChainerSum():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
@@ -794,9 +807,10 @@ pytorch_func_ty = {
         torch.Tensor.mul  : ty_TorchArith(torch.mul),
         torch.Tensor.mul_ : ty_TorchArith(torch.mul),
 
-        torch.Tensor.view    : ty_TorchView(),
-        torch.Tensor.chunk   : ty_TorchChunk(),
-        torch.Tensor.squeeze : ty_TorchSqueeze(),
+        torch.Tensor.view      : ty_TorchView(),
+        torch.Tensor.chunk     : ty_TorchChunk(),
+        torch.Tensor.squeeze   : ty_TorchSqueeze(),
+        torch.Tensor.unsqueeze : ty_TorchUnsqueeze(),
         }
 
 
