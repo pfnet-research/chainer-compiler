@@ -394,98 +394,45 @@ class ty_TorchSqueeze():
 class ty_ChainerSum():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
-        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', default=None)
+        self.dim, lacks_dim = get_kwarg(ty_kwargs, 'dim', default=None)
         self.keepdims, lacks_keepdims = \
                 get_kwarg(ty_kwargs, 'keepdims', default=False)
 
-        if isinstance(self.axis, int):
-            self.axis = (self.axis,)
+        if isinstance(self.dim, int):
+            self.dim = (self.dim,)
 
         self.check_type_forward(make_multiple_tc_variable(ty_args, ('x',)))
 
-        if self.axis is None:
-            self.axis = tuple(range(x_type.ndim))
+        if self.dim is None:
+            self.dim = tuple(range(x_type.ndim))
 
         return self.infer_return(x_type)
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
-        if self.axis is None:
+        if self.dim is None:
             return
 
-        for axis in self.axis:
-            if axis >= 0:
+        for dim in self.dim:
+            if dim >= 0:
                 type_check.expect(
-                    axis < in_types[0].ndim,
+                    dim < in_types[0].ndim,
                 )
             else:
                 type_check.expect(
-                    -axis - 1 < in_types[0].ndim,
+                    -dim - 1 < in_types[0].ndim,
                 )
 
     def infer_return(self, x_type):
         if self.keepdims:
             ret_shape = list(x_type.shape)
-            for i in self.axis:
+            for i in self.dim:
                 ret_shape[i] = 1
             return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
-        ret_shape = remove_dims(x_type.shape, self.axis)
+        ret_shape = remove_dims(x_type.shape, self.dim)
         return TyChainerVariable(x_type.dtype, shape=ret_shape)
-
-
-class ty_ChainerSwapAxes():
-    def __call__(self, ty_args, ty_kwargs):
-        x_type, axis1_type, axis2_type = ty_args
-
-        if lacks_value(axis1_type) or lacks_value(axis2_type):
-            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
-
-        self.axis1 = extract_value_from_ty(axis1_type)
-        self.axis2 = extract_value_from_ty(axis2_type)
-
-        self.check_type_forward(type_check.make_variable(x_type, 'x'))
-        return self.infer_return(x_type)
-
-    def check_type_forward(self, x_type):
-        type_check.expect(
-                self.axis1 < x_type.ndim,
-                self.axis2 < x_type.ndim
-                )
-
-    def infer_return(self, x_type):
-        ret_shape = list(x_type.shape)
-        ret_shape[self.axis1], ret_shape[self.axis2] = \
-                ret_shape[self.axis2], ret_shape[self.axis1]
-        return TyChainerVariable(x_type.dtype, shape=ret_shape)
-
-
-class ty_ChainerSeparate():
-    def __call__(self, ty_args, ty_kwargs):
-        x_type, = ty_args
-        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', 0)
-
-        if lacks_axis:
-            return TyTuple(TyChainerVariable(x_type.dtype, ndim=x_type.ndim-1))
-
-        self.check_type_forward(make_multiple_tc_variable(ty_args, ('x',)))
-        return self.infer_return(x_type)
-
-    def check_type_forward(self, in_types):
-        x_type = in_types[0]
-        if self.axis >= 0:
-            type_check.expect(self.axis < x_type.ndim)
-        else:
-            type_check.expect(-self.axis <= x_type.ndim)
-
-    def infer_return(self, x_type):
-        n = x_type.shape[self.axis]
-        ret_shape = x_type.shape[:self.axis] + x_type.shape[self.axis + 1:]
-        ret_ty = TyChainerVariable(x_type.dtype, shape=ret_shape)
-        if not n.has_value():
-            return TyTuple(ret_ty)
-        return TyTuple([ret_ty] * n.value)
 
 
 class ty_TorchChunk():
