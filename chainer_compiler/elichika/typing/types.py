@@ -161,16 +161,13 @@ class TySequence(TyObj):
         assert self.is_fixed_len
         return self._ty[i]
 
-    def __len__(self):
-        assert self.is_fixed_len
-        return len(self._ty)
-
     def is_mutable(self):
         return self.kind == SequenceKind.LIST
 
     def size(self):
-        assert self.is_fixed_len
-        return len(self._ty)
+        if self.is_fixed_len:
+            return len(self._ty)
+        return None
 
     def deref(self):
         if self.is_fixed_len is not None:

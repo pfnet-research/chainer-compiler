@@ -189,7 +189,7 @@ class ty_ChainerStack():
 
     def infer_return(self, xs_type):
         ret_shape = list(xs_type[0].shape)
-        ret_shape.insert(self.axis, len(xs_type))
+        ret_shape.insert(self.axis, ShapeElem(xs_type.size()))
         return TyChainerVariable(xs_type.get().dtype, shape=ret_shape)
 
 
@@ -592,7 +592,7 @@ class ty_ChainerPadSequence():
             )
 
     def infer_return(self, xs_type, lacks_length):
-        n = len(xs_type)
+        n = ShapeElem(xs_type.size())
         ret_shape = list((n,) + xs_type.get().shape)
 
         if lacks_length:
@@ -714,8 +714,7 @@ class ty_ChainerNStepBiLSTM():
     def __call__(self, nblstm, ty_args, ty_kwargs):
         hx_type, cx_type, xs_type = ty_args
         assert isinstance(xs_type, TySequence)
-
-        xs_len = len(xs_type.get_tys()) if xs_type.is_fixed_len else None
+        xs_len = xs_type.size()
 
         if isinstance(hx_type, TyTensor):
             hx_shape = hx_type.shape

@@ -65,7 +65,6 @@ class ty_TorchTensorOfShape():
         dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', np.dtype('float32'))
         assert not lacks_dtype
 
-        print(ty_args)
         shape = wrap_shape([extract_value_from_ty(ty) for ty in ty_args])
         return TyNdarray(dtype, shape=shape)
 
@@ -276,10 +275,7 @@ class ty_TorchStack():
 
     def infer_return(self, xs_type):
         ret_shape = list(xs_type.get().shape)
-        if xs_type.is_fixed_len:
-            ret_shape.insert(self.dim, len(xs_type))
-        else:
-            ret_shape.insert(self.dim, None)
+        ret_shape.insert(self.dim, ShapeElem(xs_type.size()))
         return TyTorchTensor(xs_type.get().dtype, shape=ret_shape)
 
 
@@ -376,43 +372,23 @@ class ty_ChainerRepeat():
         return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
-class ty_ChainerSqueeze():
+class ty_TorchSqueeze():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
-
-        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', None)
-        if isinstance(self.axis, int):
-            self.axis = (self.axis,)
+        self.dim, lacks_dim = get_kwarg(ty_kwargs, 'dim', None)
 
         if is_incomplete_shape(x_type.shape):
-            # TODO: use ty_kwargs['axis'].size()
-            if lacks_axis or self.axis is None:
-                assert False, "chainer.fucntions.squeeze: cannot guess ndim of return type"
+            if lacks_dim or self.dim is None:
+                assert False, "torch.squeeze: cannot guess ndim of return type"
 
-        self.check_type_forward(make_multiple_tc_variable(ty_args, ('x',)))
-
-        if self.axis is not None:
-            for i in self.axis:
-                assert x_type.shape[i] == 1, "chainer.fucntions.squeeze: invalid axis"
         return self.infer_return(x_type)
 
-    def check_type_forward(self, in_types):
-        # type_check.expect(in_types.size() == 1)
-        x_type = in_types[0]
-
-        if self.axis is not None:
-            for x in self.axis:
-                if x >= 0:
-                    type_check.expect(x < x_type.ndim)
-                else:
-                    type_check.expect(-x_type.ndim <= x)
-
     def infer_return(self, x_type):
-        if isinstance(self.axis, tuple):
-            ret_shape = remove_dims(x_type.shape, self.axis)
+        if self.dim is not None:
+            ret_shape = remove_dims(x_type.shape, (self.dim,))
         else:
             ret_shape = [s for s in x_type.shape if s != 1]
-        return TyChainerVariable(x_type.dtype, shape=ret_shape)
+        return TyTorchTensor(x_type.dtype, shape=ret_shape)
 
 
 class ty_ChainerSum():
@@ -568,7 +544,6 @@ class ty_TorchSplit():
             for i in range(n_split - 1):
                 ret_shapes[i][self.dim] = size
             ret_shapes[-1][self.dim] = x_type.shape[self.dim] % size
-            print(ret_shapes)
             return TyTuple(
                     [TyTorchTensor(x_type.dtype, shape=shape) for shape in ret_shapes])
 
@@ -648,7 +623,7 @@ class ty_ChainerPadSequence():
             )
 
     def infer_return(self, xs_type, lacks_length):
-        n = len(xs_type)
+        n = ShapeElem(xs_type.size())
         ret_shape = list((n,) + xs_type.get().shape)
 
         if lacks_length:
@@ -775,8 +750,7 @@ class ty_ChainerNStepBiLSTM():
     def __call__(self, nblstm, ty_args, ty_kwargs):
         hx_type, cx_type, xs_type = ty_args
         assert isinstance(xs_type, TySequence)
-
-        xs_len = len(xs_type.get_tys()) if xs_type.is_fixed_len else None
+        xs_len = ShapeElem(xs_type.size())
 
         if isinstance(hx_type, TyTensor):
             hx_shape = hx_type.shape
@@ -873,8 +847,9 @@ pytorch_func_ty = {
         torch.Tensor.mul  : ty_TorchArith(torch.mul),
         torch.Tensor.mul_ : ty_TorchArith(torch.mul),
 
-        torch.Tensor.view  : ty_TorchView(),
-        torch.Tensor.chunk : ty_TorchChunk(),
+        torch.Tensor.view    : ty_TorchView(),
+        torch.Tensor.chunk   : ty_TorchChunk(),
+        torch.Tensor.squeeze : ty_TorchSqueeze(),
         }
 
 
