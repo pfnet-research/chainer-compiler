@@ -656,7 +656,7 @@ class ty_TorchSequential():
         for idx, module in enumerate(obj.modules()):
             if idx == 0: continue
             logic = pytorch_callable_ty[type(module)]
-            x_type = logic.nn(module, [x_type], {})
+            x_type = logic(module, [x_type], {})
         return x_type
 
 
