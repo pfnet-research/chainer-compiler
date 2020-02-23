@@ -651,18 +651,24 @@ class ty_TorchConv():
 
 
 class ty_TorchSequential():
-    def nn(self, seq, ty_args, ty_kwargs):
+    def nn(self, obj, ty_args, ty_kwargs):
         x_type, = ty_args
-        for idx, module in enumerate(seq.modules()):
+        for idx, module in enumerate(obj.modules()):
             if idx == 0: continue
             logic = pytorch_callable_ty[type(module)]
             x_type = logic.nn(module, [x_type], {})
         return x_type
 
 
-class ty_ChainerBatchNormalization():
-    def __call__(self, obj, ty_args, ty_kwargs):
-        assert False
+class ty_TorchInstanceNorm():
+    def __init__(self, dim):
+        self.dim = dim
+
+    def nn(self, obj, ty_args, ty_kwargs):
+        # TODO: Need any check?
+        x_type, = ty_args
+        assert x_type.ndim == self.dim + 2
+        return x_type
 
 
 class ty_ChainerEmbedID():
@@ -839,6 +845,13 @@ pytorch_callable_ty = {
 
         # https://pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity
         nn.ReLU             : ty_TorchIdentical().nn,
+
+        # https://pytorch.org/docs/stable/nn.html#non-linear-activations-other
+
+        # https://pytorch.org/docs/stable/nn.html#normalization-layers
+        nn.InstanceNorm1d   : ty_TorchInstanceNorm(dim=1).nn,
+        nn.InstanceNorm2d   : ty_TorchInstanceNorm(dim=2).nn,
+        nn.InstanceNorm3d   : ty_TorchInstanceNorm(dim=3).nn,
 
         # https://pytorch.org/docs/stable/nn.html#recurrent-layers
         nn.LSTMCell         : ty_TorchLSTMCell().nn,
