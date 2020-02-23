@@ -590,24 +590,32 @@ class ty_ChainerPadSequence():
         return TyChainerVariable(xs_type.get().dtype, shape=ret_shape)
 
 
-class ty_ChainerLocalResponseNormalization():
+class ty_TorchInterpolate():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
+        assert x_type.ndim >= 3 and x_type.ndim <= 5
+        size, lacks_size = get_kwarg(ty_kwargs, 'size', None)
+        scale_factor, lacks_scale_factor = get_kwarg(ty_kwargs, 'scale_factor', None)
+        assert not lacks_size and not lacks_scale_factor
+        return self.infer_return(x_type, size, scale_factor)
 
-        self.check_type(x_type)
-        return self.infer_return(x_type)
-
-    def check_type(self, x_type):
-        x = type_check.Variable(x_type, 'x')
-
-        type_check.expect(
-            x.dtype.kind == 'f',
-            x.ndim >= 2,
-        )
-        assert len(x_type.shape) >= 2
-
-    def infer_return(self, x_type):
-        return TyChainerVariable(dtype=x_type.dtype, shape=x_type.shape)
+    def infer_return(self, x_type, size, scale_factor):
+        shape = list(x_type.shape)
+        if size is not None:
+            if isinstance(size, tuple):
+                for (i, x) in zip(range(2, x_type.ndim), size):
+                    shape[i] = x
+            else:
+                for i in range(2, x_type.ndim):
+                    shape[i] = size
+        elif scale_factor is not None:
+            if isinstance(scale_factor, tuple):
+                for (i, r) in zip(range(2, x_type.ndim), scale_factor):
+                    shape[i] = math.floor(r * shape[i])
+            else:
+                for i in range(2, x_type.ndim):
+                    shape[i] = math.floor(scale_factor * shape[i])
+        return TyTorchTensor(x_type.dtype, shape=wrap_shape(shape))
 
 
 class ty_TorchLinear():
@@ -647,7 +655,7 @@ class ty_TorchConv():
             shape[i] = get_conv_outsize(
                 x_type.shape[i + 2], kernel_size[i], stride[i], padding[i], d=dilation[i])
         ret_shape = (x_type.shape[0], obj.out_channels) + tuple(shape)
-        return TyChainerVariable(x_type.dtype, shape=ret_shape)
+        return TyTorchTensor(x_type.dtype, shape=ret_shape)
 
 
 class ty_TorchSequential():
@@ -682,7 +690,7 @@ class ty_ChainerEmbedID():
 
         if not is_incomplete_shape(x_type.shape):
             assert all([t < embed.W.shape[0] for t in x_type.shape])
-        return TyChainerVariable(embed.W.dtype, shape=ret_shape)
+        return TyTorchTensor(embed.W.dtype, shape=ret_shape)
 
 
 class ty_TorchLSTMCell():
@@ -797,6 +805,9 @@ pytorch_func_ty = {
         F.log_softmax : ty_TorchIdentical(),
         F.tanh        : ty_TorchIdentical(),
         F.sigmoid     : ty_TorchIdentical(),
+
+        # https://pytorch.org/docs/stable/nn.functional.html#vision-functions
+        F.interpolate : ty_TorchInterpolate(),
 
         torch.Tensor.add  : ty_TorchArith(torch.add),
         torch.Tensor.add_ : ty_TorchArith(torch.add),

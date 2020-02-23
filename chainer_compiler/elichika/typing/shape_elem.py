@@ -7,6 +7,7 @@ unaryops = {
         '-'    : (6, lambda x: -x),
         'ceil' : (6, math.ceil),
         'abs'  : (6, abs),
+        'floor' : (6, math.floor),
         }
 
 binops = {
@@ -140,6 +141,8 @@ class ShapeElem():
         return _make_unaryop(self, 'ceil')
     def __abs__(self):
         return _make_unaryop(self, 'abs')
+    def __floor__(self):
+        return _make_unaryop(self, 'floor')
 
     def __add__(self, other):
         return _make_binop(self, other, '+')
