@@ -20,7 +20,8 @@ class ty_TorchIdentical():
             assert x_type.ndim >= self.ndim_min
         return copy_ty(x_type)
 
-    def nn(self, _, ty_args, ty_kwargs):
+    def nn(self, obj, ty_args, ty_kwargs):
+        check_dtype(obj, ty_args[0].dtype)
         return self(ty_args, ty_kwargs)
 
 # Tensors

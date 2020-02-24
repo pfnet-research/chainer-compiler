@@ -1,30 +1,27 @@
 import math
 import numpy as np
 
-from   chainer.utils.conv import get_conv_outsize
 from   chainer.utils import type_check
 
 from   chainer_compiler.elichika.typing.ext_functions_utils import *
 from   chainer_compiler.elichika.typing.types               import *
 from   chainer_compiler.elichika.typing.pytorch.utils       import *
 
-# Containers
-
-class ty_TorchSequential():
-    def nn(self, obj, ty_args, ty_kwargs):
-        x_type, = ty_args
-        for idx, module in enumerate(obj.modules()):
-            if idx == 0: continue
-            logic = pytorch_callable_ty[type(module)]
-            x_type = logic(module, [x_type], {})
-        return x_type
-
 
 # Convolution
 
+def get_conv_outsize(x, kernel_size, stride, padding, dilation):
+    return (x + 2 * padding - dilation * (kernel_size - 1) - 1) // stride + 1
+
+def get_conv_transpose_outsize(
+        x, kernel_size, stride, padding, dilation, output_padding):
+    return (x - 1) * stride - 2 * padding + dilation * (kernel_size - 1) + \
+            output_padding + 1
+
 class ty_TorchConv():
-    def __init__(self, dim):
+    def __init__(self, dim, transpose=False):
         self.dim = dim
+        self.transpose = transpose
 
     def nn(self, obj, ty_args, ty_kwargs):
         x_type, = ty_args
@@ -41,10 +38,19 @@ class ty_TorchConv():
         padding     = make_tuple(obj.padding,     self.dim)
         dilation    = make_tuple(obj.dilation,    self.dim)
 
+        if self.transpose:
+            output_padding = make_tuple(obj.output_padding, self.dim)
+
         shape = [0] * self.dim
         for i in range(self.dim):
-            shape[i] = get_conv_outsize(
-                x_type.shape[i + 2], kernel_size[i], stride[i], padding[i], d=dilation[i])
+            if self.transpose:
+                shape[i] = get_conv_transpose_outsize(
+                        x_type.shape[i + 2], kernel_size[i], stride[i],
+                        padding[i], dilation[i], output_padding[i])
+            else:
+                shape[i] = get_conv_outsize(
+                        x_type.shape[i + 2], kernel_size[i], stride[i],
+                        padding[i], dilation[i])
         ret_shape = (x_type.shape[0], obj.out_channels) + tuple(shape)
         return TyTorchTensor(x_type.dtype, shape=ret_shape)
 
@@ -141,6 +147,18 @@ class ty_TorchPad():
 
 # Normalization
 
+class ty_TorchBatchNorm():
+    def __init__(self, dim):
+        self.dim = dim
+
+    def nn(self, obj, ty_args, ty_kwargs):
+        x_type, = ty_args
+        assert x_type.ndim == self.dim + 2 or x_type.ndim == 2 and self.dim == 1
+        assert x_type.shape[1] == obj.num_features
+        check_dtype(obj, x_type.dtype)
+        return x_type
+
+
 class ty_TorchInstanceNorm():
     def __init__(self, dim):
         self.dim = dim
@@ -149,6 +167,7 @@ class ty_TorchInstanceNorm():
         # TODO: Need any check?
         x_type, = ty_args
         assert x_type.ndim == self.dim + 2
+        check_dtype(obj, x_type.dtype)
         return x_type
 
 
