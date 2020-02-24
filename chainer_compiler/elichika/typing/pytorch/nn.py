@@ -221,6 +221,21 @@ class ty_TorchNNCrossEntropyLoss():
 
 # Vision
 
+class ty_TorchPixelShuffle():
+    def nn(self, obj, ty_args, ty_kwargs):
+        upscale_factor = obj.upscale_factor
+        x_type, = ty_args
+        assert x_type.ndim == 4
+        return self.infer_return(x_type, upscale_factor)
+
+    def infer_return(self, x_type, upscale_factor):
+        shape = list(x_type.shape)
+        shape[1] //= upscale_factor ** 2
+        shape[2] *= upscale_factor
+        shape[3] *= upscale_factor
+        return TyTorchTensor(x_type.dtype, shape=shape)
+
+
 class ty_TorchInterpolate():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args

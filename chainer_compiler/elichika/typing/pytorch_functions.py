@@ -273,4 +273,7 @@ pytorch_callable_ty = {
 
         # https://pytorch.org/docs/stable/nn.html#loss-functions
         nn.CrossEntropyLoss : ty_TorchNNCrossEntropyLoss().nn,
+
+        # https://pytorch.org/docs/stable/nn.html#vision-layers
+        nn.PixelShuffle     : ty_TorchPixelShuffle().nn,
         }
