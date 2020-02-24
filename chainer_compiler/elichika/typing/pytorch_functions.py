@@ -9,6 +9,8 @@ from   chainer_compiler.elichika.typing.types               import *
 from   chainer_compiler.elichika.typing.pytorch.nn          import *
 from   chainer_compiler.elichika.typing.pytorch.tensor      import *
 
+__all__ = [ 'pytorch_func_ty', 'pytorch_callable_ty' ]
+
 
 class ty_TorchSequential():
     def nn(self, obj, ty_args, ty_kwargs):
@@ -208,6 +210,7 @@ pytorch_func_ty = {
 
         # https://pytorch.org/docs/stable/nn.functional.html#non-linear-activation-functions
         F.relu        : ty_TorchIdentical(),
+        F.softmax     : ty_TorchIdentical(),
         F.log_softmax : ty_TorchIdentical(),
         F.tanh        : ty_TorchIdentical(),
         F.sigmoid     : ty_TorchIdentical(),

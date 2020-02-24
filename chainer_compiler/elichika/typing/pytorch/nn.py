@@ -7,6 +7,19 @@ from   chainer_compiler.elichika.typing.ext_functions_utils import *
 from   chainer_compiler.elichika.typing.types               import *
 from   chainer_compiler.elichika.typing.pytorch.utils       import *
 
+__all__ = [ 'ty_TorchConv'
+          , 'ty_TorchPooling'
+          , 'ty_TorchAdaptivePooling'
+          , 'ty_TorchPad'
+          , 'ty_TorchBatchNorm'
+          , 'ty_TorchInstanceNorm'
+          , 'ty_TorchLSTMCell'
+          , 'ty_TorchLinear'
+          , 'ty_TorchNNCrossEntropyLoss'
+          , 'ty_TorchPixelShuffle'
+          , 'ty_TorchInterpolate'
+          ]
+
 
 # Convolution
 

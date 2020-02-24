@@ -3,8 +3,8 @@ import math
 
 from   chainer.utils import type_check
 
-from   chainer_compiler.elichika.typing.types import *
-from   chainer_compiler.elichika.typing.shape_elem import is_incomplete_shape
+from   chainer_compiler.elichika.typing.types      import *
+from   chainer_compiler.elichika.typing.shape_elem import *
 
 
 def size_of_shape(shape):

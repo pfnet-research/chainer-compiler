@@ -6,13 +6,13 @@ import sys
 import types
 import typing
 
-from   chainer_compiler.elichika.parser.utils import clip_head
-from   chainer_compiler.elichika.typing.numpy_functions import numpy_func_ty
+from   chainer_compiler.elichika.parser.utils             import clip_head
+from   chainer_compiler.elichika.typing.numpy_functions   import numpy_func_ty
 from   chainer_compiler.elichika.typing.chainer_functions import chainer_func_ty, chainer_callable_ty
 from   chainer_compiler.elichika.typing.pytorch_functions import pytorch_func_ty, pytorch_callable_ty
-from   chainer_compiler.elichika.typing.types import *
-from   chainer_compiler.elichika.typing.shape_elem import is_incomplete_shape
-from   chainer_compiler.elichika.typing import utils
+from   chainer_compiler.elichika.typing.types             import *
+from   chainer_compiler.elichika.typing.shape_elem        import *
+from   chainer_compiler.elichika.typing                   import utils
 
 import chainer
 from   chainer.backends import cuda
@@ -70,8 +70,8 @@ def lazy_initializer(node):
 
 
 def handle_inference_error(exception, name, node):
-    print_warning(str(exception))
-    print_warning("Failed to infer type of " + name +
+    utils.print_warning(str(exception))
+    utils.print_warning("Failed to infer type of " + name +
             ". Falling back to TyVar...")
     # raise Exception
     return TyVar(lineno=getattr(node, 'lineno', None))

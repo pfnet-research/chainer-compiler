@@ -7,6 +7,22 @@ from   chainer_compiler.elichika.typing.ext_functions_utils import *
 from   chainer_compiler.elichika.typing.types               import *
 from   chainer_compiler.elichika.typing.pytorch.utils       import *
 
+__all__ = [ 'ty_TorchIdentical'
+          , 'ty_TorchTensor'
+          , 'ty_TorchTensorOfShape'
+          , 'ty_TorchCat'
+          , 'ty_TorchChunk'
+          , 'ty_TorchReshape'
+          , 'ty_TorchSplit'
+          , 'ty_TorchSqueeze'
+          , 'ty_TorchStack'
+          , 'ty_TorchUnsqueeze'
+          , 'ty_TorchArith'
+          , 'ty_TorchFlatten'
+          , 'ty_TorchView'
+          , 'ty_TorchRepeat'
+          ]
+
 
 class ty_TorchIdentical():
     def __init__(self, ndim_min=None):

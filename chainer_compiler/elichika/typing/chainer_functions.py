@@ -9,7 +9,9 @@ from   chainer.utils.conv import get_conv_outsize
 from   chainer.utils import type_check
 
 from   chainer_compiler.elichika.typing.ext_functions_utils import *
-from   chainer_compiler.elichika.typing.types import *
+from   chainer_compiler.elichika.typing.shape_elem          import *
+from   chainer_compiler.elichika.typing.types               import *
+from   chainer_compiler.elichika.typing.utils               import all_same
 
 
 class ty_ChainerVariable():

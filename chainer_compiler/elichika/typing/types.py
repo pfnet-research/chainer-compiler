@@ -9,8 +9,18 @@ import torch
 from   chainer_compiler.elichika.typing import utils
 from   chainer_compiler.elichika.typing.shape_elem import ShapeElem, wrap_shape, unwrap_shape, unify_shape
 
-def print_warning(msg):
-    print("\x1b[33m[WARNING] " + msg + "\x1b[39m")
+__all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
+          , 'TyString', 'TyArrow', 'TySequence', 'TyList', 'TyTuple'
+          , 'TyDict', 'TyUserDefinedClass', 'TyDType', 'TyVar'
+          , 'TyTensor', 'TyNdarray', 'TyChainerVariable', 'TyTorchTensor'
+          , 'torch_dtype_to_np_dtype', 'all_same_ty'
+          , 'type_of_value', 'extract_value_from_ty'
+          , 'lacks_value', 'generate_dummy_value', 'tyobj2dtype'
+          , 'choose_stronger_ty', 'copy_ty'
+          , 'unify', 'UnifyError'
+          ]
+
+
 
 class TyObj():  # base type, meaning 'unknown'
     def __init__(self):
@@ -398,10 +408,6 @@ def all_same_ty(tys):
     for t in tys:
         unify(_tytmp, t)
     return True
-
-
-def all_same(l):
-    return all([e == l[0] for e in l])
 
 
 def type_of_value(value):

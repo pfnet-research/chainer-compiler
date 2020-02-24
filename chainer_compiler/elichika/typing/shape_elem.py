@@ -3,6 +3,14 @@ import math
 
 from   chainer_compiler.elichika.typing import utils
 
+__all__ = [ 'ShapeElem'
+          , 'wrap_shape'
+          , 'unwrap_shape'
+          , 'is_incomplete_shape'
+          , 'unify_shape'
+          ]
+
+
 unaryops = {
         '-'    : (6, lambda x: -x),
         'ceil' : (6, math.ceil),
