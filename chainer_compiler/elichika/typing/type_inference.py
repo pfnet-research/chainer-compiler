@@ -7,9 +7,9 @@ import types
 import typing
 
 from   chainer_compiler.elichika.parser.utils             import clip_head
-from   chainer_compiler.elichika.typing.numpy_functions   import numpy_func_ty
-from   chainer_compiler.elichika.typing.chainer_functions import chainer_func_ty, chainer_callable_ty
-from   chainer_compiler.elichika.typing.pytorch_functions import pytorch_func_ty, pytorch_callable_ty
+from   chainer_compiler.elichika.typing.ext.numpy_functions   import numpy_func_ty
+from   chainer_compiler.elichika.typing.ext.chainer_functions import chainer_func_ty, chainer_callable_ty
+from   chainer_compiler.elichika.typing.ext.pytorch_functions import pytorch_func_ty, pytorch_callable_ty
 from   chainer_compiler.elichika.typing.types             import *
 from   chainer_compiler.elichika.typing.shape_elem        import *
 from   chainer_compiler.elichika.typing                   import utils

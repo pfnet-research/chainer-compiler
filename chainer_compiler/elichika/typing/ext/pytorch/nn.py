@@ -3,9 +3,9 @@ import numpy as np
 
 from   chainer.utils import type_check
 
-from   chainer_compiler.elichika.typing.ext_functions_utils import *
-from   chainer_compiler.elichika.typing.types               import *
-from   chainer_compiler.elichika.typing.pytorch.utils       import *
+from   chainer_compiler.elichika.typing.ext.utils         import *
+from   chainer_compiler.elichika.typing.types             import *
+from   chainer_compiler.elichika.typing.ext.pytorch.utils import *
 
 __all__ = [ 'ty_TorchConv'
           , 'ty_TorchPooling'

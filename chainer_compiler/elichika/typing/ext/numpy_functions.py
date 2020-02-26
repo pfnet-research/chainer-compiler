@@ -1,8 +1,8 @@
 import numpy as np
 import math
 
-from   chainer_compiler.elichika.typing.ext_functions_utils import *
-from   chainer_compiler.elichika.typing.types import *
+from   chainer_compiler.elichika.typing.ext.utils import *
+from   chainer_compiler.elichika.typing.types     import *
 
 
 class ty_NumpyAstype():
