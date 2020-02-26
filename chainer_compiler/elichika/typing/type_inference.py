@@ -335,6 +335,33 @@ class InferenceEngine():
         return choose_stronger_ty(ty_ret1, ty_ret2)
 
 
+    def infer_function_instance(self, node, func, ty_args, ty_kwargs):
+        if func in numpy_func_ty.keys():
+            return call_ext_function(numpy_func_ty, func, node, ty_args, ty_kwargs)
+
+        if func in chainer_func_ty.keys():
+            # external (eg. np/chainer) functions
+            return call_ext_function(chainer_func_ty, func, node, ty_args, ty_kwargs)
+
+        if func in pytorch_func_ty.keys():
+            return call_ext_function(pytorch_func_ty, func, node, ty_args, ty_kwargs)
+
+        if type(func) in L.__dict__.values():
+            # chainer links
+            return call_ext_callable(chainer_callable_ty, func, node, ty_args, ty_kwargs)
+
+        if type(func) in nn.__dict__.values():
+            # torch.nn
+            return call_ext_callable(pytorch_callable_ty, func, node, ty_args, ty_kwargs)
+
+        if func in __builtins__.values():
+            # builtin functions
+            return call_builtin_function(func, node, ty_args)
+
+        # user defined functions/methods/callables, need to inline
+        return self.infer_user_defined_function(func, ty_args, node)
+
+
     def infer_user_defined_function(self, func, ty_args, node):
         if isinstance(func, (types.FunctionType, types.MethodType)):
             func_body = func
@@ -695,43 +722,8 @@ class InferenceEngine():
             if e.func in func_to_ignore:
                 return TyNone()
 
-            if e.func in numpy_func_ty.keys():
-                ty_ret = call_ext_function(numpy_func_ty, e.func, node, ty_args_, ty_kwargs)
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return ty_ret
-
-            if e.func in chainer_func_ty.keys():
-                # external (eg. np/chainer) functions
-                ty_ret = call_ext_function(chainer_func_ty, e.func, node, ty_args_, ty_kwargs)
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return ty_ret
-
-            if e.func in pytorch_func_ty.keys():
-                ty_ret = call_ext_function(pytorch_func_ty, e.func, node, ty_args_, ty_kwargs)
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return ty_ret
-
-            if type(e.func) in L.__dict__.values():
-                # chainer links
-                ty_ret = call_ext_callable(chainer_callable_ty, e.func, node, ty_args_, ty_kwargs)
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return ty_ret
-
-            if type(e.func) in nn.__dict__.values():
-                # torch.nn
-                ty_ret = call_ext_callable(pytorch_callable_ty, e.func, node, ty_args_, ty_kwargs)
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return ty_ret
-
-            if e.func in __builtins__.values():
-                # builtin functions
-                ty_ret = call_builtin_function(e.func, node, ty_args_)
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return ty_ret
-
-            # user defined functions/methods/callables, need to inline
-            ty_ret = self.infer_user_defined_function(
-                    e.func, ty_args_, node)
+            ty_ret = self.infer_function_instance(
+                    node, e.func, ty_args_, ty_kwargs)
 
         self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
         return ty_ret.deref()
