@@ -69,7 +69,13 @@ def lazy_initializer(node):
     return None
 
 
-def handle_inference_error(exception, name, node):
+def handle_inference_error(exception, func, node):
+    if hasattr(func, '__class__'):
+        name = func.__class__.__name__
+    elif hasattr(func, '__name__'):
+        name = func.__name__
+    else:
+        name = str(func)
     utils.print_warning(str(exception))
     utils.print_warning("Failed to infer type of " + name +
             ". Falling back to TyVar...")
@@ -82,7 +88,7 @@ def call_ext_function(table, func, node, ty_args, ty_kwargs):
     try:
         ty_ret = inference_logic(ty_args, ty_kwargs)
     except Exception as e:
-        ty_ret = handle_inference_error(e, func.__name__, node)
+        ty_ret = handle_inference_error(e, func, node)
     return ty_ret
 
 
@@ -91,7 +97,7 @@ def call_ext_callable(table, obj, node, ty_args, ty_kwargs):
     try:
         ty_ret = inference_logic(obj, ty_args, ty_kwargs)
     except Exception as e:
-        ty_ret = handle_inference_error(e, obj.__class__.__name__, node)
+        ty_ret = handle_inference_error(e, obj, node)
     return ty_ret
 
 
@@ -100,7 +106,7 @@ def call_builtin_function(func, node, ty_args):
         dummy_args = [generate_dummy_value(t) for t in ty_args]
         ty_ret = type_of_value(func(*dummy_args))
     except Exception as e:
-        ty_ret = handle_inference_error(e, func.__name__, node)
+        ty_ret = handle_inference_error(e, func, node)
     return ty_ret
 
 
@@ -352,6 +358,15 @@ class InferenceEngine():
 
         if type(func) in nn.__dict__.values():
             # torch.nn
+            if isinstance(func, nn.Sequential):
+                x_type, = ty_args
+                for idx, module in enumerate(func.modules()):
+                    if idx == 0: continue
+                    print('---', module, x_type)
+                    x_type = self.infer_function_instance(node, module, [x_type], ty_kwargs)
+                    print(x_type)
+                return x_type
+
             return call_ext_callable(pytorch_callable_ty, func, node, ty_args, ty_kwargs)
 
         if func in __builtins__.values():

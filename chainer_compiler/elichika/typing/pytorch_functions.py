@@ -12,16 +12,6 @@ from   chainer_compiler.elichika.typing.pytorch.tensor      import *
 __all__ = [ 'pytorch_func_ty', 'pytorch_callable_ty' ]
 
 
-class ty_TorchSequential():
-    def nn(self, obj, ty_args, ty_kwargs):
-        x_type, = ty_args
-        for idx, module in enumerate(obj.modules()):
-            if idx == 0: continue
-            logic = pytorch_callable_ty[type(module)]
-            x_type = logic(module, [x_type], {})
-        return x_type
-
-
 class ty_ChainerSum():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
@@ -234,9 +224,6 @@ pytorch_func_ty = {
 
 
 pytorch_callable_ty = {
-        # https://pytorch.org/docs/stable/nn.html#containers
-        nn.Sequential        : ty_TorchSequential().nn,
-
         # https://pytorch.org/docs/stable/nn.html#convolution-layers
         nn.Conv1d            : ty_TorchConv(dim=1).nn,
         nn.Conv2d            : ty_TorchConv(dim=2).nn,
