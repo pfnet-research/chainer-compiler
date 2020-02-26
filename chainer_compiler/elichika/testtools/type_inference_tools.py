@@ -56,6 +56,7 @@ def generate_node2type(tree, args, is_debug=False, module=None, type_hints={}):
 def generate_id2type(node2type, node2id):
     id2type = {}
     for n, t in node2type.items():
+        if n not in node2id.keys(): continue  # user-defined modules in nn.Sequential
         id2type[node2id[n]] = t
 
     return id2type

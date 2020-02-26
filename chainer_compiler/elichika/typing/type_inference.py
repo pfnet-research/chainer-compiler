@@ -130,11 +130,11 @@ def call_binop(op, node, tyl, tyr):
         ty_ret.coerce_to_variable_len()
 
     if isinstance(ty_ret, TyTensor) and \
-            isinstance(tyl, TyTensor) and is_incomplete_shape(tyl.shape) or \
-            isinstance(tyr, TyTensor) and is_incomplete_shape(tyr.shape):
+            (isinstance(tyl, TyTensor) and is_incomplete_shape(tyl.shape) or \
+             isinstance(tyr, TyTensor) and is_incomplete_shape(tyr.shape)):
         # TODO(momohatt): shape broadcasting rule
         # TODO(momohatt): shape expr collision
-        ty_ret.shape = (ShapeElem(None),) * ty_ret.ndim
+        ty_ret.shape = tuple([ShapeElem(None) for _ in range(ty_ret.ndim)])
     return ty_ret
 
 
@@ -360,11 +360,8 @@ class InferenceEngine():
             # torch.nn
             if isinstance(func, nn.Sequential):
                 x_type, = ty_args
-                for idx, module in enumerate(func.modules()):
-                    if idx == 0: continue
-                    print('---', module, x_type)
-                    x_type = self.infer_function_instance(node, module, [x_type], ty_kwargs)
-                    print(x_type)
+                for idx, module in enumerate(func.children()):
+                    x_type = self.infer_function_instance(node, module, [x_type], {})
                 return x_type
 
             return call_ext_callable(pytorch_callable_ty, func, node, ty_args, ty_kwargs)

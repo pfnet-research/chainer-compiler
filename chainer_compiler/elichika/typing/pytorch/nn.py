@@ -40,8 +40,10 @@ class ty_TorchConv():
         x_type, = ty_args
 
         check_dtype(obj, x_type.dtype)
-        assert x_type.ndim == self.dim + 2
-        assert x_type.shape[1] == obj.in_channels
+        assert x_type.ndim == self.dim + 2, \
+                "Conv: dimension mismatch"
+        assert x_type.shape[1] == obj.in_channels, \
+                "Conv: shape[1] != in_channels"
 
         return self.infer_return(x_type, obj)
 
@@ -78,7 +80,7 @@ class ty_TorchPooling():
     def __call__(self, ty_args, ty_kwargs):
         x_type, kernel_size_type = ty_args
         assert x_type.ndim == self.dim + 2
-        assert x_type.dtype.kind == 'f'
+        assert x_type.dtype.kind == 'f' # TODO
 
         kernel_size = extract_value_from_ty(kernel_size_type)
         stride, _    = get_kwarg(ty_kwargs, 'stride', default=kernel_size)
@@ -166,8 +168,10 @@ class ty_TorchBatchNorm():
 
     def nn(self, obj, ty_args, ty_kwargs):
         x_type, = ty_args
-        assert x_type.ndim == self.dim + 2 or x_type.ndim == 2 and self.dim == 1
-        assert x_type.shape[1] == obj.num_features
+        assert x_type.ndim == self.dim + 2 or x_type.ndim == 2 and self.dim == 1, \
+                "BatchNorm: dimension mismatch"
+        assert x_type.shape[1] == obj.num_features, \
+                "BatchNorm: shape[1] != num_features"
         check_dtype(obj, x_type.dtype)
         return x_type
 
