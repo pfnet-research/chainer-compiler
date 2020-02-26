@@ -365,7 +365,7 @@ class InferenceEngine():
         # copy nodetype and subroutine_node from subroutine
         utils.add_dict(self.nodetype, tc.nodetype)
         utils.add_dict(self.subroutine_node, tc.subroutine_node)
-        return ty_args, tc.nodetype[func_node]
+        return tc.nodetype[func_node].retty
 
 
     # ================================ mod =====================================
@@ -682,6 +682,7 @@ class InferenceEngine():
 
         try:
             ty_fun = self.infer_expr(node.func, is_callee=True)
+            unify(ty_fun, TyArrow(ty_args, ty_ret))
         except self.ArgumentRequired as e:
             # Attribute
             if isinstance(e.func, tuple):
@@ -705,14 +706,14 @@ class InferenceEngine():
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 
-            if type(e.func) in L.__dict__.values():
-                # chainer links
-                ty_ret = call_ext_callable(chainer_callable_ty, e.func, node, ty_args_, ty_kwargs)
+            if e.func in pytorch_func_ty.keys():
+                ty_ret = call_ext_function(pytorch_func_ty, e.func, node, ty_args_, ty_kwargs)
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 
-            if e.func in pytorch_func_ty.keys():
-                ty_ret = call_ext_function(pytorch_func_ty, e.func, node, ty_args_, ty_kwargs)
+            if type(e.func) in L.__dict__.values():
+                # chainer links
+                ty_ret = call_ext_callable(chainer_callable_ty, e.func, node, ty_args_, ty_kwargs)
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 
@@ -729,11 +730,10 @@ class InferenceEngine():
                 return ty_ret
 
             # user defined functions/methods/callables, need to inline
-            ty_args, ty_fun = self.infer_user_defined_function(
+            ty_ret = self.infer_user_defined_function(
                     e.func, ty_args_, node)
 
-        unify(ty_fun, TyArrow(ty_args, ty_ret))
-        self.nodetype[node.func] = ty_fun
+        self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
         return ty_ret.deref()
 
 
