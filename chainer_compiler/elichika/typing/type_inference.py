@@ -1,4 +1,5 @@
 import ast
+import collections
 import inspect
 import gast
 import numbers
@@ -176,7 +177,7 @@ class InferenceEngine():
 
         # map from user-defined function call points to inlined function ASTs
         # Node (Call) -> Node (FunctionDef)
-        self.subroutine_node = {}
+        self.subroutine_node = collections.OrderedDict()
 
         # typing type hints
         # string -> TyObj
