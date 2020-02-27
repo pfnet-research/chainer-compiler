@@ -311,3 +311,10 @@ class TestResNet(unittest.TestCase):
         self.assertEqual(str(id2type[523]), "torch.Tensor(dtype=float32, shape=(1, 512, 7, 7))")	# Name out (line 15)
         self.assertEqual(str(id2type[525]), "torch.Tensor(dtype=float32, shape=(1, 512, 7, 7))")	# Return
         self.assertEqual(str(id2type[526]), "torch.Tensor(dtype=float32, shape=(1, 512, 7, 7))")	# Name out (line 17)
+
+
+def main():
+    unittest.main()
+
+if __name__ == '__main__':
+    main()
