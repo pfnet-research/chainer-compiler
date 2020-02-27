@@ -1,4 +1,5 @@
 import ast
+import collections
 import inspect
 import gast
 import numbers
@@ -6,18 +7,22 @@ import sys
 import types
 import typing
 
-from   chainer_compiler.elichika.parser.utils import clip_head
-from   chainer_compiler.elichika.typing.functions_external import ext_func_ty, ext_callable_ty
-from   chainer_compiler.elichika.typing.types import *
-from   chainer_compiler.elichika.typing.shape_elem import is_incomplete_shape
-from   chainer_compiler.elichika.typing import utils
+from   chainer_compiler.elichika.parser.utils             import clip_head
+from   chainer_compiler.elichika.typing.ext.numpy_functions   import numpy_func_ty
+from   chainer_compiler.elichika.typing.ext.chainer_functions import chainer_func_ty, chainer_callable_ty
+from   chainer_compiler.elichika.typing.ext.pytorch_functions import pytorch_func_ty, pytorch_callable_ty
+from   chainer_compiler.elichika.typing.types             import *
+from   chainer_compiler.elichika.typing.shape_elem        import *
+from   chainer_compiler.elichika.typing                   import utils
 
 import chainer
 from   chainer.backends import cuda
-import chainer.functions as F
 import chainer.links as L
 import numpy as np
 import logging
+
+import torch
+import torch.nn as nn
 
 # ==============================================================================
 
@@ -65,30 +70,35 @@ def lazy_initializer(node):
     return None
 
 
-def handle_inference_error(exception, name, node):
-    print_warning(str(exception))
-    print_warning("Failed to infer type of " + name +
+def handle_inference_error(exception, func, node):
+    if hasattr(func, '__class__'):
+        name = func.__class__.__name__
+    elif hasattr(func, '__name__'):
+        name = func.__name__
+    else:
+        name = str(func)
+    utils.print_warning(str(exception))
+    utils.print_warning("Failed to infer type of " + name +
             ". Falling back to TyVar...")
     # raise Exception
     return TyVar(lineno=getattr(node, 'lineno', None))
 
 
-def call_ext_function(func, node, ty_args, ty_kwargs):
-    # Non-tensor arguments
-    inference_logic = ext_func_ty[func]
+def call_ext_function(table, func, node, ty_args, ty_kwargs):
+    inference_logic = table[func]
     try:
         ty_ret = inference_logic(ty_args, ty_kwargs)
     except Exception as e:
-        ty_ret = handle_inference_error(e, func.__name__, node)
+        ty_ret = handle_inference_error(e, func, node)
     return ty_ret
 
 
-def call_ext_callable(obj, node, ty_args, ty_kwargs):
-    inference_logic = ext_callable_ty[type(obj)]
+def call_ext_callable(table, obj, node, ty_args, ty_kwargs):
+    inference_logic = table[type(obj)]
     try:
         ty_ret = inference_logic(obj, ty_args, ty_kwargs)
     except Exception as e:
-        ty_ret = handle_inference_error(e, obj.__class__.__name__, node)
+        ty_ret = handle_inference_error(e, obj, node)
     return ty_ret
 
 
@@ -97,7 +107,7 @@ def call_builtin_function(func, node, ty_args):
         dummy_args = [generate_dummy_value(t) for t in ty_args]
         ty_ret = type_of_value(func(*dummy_args))
     except Exception as e:
-        ty_ret = handle_inference_error(e, func.__name__, node)
+        ty_ret = handle_inference_error(e, func, node)
     return ty_ret
 
 
@@ -121,11 +131,11 @@ def call_binop(op, node, tyl, tyr):
         ty_ret.coerce_to_variable_len()
 
     if isinstance(ty_ret, TyTensor) and \
-            isinstance(tyl, TyTensor) and is_incomplete_shape(tyl.shape) or \
-            isinstance(tyr, TyTensor) and is_incomplete_shape(tyr.shape):
+            (isinstance(tyl, TyTensor) and is_incomplete_shape(tyl.shape) or \
+             isinstance(tyr, TyTensor) and is_incomplete_shape(tyr.shape)):
         # TODO(momohatt): shape broadcasting rule
         # TODO(momohatt): shape expr collision
-        ty_ret.shape = (ShapeElem(None),) * ty_ret.ndim
+        ty_ret.shape = tuple([ShapeElem(None) for _ in range(ty_ret.ndim)])
     return ty_ret
 
 
@@ -167,7 +177,7 @@ class InferenceEngine():
 
         # map from user-defined function call points to inlined function ASTs
         # Node (Call) -> Node (FunctionDef)
-        self.subroutine_node = {}
+        self.subroutine_node = collections.OrderedDict()
 
         # typing type hints
         # string -> TyObj
@@ -281,7 +291,7 @@ class InferenceEngine():
 
     def infer_block(self, tc, stmts):  # use in if (without else), for, while
         for stmt in stmts:
-            tc.infer_stmt(stmt)
+            ty_ret = tc.infer_stmt(stmt)
 
         # unify the intersection of 2 tyenvs and update local tyenv
         for name, ty in tc.tyenv.items():
@@ -294,12 +304,15 @@ class InferenceEngine():
                 unify(ty, self.attribute_tyenv[(obj, name)])
             self.attribute_tyenv[(obj, name)] = ty
 
+        unify(ty_ret, TyNone())
+        return TyNone()
+
 
     def infer_2blocks(self, tc1, tc2, stmts1, stmts2):
         for stmt in stmts1:
-            tc1.infer_stmt(stmt)
+            ty_ret1 = tc1.infer_stmt(stmt)
         for stmt in stmts2:
-            tc2.infer_stmt(stmt)
+            ty_ret2 = tc2.infer_stmt(stmt)
 
         # unify the intersection of 2 tyenvs and update local tyenv
         for name, ty in tc1.tyenv.items():
@@ -325,6 +338,42 @@ class InferenceEngine():
                 continue
             self.attribute_tyenv[(obj, name)] = ty
 
+        unify(ty_ret1, ty_ret2)
+        return choose_stronger_ty(ty_ret1, ty_ret2)
+
+
+    def infer_function_instance(self, node, func, ty_args, ty_kwargs):
+        if func in numpy_func_ty.keys():
+            return call_ext_function(numpy_func_ty, func, node, ty_args, ty_kwargs)
+
+        if func in chainer_func_ty.keys():
+            # external (eg. np/chainer) functions
+            return call_ext_function(chainer_func_ty, func, node, ty_args, ty_kwargs)
+
+        if func in pytorch_func_ty.keys():
+            return call_ext_function(pytorch_func_ty, func, node, ty_args, ty_kwargs)
+
+        if type(func) in L.__dict__.values():
+            # chainer links
+            return call_ext_callable(chainer_callable_ty, func, node, ty_args, ty_kwargs)
+
+        if type(func) in nn.__dict__.values():
+            # torch.nn
+            if isinstance(func, nn.Sequential):
+                x_type, = ty_args
+                for idx, module in enumerate(func.children()):
+                    x_type = self.infer_function_instance(node, module, [x_type], {})
+                return x_type
+
+            return call_ext_callable(pytorch_callable_ty, func, node, ty_args, ty_kwargs)
+
+        if func in __builtins__.values():
+            # builtin functions
+            return call_builtin_function(func, node, ty_args)
+
+        # user defined functions/methods/callables, need to inline
+        return self.infer_user_defined_function(func, ty_args, node)
+
 
     def infer_user_defined_function(self, func, ty_args, node):
         if isinstance(func, (types.FunctionType, types.MethodType)):
@@ -336,7 +385,7 @@ class InferenceEngine():
 
         else:
             # defined with __call__
-            if isinstance(func, chainer.Chain):
+            if isinstance(func, chainer.Chain) or isinstance(func, nn.Module):
                 func_body = func.forward
             else:
                 func_body = func.__call__
@@ -356,7 +405,7 @@ class InferenceEngine():
         # copy nodetype and subroutine_node from subroutine
         utils.add_dict(self.nodetype, tc.nodetype)
         utils.add_dict(self.subroutine_node, tc.subroutine_node)
-        return ty_args, tc.nodetype[func_node]
+        return tc.nodetype[func_node].retty
 
 
     # ================================ mod =====================================
@@ -396,8 +445,7 @@ class InferenceEngine():
             # While(expr test, stmt* body, stmt* orelse)
             pass
         elif isinstance(node, gast.If):
-            self.infer_If(node)
-            self.nodetype[node] = TyNone()
+            self.nodetype[node] = self.infer_If(node)
         elif isinstance(node, gast.Expr):
             # Expr(expr value)
             self.infer_expr(node.value)
@@ -513,7 +561,6 @@ class InferenceEngine():
         utils.add_dict(self.nodetype, tc.nodetype)
         utils.add_dict(self.subroutine_node, tc.subroutine_node)
 
-
     def infer_If(self, node):
         # If(expr test, stmt* body, stmt* orelse)
         # XXX: type of node.test can be anything
@@ -522,13 +569,13 @@ class InferenceEngine():
 
         if node.orelse == []:
             tc = copy_InferenceEngine(self)
-            self.infer_block(tc, node.body)
+            ty_ret = self.infer_block(tc, node.body)
             utils.add_dict(self.nodetype, tc.nodetype)
             utils.add_dict(self.subroutine_node, tc.subroutine_node)
         else:
             tc1 = copy_InferenceEngine(self)
             tc2 = copy_InferenceEngine(self)
-            self.infer_2blocks(tc1, tc2, node.body, node.orelse)
+            ty_ret = self.infer_2blocks(tc1, tc2, node.body, node.orelse)
             utils.add_dict(self.nodetype, tc1.nodetype)
             utils.add_dict(self.nodetype, tc2.nodetype)
             utils.add_dict(self.subroutine_node, tc1.subroutine_node)
@@ -536,6 +583,8 @@ class InferenceEngine():
 
         if x is not None:
             self.infer_expr(x).is_optional = False
+
+        return ty_ret
 
 
     # ================================= expr ===================================
@@ -673,47 +722,23 @@ class InferenceEngine():
 
         try:
             ty_fun = self.infer_expr(node.func, is_callee=True)
+            unify(ty_fun, TyArrow(ty_args, ty_ret))
         except self.ArgumentRequired as e:
+            # Attribute
+            if isinstance(e.func, tuple):
+                (func, ty_obj) = e.func
+                e.func = func
+                ty_args_ = [ty_obj] + ty_args
+            else:
+                ty_args_ = ty_args
+
             if e.func in func_to_ignore:
                 return TyNone()
 
-            if e.func is None:
-                # attribute against tensor etc.
-                assert isinstance(node.func, gast.Attribute)
-                ty_obj = self.nodetype[node.func.value]
+            ty_ret = self.infer_function_instance(
+                    node, e.func, ty_args_, ty_kwargs)
 
-                if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
-                    if node.func.attr == 'astype':
-                        val_args = [self.evaluate(arg) for arg in node.args]
-                        ty_ret = TyNdarray(val_args[0], shape=ty_obj.shape)
-
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return ty_ret
-
-            if e.func in ext_func_ty.keys():
-                # external (eg. np/chainer) functions
-                ty_ret = call_ext_function(e.func, node, ty_args, ty_kwargs)
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return ty_ret
-
-            if e.func in __builtins__.values():
-                # builtin functions
-                ty_ret = call_builtin_function(e.func, node, ty_args)
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return ty_ret
-
-            if type(e.func) in L.__dict__.values():
-                # chainer links
-                ty_ret = call_ext_callable(e.func, node, ty_args, ty_kwargs)
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return ty_ret
-
-            # user defined functions/methods/callables, need to inline
-            ty_args, ty_fun = self.infer_user_defined_function(
-                    e.func, ty_args, node)
-
-        unify(ty_fun, TyArrow(ty_args, ty_ret))
-        self.nodetype[node.func] = ty_fun
+        self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
         return ty_ret.deref()
 
 
@@ -743,8 +768,12 @@ class InferenceEngine():
                 return type_of_value(ty_obj.shape)
             if node.attr == 'size':
                 return TyInt()
-            if ty_obj.is_ndarray() and node.attr == 'astype':
-                raise self.ArgumentRequired()
+            if ty_obj.is_ndarray() and is_callee:
+                func = getattr(np.ndarray, node.attr)
+                raise self.ArgumentRequired((func, ty_obj))
+            if ty_obj.is_torch_tensor() and is_callee:
+                func = getattr(torch.Tensor, node.attr)
+                raise self.ArgumentRequired((func, ty_obj))
             assert False
 
         if isinstance(ty_obj, TyUserDefinedClass):

@@ -23,7 +23,7 @@ else
 fi
 python3 -m pip install dist-chainer/*.whl
 
-python3 -m pip install gast chainercv
+python3 -m pip install gast chainercv torch==1.4.0
 # TODO(take-cheeze): Remove this when onnx-chainer drops 1.4.1 support
 python3 -m pip install onnx==1.5.0 'pytest<5.0.0' 'chainercv>=0.11.0' 'packaging>=19.0'
 

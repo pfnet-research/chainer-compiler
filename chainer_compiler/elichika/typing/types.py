@@ -2,15 +2,25 @@ from   copy import deepcopy
 from   enum import Enum, IntEnum
 
 import chainer
-import chainer.functions as F
-import chainer.links as L
 import numpy as np
+
+import torch
 
 from   chainer_compiler.elichika.typing import utils
 from   chainer_compiler.elichika.typing.shape_elem import ShapeElem, wrap_shape, unwrap_shape, unify_shape
 
-def print_warning(msg):
-    print("\x1b[33m[WARNING] " + msg + "\x1b[39m")
+__all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
+          , 'TyString', 'TyArrow', 'TySequence', 'TyList', 'TyTuple'
+          , 'TyDict', 'TyUserDefinedClass', 'TyDType', 'TyVar'
+          , 'TyTensor', 'TyNdarray', 'TyChainerVariable', 'TyTorchTensor'
+          , 'torch_dtype_to_np_dtype', 'all_same_ty'
+          , 'type_of_value', 'extract_value_from_ty'
+          , 'lacks_value', 'generate_dummy_value', 'tyobj2dtype'
+          , 'choose_stronger_ty', 'copy_ty'
+          , 'unify', 'UnifyError'
+          ]
+
+
 
 class TyObj():  # base type, meaning 'unknown'
     def __init__(self):
@@ -161,26 +171,13 @@ class TySequence(TyObj):
         assert self.is_fixed_len
         return self._ty[i]
 
-    def __len__(self):
-        assert self.is_fixed_len
-        return len(self._ty)
-
-    # def __iter__(self):
-    #     assert self.is_fixed_len
-    #     self._i = 0
-    #     return self
-
-    # def __next__(self):
-    #     if self._i < len(self._ty): raise StopIteration
-    #     self._i += 1
-    #     return self._i - 1
-
     def is_mutable(self):
         return self.kind == SequenceKind.LIST
 
     def size(self):
-        assert self.is_fixed_len
-        return len(self._ty)
+        if self.is_fixed_len:
+            return len(self._ty)
+        return None
 
     def deref(self):
         if self.is_fixed_len is not None:
@@ -272,6 +269,7 @@ class TyUserDefinedClass(TyObj):
 class TensorKind(Enum):
     ndarray = 0
     chainer_variable = 1
+    torch_tensor = 2
 
 
 class TyDType(TyObj):
@@ -290,7 +288,10 @@ class TyDType(TyObj):
 class TyTensor(TyObj):
     def __init__(self, dtype, kind, ndim, shape=None):  # we do not allow heterogeneous type ndarray
         super().__init__()
-        self.dtype = np.dtype(dtype)
+        if isinstance(dtype, torch.dtype):
+            self.dtype = torch_dtype_to_np_dtype(dtype)
+        else:
+            self.dtype = np.dtype(dtype)
         self.kind = kind
         self.ndim = ndim
         if shape is None:
@@ -302,6 +303,8 @@ class TyTensor(TyObj):
             return "ndarray(dtype={}, shape={})".format(self.dtype, self.shape)
         if self.kind == TensorKind.chainer_variable:
             return "Variable(dtype={}, shape={})".format(self.dtype, self.shape)
+        if self.kind == TensorKind.torch_tensor:
+            return "torch.Tensor(dtype={}, shape={})".format(self.dtype, self.shape)
 
     def __eq__(self, other):
         # TODO: shape?
@@ -316,6 +319,9 @@ class TyTensor(TyObj):
     def is_chainer_variable(self):
         return self.kind == TensorKind.chainer_variable
 
+    def is_torch_tensor(self):
+        return self.kind == TensorKind.torch_tensor
+
 
 def TyNdarray(dtype, ndim=None, shape=None):
     # ndim and shape cannot be None at the same time
@@ -327,6 +333,32 @@ def TyChainerVariable(dtype, ndim=None, shape=None):
     if ndim is None:
         ndim = len(shape)
     return TyTensor(dtype, TensorKind.chainer_variable, ndim=ndim, shape=shape)
+
+def TyTorchTensor(dtype, ndim=None, shape=None):
+    if ndim is None:
+        ndim = len(shape)
+    return TyTensor(dtype, TensorKind.torch_tensor, ndim=ndim, shape=shape)
+
+def torch_dtype_to_np_dtype(dtype):
+    # TODO(momohatt): Better way to do this?
+    dtype_dict = {
+            torch.bool    : np.dtype(np.bool),
+            torch.uint8   : np.dtype(np.uint8),
+            torch.int8    : np.dtype(np.int8),
+            torch.int16   : np.dtype(np.int16),
+            torch.short   : np.dtype(np.int16),
+            torch.int32   : np.dtype(np.int32),
+            torch.int     : np.dtype(np.int32),
+            torch.int64   : np.dtype(np.int64),
+            torch.long    : np.dtype(np.int64),
+            torch.float16 : np.dtype(np.float16),
+            torch.half    : np.dtype(np.float16),
+            torch.float32 : np.dtype(np.float32),
+            torch.float   : np.dtype(np.float32),
+            torch.float64 : np.dtype(np.float64),
+            torch.double  : np.dtype(np.float64),
+            }
+    return dtype_dict[dtype]
 
 
 # ---------------------- InferenceEngine internal types ------------------------
@@ -378,10 +410,6 @@ def all_same_ty(tys):
     return True
 
 
-def all_same(l):
-    return all([e == l[0] for e in l])
-
-
 def type_of_value(value):
     if value is None:
         return TyNone()
@@ -397,20 +425,28 @@ def type_of_value(value):
         return TyList([type_of_value(v) for v in value])
     if isinstance(value, range):
         return TyList([type_of_value(v) for v in value])
+    if isinstance(value, enumerate):
+        return TyList([type_of_value(v) for v in value])
     if isinstance(value, tuple):
         return TyTuple([type_of_value(v) for v in value])
     if isinstance(value, dict):
+        if len(value) == 0:
+            return TyDict(TyVar(), TyVar())
         return TyDict(type_of_value(list(value.keys())[0]),
                 type_of_value(list(value.items())[0]))
     if isinstance(value, np.ndarray):
         return TyNdarray(value.dtype, shape=wrap_shape(value.shape))
     if isinstance(value, chainer.Variable):
         return TyChainerVariable(value.dtype, shape=wrap_shape(value.shape))
+    if isinstance(value, torch.Tensor):
+        return TyTorchTensor(value.dtype, shape=wrap_shape(value.shape))
     if isinstance(value, np.dtype):
         return TyDType(value)
     if isinstance(value, type) and value in np.typeDict.values():
         # XXX: np.typeDict.values() is a list of all dtypes
         return TyDType(value)
+    if isinstance(value, torch.dtype):
+        return TyDType(torch_dtype_to_np_dtype(value))
     if isinstance(value, ShapeElem):
         if isinstance(value.value, int):
             return TyInt(value.value)
@@ -471,6 +507,8 @@ def generate_dummy_value(ty) -> object:
             return ret
         if ty.is_chainer_variable():
             return chainer.Variable(ret)
+        if ty.is_torch_tensor():
+            return torch.as_tensor(ret)
     if isinstance(ty, TyDType):
         return ty.t
 
@@ -633,10 +671,8 @@ def unify(ty1, ty2, inspect_shape=True):
             return
         if ty1.is_fixed_len and not ty2.is_fixed_len:
             ty1.coerce_to_variable_len(ty2.get_ty())
-            return
-        if (not ty1.is_fixed_len) and ty2.is_fixed_len:
+        elif (not ty1.is_fixed_len) and ty2.is_fixed_len:
             ty2.coerce_to_variable_len(ty1.get_ty())
-            return
         unify(ty1.get_ty(), ty2.get_ty())
         return
 

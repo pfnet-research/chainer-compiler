@@ -2,6 +2,10 @@ import ast
 import gast
 import numbers
 
+
+def print_warning(msg):
+    print("\x1b[33m[WARNING] " + msg + "\x1b[39m")
+
 # ============================== Display utils =================================
 
 def intercalate(strings, sep):
@@ -130,3 +134,7 @@ def set_attr_if_None(obj1, obj2, attr_name):
     if hasattr(obj2, attr_name) and getattr(obj2, attr_name) is None:
         setattr(obj2, attr_name, getattr(obj1, attr_name))
         return
+
+
+def all_same(l):
+    return all([e == l[0] for e in l])

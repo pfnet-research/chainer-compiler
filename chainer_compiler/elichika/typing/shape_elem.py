@@ -3,10 +3,19 @@ import math
 
 from   chainer_compiler.elichika.typing import utils
 
+__all__ = [ 'ShapeElem'
+          , 'wrap_shape'
+          , 'unwrap_shape'
+          , 'is_incomplete_shape'
+          , 'unify_shape'
+          ]
+
+
 unaryops = {
         '-'    : (6, lambda x: -x),
         'ceil' : (6, math.ceil),
         'abs'  : (6, abs),
+        'floor' : (6, math.floor),
         }
 
 binops = {
@@ -15,6 +24,7 @@ binops = {
         '*'  : (5, lambda x, y: x * y),
         '/'  : (5, lambda x, y: x / y),
         '//' : (5, lambda x, y: x // y),
+        '%'  : (5, lambda x, y: x % y),
         }
 
 def _flip(func):
@@ -139,6 +149,8 @@ class ShapeElem():
         return _make_unaryop(self, 'ceil')
     def __abs__(self):
         return _make_unaryop(self, 'abs')
+    def __floor__(self):
+        return _make_unaryop(self, 'floor')
 
     def __add__(self, other):
         return _make_binop(self, other, '+')
@@ -150,6 +162,8 @@ class ShapeElem():
         return _make_binop(self, other, '/')
     def __floordiv__(self, other):
         return _make_binop(self, other, '//')
+    def __mod__(self, other):
+        return _make_binop(self, other, '%')
 
     def __gt__(self, other):
         if self.value is None or other.value is None:
@@ -167,12 +181,14 @@ class ShapeElem():
     __imul__ = __mul__
     __itruediv__ = __truediv__
     __ifloordiv__ = __floordiv__
+    __imod__ = __mod__
 
     __radd__ = _flip(__add__)
     __rsub__ = _flip(__sub__)
     __rmul__ = _flip(__mul__)
     __rtruediv__ = _flip(__truediv__)
     __rfloordiv__ = _flip(__floordiv__)
+    __rmod__ = __mod__
 
     def __eq__(self, other):
         # XXX: equality against None should always be true
@@ -185,6 +201,9 @@ class ShapeElem():
             return self.value == other.value
         else:
             return self.value == other
+
+    def is_null(self):
+        return self.value is None
 
     def has_value(self):
         return self.value is not None
