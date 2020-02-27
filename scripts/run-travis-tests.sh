@@ -32,7 +32,7 @@ else
   cp -p third_party/chainer/dist/*.whl $CHAINER_WHL_CACHE_DIR
 fi
 run pip_chainer sudo pip3 install $CHAINER_WHL_CACHE_DIR/*.whl
-run pip_dependencies sudo pip3 install gast==0.3.2 chainercv 'onnx>=1.4.0,<1.6' 'pytest<5.0.0' zipp==1.0.0 torch==1.4.0
+run pip_dependencies sudo pip3 install --no-color gast==0.3.2 chainercv 'onnx>=1.4.0,<1.6' 'pytest<5.0.0' zipp==1.0.0 torch==1.4.0
 
 run pip_list pip3 list -v
 
