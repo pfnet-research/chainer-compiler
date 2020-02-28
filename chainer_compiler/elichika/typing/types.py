@@ -300,11 +300,11 @@ class TyTensor(TyObj):
 
     def show(self):
         if self.kind == TensorKind.ndarray:
-            return "ndarray(dtype={}, shape={})".format(self.dtype, self.shape)
+            return "ndarray({}, {})".format(self.dtype, self.shape)
         if self.kind == TensorKind.chainer_variable:
-            return "Variable(dtype={}, shape={})".format(self.dtype, self.shape)
+            return "Variable({}, {})".format(self.dtype, self.shape)
         if self.kind == TensorKind.torch_tensor:
-            return "torch.Tensor(dtype={}, shape={})".format(self.dtype, self.shape)
+            return "torch.Tensor({}, {})".format(self.dtype, self.shape)
 
     def __eq__(self, other):
         # TODO: shape?

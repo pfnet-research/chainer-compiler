@@ -10,7 +10,6 @@ class ty_NumpyAstype():
         x_type, dtype_type = ty_args
         if isinstance(dtype_type, TyString):
             return TyNdarray(np.dtype(dtype_type.value), shape=x_type.shape)
-        print(dtype_type.t)
         return TyNdarray(dtype_type.t, shape=x_type.shape)
 
 
