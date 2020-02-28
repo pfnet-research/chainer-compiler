@@ -549,8 +549,8 @@ class InferenceEngine():
         ty_iteration = self.infer_expr(node.iter)
         ty_i = self.infer_expr(node.target)
         if isinstance(ty_iteration, TyTensor):
-            unify(ty_i, TyTensor(ty_iteration.dtype, ty_iteration.kind,
-                shape=ty_iteration.shape[1:]))
+            unify(ty_i, TyTensor(ty_iteration.kind, ty_iteration.dtype,
+                ty_iteration.shape[1:]))
         else:
             unify(ty_iteration, TySequence(ty_i, None))
 
@@ -694,9 +694,8 @@ class InferenceEngine():
         ty_iteration = tc.infer_expr(gen.iter)
         ty_i = tc.generate_fresh_TyVar(gen.target)
         if isinstance(ty_iteration, TyTensor):
-            ty_i_ = TyTensor(ty_iteration.dtype, ty_iteration.kind,
-                    ty_iteration.ndim - 1,
-                    shape=ty_iteration.shape[1:])
+            ty_i_ = TyTensor(ty_iteration.kind, ty_iteration.dtype,
+                    ty_iteration.shape[1:])
             if ty_iteration.shape is not None:
                 ty_i_.shape = ty_iteration.shape[1:]
             unify(ty_i, ty_i_)
@@ -833,8 +832,7 @@ class InferenceEngine():
         if isinstance(ty_obj, TyTensor):
             self.infer_slice(node.slice)
             ret_shape = self.infer_Subscript_shape(ty_obj.shape, node.slice)
-            return TyTensor(ty_obj.dtype, ty_obj.kind,
-                    len(ret_shape), shape=ret_shape)
+            return TyTensor(ty_obj.kind, ty_obj.dtype, ret_shape)
 
 
     def infer_Subscript_shape(self, shape, node_slice):
