@@ -60,8 +60,9 @@ class ty_TensorArith():
                     ret_shape[-i] = copy_ShapeElem(y_shape[-i])
                 elif y_shape[-i].value is None:
                     ret_shape[-i] = copy_ShapeElem(x_shape[-i])
+                elif size_of_ShapeElem(x_shape[-i]) < size_of_ShapeElem(y_shape[-i]):
+                    ret_shape[-i] = copy_ShapeElem(y_shape[-i])
                 else:
-                    # TODO(momohatt): Choose the one with shorter expression
                     ret_shape[-i] = copy_ShapeElem(x_shape[-i])
             elif x_shape[-i] == 1:
                 ret_shape[-i] = copy_ShapeElem(y_shape[-i])
