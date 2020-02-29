@@ -52,22 +52,24 @@ class ty_TensorArith():
 
     def infer_return_shape(self, x_shape, y_shape):
         ret_shape = [None for _ in x_shape]
-        for i in range(len(x_shape) - len(y_shape)):
+        offset = len(x_shape) - len(y_shape)
+        for i in range(offset):
             ret_shape[i] = copy_ShapeElem(x_shape[i])
-        for i in range(1, len(y_shape) + 1):
-            if x_shape[-i] == y_shape[-i]:
-                if x_shape[-i].value is None:
-                    ret_shape[-i] = copy_ShapeElem(y_shape[-i])
-                elif y_shape[-i].value is None:
-                    ret_shape[-i] = copy_ShapeElem(x_shape[-i])
-                elif size_of_ShapeElem(x_shape[-i]) < size_of_ShapeElem(y_shape[-i]):
-                    ret_shape[-i] = copy_ShapeElem(y_shape[-i])
+        for i in range(offset, len(x_shape)):
+            j = i - offset
+            if x_shape[i] == y_shape[j]:
+                if x_shape[i].value is None:
+                    ret_shape[i] = copy_ShapeElem(y_shape[j])
+                elif y_shape[j].value is None:
+                    ret_shape[i] = copy_ShapeElem(x_shape[i])
+                elif size_of_ShapeElem(x_shape[i]) < size_of_ShapeElem(y_shape[j]):
+                    ret_shape[i] = copy_ShapeElem(y_shape[j])
                 else:
-                    ret_shape[-i] = copy_ShapeElem(x_shape[-i])
-            elif x_shape[-i] == 1:
-                ret_shape[-i] = copy_ShapeElem(y_shape[-i])
-            elif y_shape[-i] == 1:
-                ret_shape[-i] = copy_ShapeElem(x_shape[-i])
+                    ret_shape[i] = copy_ShapeElem(x_shape[i])
+            elif x_shape[i] == 1:
+                ret_shape[i] = copy_ShapeElem(y_shape[j])
+            elif y_shape[j] == 1:
+                ret_shape[i] = copy_ShapeElem(x_shape[i])
             else:
                 assert False
         return ret_shape
