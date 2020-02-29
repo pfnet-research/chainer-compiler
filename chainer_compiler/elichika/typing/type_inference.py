@@ -493,10 +493,11 @@ class InferenceEngine():
             return
 
         if isinstance(target, gast.Attribute):
-            self.infer_expr(target)
+            self.infer_expr(target.value)
             ty_obj = self.nodetype[target.value]
             assert isinstance(ty_obj, TyUserDefinedClass)
             self.attribute_tyenv[(ty_obj.instance, target.attr)] = ty_val
+            self.nodetype[target] = ty_val
             return
 
         if isinstance(target, (gast.Tuple, gast.List)):

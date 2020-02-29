@@ -780,7 +780,7 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(str(id2type[7]), "int")	# Attribute self.y (line 2)
         self.assertEqual(str(id2type[8]), "class Test")	# Name self (line 2)
         self.assertEqual(str(id2type[13]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[14]), "NoneType")	# Attribute self.y (line 3)
+        self.assertEqual(str(id2type[14]), "int")	# Attribute self.y (line 3)
         self.assertEqual(str(id2type[15]), "class Test")	# Name self (line 3)
         self.assertEqual(str(id2type[18]), "int")	# Num 42 (line 3)
         self.assertEqual(str(id2type[19]), "int")	# Return

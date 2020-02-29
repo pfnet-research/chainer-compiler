@@ -177,13 +177,13 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[27]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Attribute self.pre_compute_enc_h (line 13)
         self.assertEqual(str(id2type[28]), "class AttDot")	# Name self (line 13)
         self.assertEqual(str(id2type[33]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[34]), "NoneType")	# Attribute self.enc_h (line 14)
+        self.assertEqual(str(id2type[34]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Attribute self.enc_h (line 14)
         self.assertEqual(str(id2type[35]), "class AttDot")	# Name self (line 14)
         self.assertEqual(str(id2type[38]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Call F.pad_sequence(enc_hs) (line 14)
         self.assertEqual(str(id2type[39]), "[ndarray(dtype=float32, shape=(4, 3)), ndarray(dtype=float32, shape=(3, 3)), ndarray(dtype=float32, shape=(3, 3))] -> optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Attribute F.pad_sequence (line 14)
         self.assertEqual(str(id2type[43]), "[ndarray(dtype=float32, shape=(4, 3)), ndarray(dtype=float32, shape=(3, 3)), ndarray(dtype=float32, shape=(3, 3))]")	# Name enc_hs (line 14)
         self.assertEqual(str(id2type[45]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[46]), "NoneType")	# Attribute self.h_length (line 15)
+        self.assertEqual(str(id2type[46]), "optional(int)")	# Attribute self.h_length (line 15)
         self.assertEqual(str(id2type[47]), "class AttDot")	# Name self (line 15)
         self.assertEqual(str(id2type[50]), "optional(int)")	# Subscript self.enc_h.shape[1] (line 15)
         self.assertEqual(str(id2type[51]), "(int, optional(int), int)")	# Attribute self.enc_h.shape (line 15)
@@ -191,7 +191,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[53]), "class AttDot")	# Name self (line 15)
         self.assertEqual(str(id2type[58]), "int")	# Constant 1 (line 15)
         self.assertEqual(str(id2type[60]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[61]), "NoneType")	# Attribute self.pre_compute_enc_h (line 17)
+        self.assertEqual(str(id2type[61]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Attribute self.pre_compute_enc_h (line 17)
         self.assertEqual(str(id2type[62]), "class AttDot")	# Name self (line 17)
         self.assertEqual(str(id2type[65]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Call F.tanh(linear_tensor(self.mlp_enc, self.enc_h)) (line 17)
         self.assertEqual(str(id2type[66]), "Variable(dtype=float32, shape=(3, 4, 5)) -> Variable(dtype=float32, shape=(3, 4, 5))")	# Attribute F.tanh (line 17)
@@ -340,13 +340,13 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[27]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Attribute self.pre_compute_enc_h (line 14)
         self.assertEqual(str(id2type[28]), "class AttLoc")	# Name self (line 14)
         self.assertEqual(str(id2type[33]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[34]), "NoneType")	# Attribute self.enc_h (line 15)
+        self.assertEqual(str(id2type[34]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Attribute self.enc_h (line 15)
         self.assertEqual(str(id2type[35]), "class AttLoc")	# Name self (line 15)
         self.assertEqual(str(id2type[38]), "optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Call F.pad_sequence(enc_hs) (line 15)
         self.assertEqual(str(id2type[39]), "[ndarray(dtype=float32, shape=(4, 3)), ndarray(dtype=float32, shape=(2, 3)), ndarray(dtype=float32, shape=(2, 3))] -> optional(Variable(dtype=float32, shape=(3, 4, 3)))")	# Attribute F.pad_sequence (line 15)
         self.assertEqual(str(id2type[43]), "[ndarray(dtype=float32, shape=(4, 3)), ndarray(dtype=float32, shape=(2, 3)), ndarray(dtype=float32, shape=(2, 3))]")	# Name enc_hs (line 15)
         self.assertEqual(str(id2type[45]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[46]), "NoneType")	# Attribute self.h_length (line 16)
+        self.assertEqual(str(id2type[46]), "optional(int)")	# Attribute self.h_length (line 16)
         self.assertEqual(str(id2type[47]), "class AttLoc")	# Name self (line 16)
         self.assertEqual(str(id2type[50]), "optional(int)")	# Subscript self.enc_h.shape[1] (line 16)
         self.assertEqual(str(id2type[51]), "(int, optional(int), int)")	# Attribute self.enc_h.shape (line 16)
@@ -354,7 +354,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[53]), "class AttLoc")	# Name self (line 16)
         self.assertEqual(str(id2type[58]), "int")	# Constant 1 (line 16)
         self.assertEqual(str(id2type[60]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[61]), "NoneType")	# Attribute self.pre_compute_enc_h (line 18)
+        self.assertEqual(str(id2type[61]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Attribute self.pre_compute_enc_h (line 18)
         self.assertEqual(str(id2type[62]), "class AttLoc")	# Name self (line 18)
         self.assertEqual(str(id2type[65]), "Variable(dtype=float32, shape=(3, 4, 5))")	# Call linear_tensor_3d(self.mlp_enc, self.enc_h) (line 18)
         self.assertEqual(str(id2type[66]), "class Linear -> optional(Variable(dtype=float32, shape=(3, 4, 3))) -> Variable(dtype=float32, shape=(3, 4, 5))")	# Name linear_tensor_3d (line 18)
