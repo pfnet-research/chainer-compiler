@@ -21,11 +21,13 @@ pytorch_func_ty = {
         torch.randn   : ty_TorchTensorOfShape(),
 
         # https://pytorch.org/docs/stable/torch.html#indexing-slicing-joining-mutating-ops
-        torch.cat     : ty_TorchCat(),
-        torch.chunk   : ty_TorchChunk(),
-        torch.split   : ty_TorchSplit(),
-        torch.stack   : ty_TorchStack(),
-        torch.reshape : ty_TorchReshape(),
+        torch.cat       : ty_TorchCat(),
+        torch.chunk     : ty_TorchChunk(),
+        torch.reshape   : ty_TorchReshape(),
+        torch.split     : ty_TorchSplit(),
+        torch.squeeze   : ty_TorchSqueeze(),
+        torch.stack     : ty_TorchStack(),
+        torch.unsqueeze : ty_TorchUnsqueeze(),
 
         # https://pytorch.org/docs/stable/torch.html#random-sampling
         torch.rand_like  : ty_TorchIdentical(),
