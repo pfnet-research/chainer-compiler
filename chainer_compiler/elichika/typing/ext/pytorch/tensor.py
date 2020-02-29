@@ -107,7 +107,7 @@ class ty_TorchCat():
     def infer_return(self, xs_type):
         ret_shape = list(xs_type[0].shape)
         ret_shape[self.dim] = sum([x_type.shape[self.dim] for x_type in xs_type])
-        return TyTorchTensor(dtype=xs_type[0].dtype, shape=ret_shape)
+        return TyTorchTensor(xs_type[0].dtype, shape=ret_shape)
 
 
 class ty_TorchChunk():
@@ -231,7 +231,7 @@ class ty_TorchStack():
 
         if xs_type.is_fixed_len:
             for ty in xs_type.get_tys():
-                unify(xs_type.get_ty(), ty)
+                unify(xs_type.get(), ty)
 
         self.dim, lacks_dim = get_kwarg(ty_kwargs, 'dim', default=0)
 
@@ -283,7 +283,7 @@ class ty_TorchFlatten():
         postfix_shape = shape[end_dim:][2:]
         size = size_of_shape(middle_shape)
         out_shape = prefix_shape + (size,) + postfix_shape
-        return TyTorchTensor(shape=out_shape, dtype=input_type.dtype)
+        return TyTorchTensor(input_type.dtype, shape=out_shape)
 
 
 # torch.Tensor

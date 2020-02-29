@@ -81,19 +81,26 @@ def simplify(expr):
         return type_check.Constant(n)
 
     if isinstance(expr, type_check.BinaryOperator):
-        if (expr.exp == '+' or expr.exp == '-') and _try_eval(expr.rhs) == 0:
-            return simplify(expr.lhs)
+        rhs_value = _try_eval(expr.rhs)
+        if rhs_value is not None:
+            if (expr.exp == '+' or expr.exp == '-') and rhs_value == 0:
+                return simplify(expr.lhs)
 
-        if expr.exp == '+' and _try_eval(expr.rhs) < 0:
-            expr_rhs = type_check.Constant(- _try_eval(expr.rhs))
-            return simplify(_make_binop_expr(expr.lhs, expr_rhs, '-'))
+            if expr.exp == '+' and rhs_value < 0:
+                expr_rhs = type_check.Constant(- rhs_value)
+                return simplify(_make_binop_expr(expr.lhs, expr_rhs, '-'))
 
-        if expr.exp == '-' and _try_eval(expr.rhs) < 0:
-            expr_rhs = type_check.Constant(- _try_eval(expr.rhs))
-            return simplify(_make_binop_expr(expr.lhs, expr_rhs, '+'))
+            if expr.exp == '-' and rhs_value < 0:
+                expr_rhs = type_check.Constant(- rhs_value)
+                return simplify(_make_binop_expr(expr.lhs, expr_rhs, '+'))
 
-        if (expr.exp == '*' or expr.exp == '/' or expr.exp == '//') and _try_eval(expr.rhs) == 1:
-            return simplify(expr.lhs)
+            if (expr.exp == '*' or expr.exp == '/' or expr.exp == '//') and rhs_value == 1:
+                return simplify(expr.lhs)
+
+        lhs_value = _try_eval(expr.lhs)
+        if lhs_value is not None:
+            if expr.exp == '+' and lhs_value == 0:
+                return simplify(expr.rhs)
 
         if isinstance(expr.lhs, type_check.BinaryOperator) and \
                 expr.lhs.priority == expr.priority:

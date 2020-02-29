@@ -56,8 +56,13 @@ class ty_TensorArith():
             ret_shape[i] = copy_ShapeElem(x_shape[i])
         for i in range(1, len(y_shape) + 1):
             if x_shape[-i] == y_shape[-i]:
-                # TODO(momohatt): Choose the one with shorter expression
-                ret_shape[-i] = copy_ShapeElem(x_shape[-i])
+                if x_shape[-i].value is None:
+                    ret_shape[-i] = copy_ShapeElem(y_shape[-i])
+                elif y_shape[-i].value is None:
+                    ret_shape[-i] = copy_ShapeElem(x_shape[-i])
+                else:
+                    # TODO(momohatt): Choose the one with shorter expression
+                    ret_shape[-i] = copy_ShapeElem(x_shape[-i])
             elif x_shape[-i] == 1:
                 ret_shape[-i] = copy_ShapeElem(y_shape[-i])
             elif y_shape[-i] == 1:
