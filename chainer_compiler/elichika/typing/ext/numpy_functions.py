@@ -19,7 +19,7 @@ class ty_NumpyArray(ty_MakeTensor):
         x_type, = ty_args
         default_dtype = self.get_element_dtype(x_type)
         dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', default_dtype)
-        assert not lacks_dtype, "dtype couldn't inferred"
+        assert not lacks_dtype, "numpy.array: dtype couldn't be inferred"
 
         return TyNdarray(dtype, shape=self.calculate_shape(x_type))
 
