@@ -1,8 +1,3 @@
-import numpy as np
-import math
-
-from   chainer.utils import type_check
-
 from   chainer_compiler.elichika.typing.ext.utils  import *
 from   chainer_compiler.elichika.typing.types      import *
 from   chainer_compiler.elichika.typing.shape_elem import *
