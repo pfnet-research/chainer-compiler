@@ -3,8 +3,8 @@ import numpy as np
 
 from   chainer.utils import type_check
 
+from   chainer_compiler.elichika.typing.ext.common        import *
 from   chainer_compiler.elichika.typing.ext.utils         import *
-from   chainer_compiler.elichika.typing.shape_elem        import copy_ShapeElem
 from   chainer_compiler.elichika.typing.types             import *
 from   chainer_compiler.elichika.typing.ext.pytorch.utils import *
 
@@ -44,40 +44,12 @@ class ty_TorchIdentical():
 # Tensors
 ## Creation Ops
 
-# TODO: Unify with NumpyArray
-class ty_TorchTensor():
+class ty_TorchTensor(ty_MakeTensor):
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
-        default_dtype = self.get_element_dtype(x_type)
-        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', default_dtype)
-        assert not lacks_dtype, "torch.tensor: dtype couldn't inferred"
-
-        return TyNdarray(dtype,
-                shape=self.calculate_shape(x_type))
-
-    def calculate_shape(self, x_type):
-        if not isinstance(x_type, TySequence):
-            return ()
-        if not x_type.is_fixed_len:
-            return (None,)
-
-        x_tys = x_type.get_tys()
-
-        if isinstance(x_tys[0], TySequence):
-            list_lengths = [t.size() if t.is_fixed_len else None for t in x_tys]
-            list_lengths_nonnull = [l for l in list_lengths if l is not None]
-
-            # for example, we will not accept np.array([[1,2,3], [4,5]])
-            assert all_same(list_lengths_nonnull), \
-                    "numpy.array: incompatible list length"
-
-        return (len(x_tys),) + self.calculate_shape(x_tys[0])
-
-    def get_element_dtype(self, ty):
-        # get element dtype of nested TySequence
-        if isinstance(ty, TySequence):
-            return self.get_element_dtype(ty.get())
-        return tyobj2dtype(ty)
+        # TODO(momohatt): Use global default dtype
+        dtype = self.get_element_dtype(x_type)
+        return TyTorchTensor(dtype, shape=self.calculate_shape(x_type))
 
 
 class ty_TorchTensorOfShape():
@@ -90,7 +62,7 @@ class ty_TorchTensorOfShape():
         assert not lacks_dtype
 
         shape = wrap_shape([extract_value_from_ty(ty) for ty in ty_args])
-        return TyNdarray(dtype, shape=shape)
+        return TyTorchTensor(dtype, shape=shape)
 
 
 ## Indexing, Slicing, Joining, Mutating Ops
@@ -292,35 +264,9 @@ class ty_TorchUnsqueeze():
 # Math operations
 ## Pointwise Ops
 
-class ty_TorchArith():
-    def __call__(self, ty_args, ty_kwargs):
-        x_type, y_type = ty_args
-        if isinstance(x_type, TyNum):
-            x_type = num_to_tensor(x_type)
-        if isinstance(y_type, TyNum):
-            y_type = num_to_tensor(y_type)
-        dtype = get_out_dtype(x_type.dtype, y_type.dtype)
-        if len(x_type.shape) > len(y_type.shape):
-            shape = self.infer_return_shape(x_type.shape, y_type.shape)
-        else:
-            shape = self.infer_return_shape(y_type.shape, x_type.shape)
-        return TyTorchTensor(dtype, shape)
-
-    def infer_return_shape(self, x_shape, y_shape):
-        ret_shape = [None for _ in x_shape]
-        for i in range(len(x_shape) - len(y_shape)):
-            ret_shape[i] = copy_ShapeElem(x_shape[i])
-        for i in range(1, len(y_shape) + 1):
-            if x_shape[-i] == y_shape[-i]:
-                # TODO(momohatt): Choose the one with shorter expression
-                ret_shape[-i] = copy_ShapeElem(x_shape[-i])
-            elif x_shape[-i] == 1:
-                ret_shape[-i] = copy_ShapeElem(y_shape[-i])
-            elif y_shape[-i] == 1:
-                ret_shape[-i] = copy_ShapeElem(x_shape[-i])
-            else:
-                assert False
-        return ret_shape
+class ty_TorchArith(ty_TensorArith):
+    def __init__(self):
+        super().__init__(TensorKind.torch_tensor)
 
 
 ## Other operations

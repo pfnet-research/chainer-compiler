@@ -12,11 +12,11 @@ from   chainer_compiler.elichika.typing.shape_elem import ShapeElem, wrap_shape,
 __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
           , 'TyString', 'TyArrow', 'TySequence', 'TyList', 'TyTuple'
           , 'TyDict', 'TyUserDefinedClass', 'TyDType', 'TyVar'
-          , 'TyTensor', 'TyNdarray', 'TyChainerVariable', 'TyTorchTensor'
+          , 'TyTensor', 'TensorKind'
+          , 'TyNdarray', 'TyChainerVariable', 'TyTorchTensor'
           , 'torch_dtype_to_np_dtype', 'all_same_ty'
           , 'type_of_value', 'extract_value_from_ty'
           , 'lacks_value', 'generate_dummy_value', 'tyobj_to_dtype'
-          , 'num_to_tensor', 'get_out_dtype'
           , 'choose_stronger_ty', 'copy_ty'
           , 'unify', 'UnifyError'
           ]
@@ -585,17 +585,6 @@ def tyobj_to_dtype(ty):
     assert isinstance(ty, TyNum), "tyobj_to_dtype: Unknown dtype"
     return np.dtype(str(NumKind(ty.kind)))
 
-
-def num_to_tensor(ty, kind):
-    assert isinstance(ty, TyNum)
-    dtype = tyobj_to_dtype(ty)
-    return TyTensor(kind, dtype, ())
-
-
-def get_out_dtype(x_dtype, y_dtype):
-    x = np.ones((), dtype=x_dtype)
-    y = np.ones((), dtype=y_dtype)
-    return (x + y).dtype
 
 # ==============================================================================
 

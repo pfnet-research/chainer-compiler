@@ -8,6 +8,7 @@ import types
 import typing
 
 from   chainer_compiler.elichika.parser.utils             import clip_head
+from   chainer_compiler.elichika.typing.ext.common        import ty_TensorArith
 from   chainer_compiler.elichika.typing.ext.numpy_functions   import numpy_func_ty
 from   chainer_compiler.elichika.typing.ext.chainer_functions import chainer_func_ty, chainer_callable_ty
 from   chainer_compiler.elichika.typing.ext.pytorch_functions import pytorch_func_ty, pytorch_callable_ty
@@ -112,6 +113,11 @@ def call_builtin_function(func, node, ty_args):
 
 
 def call_binop(op, node, tyl, tyr):
+    if isinstance(tyl, TyTensor):
+        return ty_TensorArith(tyl.kind)([tyl, tyr], {})
+    if isinstance(tyr, TyTensor):
+        return ty_TensorArith(tyr.kind)([tyl, tyr], {})
+
     semantics = {
             gast.Add : (lambda x, y: x + y),
             gast.Sub : (lambda x, y: x - y),
@@ -130,12 +136,6 @@ def call_binop(op, node, tyl, tyr):
             not (tyl.is_fixed_len and tyr.is_fixed_len):
         ty_ret.coerce_to_variable_len()
 
-    if isinstance(ty_ret, TyTensor) and \
-            (isinstance(tyl, TyTensor) and is_incomplete_shape(tyl.shape) or \
-             isinstance(tyr, TyTensor) and is_incomplete_shape(tyr.shape)):
-        # TODO(momohatt): shape broadcasting rule
-        # TODO(momohatt): shape expr collision
-        ty_ret.shape = tuple([ShapeElem(None) for _ in range(ty_ret.ndim)])
     return ty_ret
 
 
