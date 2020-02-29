@@ -179,10 +179,6 @@ class InferenceEngine():
         # Node (Call) -> Node (FunctionDef)
         self.subroutine_node = collections.OrderedDict()
 
-        # typing type hints
-        # string -> TyObj
-        self.type_hints = {}
-
 
     def dump_tyenv(self):
         if not self.is_debug:
@@ -263,8 +259,6 @@ class InferenceEngine():
         if self.is_debug:
             print("\x1b[33m==================== function {} ====================\x1b[39m".format(node.name))
 
-        self.type_hints = type_hints
-
         for arg_node, ty in zip(node.args.args, ty_args):
             self.tyenv[arg_node.id] = ty
         for ty in ty_args:
@@ -274,7 +268,7 @@ class InferenceEngine():
                             type_of_value(val)
 
         # apply type hints
-        for n, t in self.type_hints.items():
+        for n, t in type_hints.items():
             # TODO(momohatt): use term-match instead of unify?
             unify(self.tyenv[n], t)
             if isinstance(t, TyTensor):
