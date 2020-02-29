@@ -44,7 +44,9 @@ pytorch_func_ty = {
         torch.tan     : ty_TorchIdentical(),
         torch.tanh    : ty_TorchIdentical(),
 
-        torch.mul     : ty_TorchArith(torch.mul),
+        torch.add     : ty_TorchArith(),
+        torch.sub     : ty_TorchArith(),
+        torch.mul     : ty_TorchArith(),
 
         torch.flatten : ty_TorchFlatten(),
 
@@ -66,12 +68,12 @@ pytorch_func_ty = {
         # https://pytorch.org/docs/stable/nn.functional.html#vision-functions
         F.interpolate : ty_TorchInterpolate(),
 
-        torch.Tensor.add  : ty_TorchArith(torch.add),
-        torch.Tensor.add_ : ty_TorchArith(torch.add),
-        torch.Tensor.sub  : ty_TorchArith(torch.sub),
-        torch.Tensor.sub_ : ty_TorchArith(torch.sub),
-        torch.Tensor.mul  : ty_TorchArith(torch.mul),
-        torch.Tensor.mul_ : ty_TorchArith(torch.mul),
+        torch.Tensor.add  : ty_TorchArith(),
+        torch.Tensor.add_ : ty_TorchArith(),
+        torch.Tensor.sub  : ty_TorchArith(),
+        torch.Tensor.sub_ : ty_TorchArith(),
+        torch.Tensor.mul  : ty_TorchArith(),
+        torch.Tensor.mul_ : ty_TorchArith(),
 
         torch.Tensor.chunk     : ty_TorchChunk(),
         torch.Tensor.repeat    : ty_TorchRepeat(),

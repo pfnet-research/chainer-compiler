@@ -4,6 +4,7 @@ import numpy as np
 from   chainer.utils import type_check
 
 from   chainer_compiler.elichika.typing.ext.utils         import *
+from   chainer_compiler.elichika.typing.shape_elem        import copy_ShapeElem
 from   chainer_compiler.elichika.typing.types             import *
 from   chainer_compiler.elichika.typing.ext.pytorch.utils import *
 
@@ -292,22 +293,34 @@ class ty_TorchUnsqueeze():
 ## Pointwise Ops
 
 class ty_TorchArith():
-    def __init__(self, fn):
-        self.fn = fn
-
     def __call__(self, ty_args, ty_kwargs):
         x_type, y_type = ty_args
-        x, y = generate_dummy_value(x_type), generate_dummy_value(y_type)
+        if isinstance(x_type, TyNum):
+            x_type = num_to_tensor(x_type)
+        if isinstance(y_type, TyNum):
+            y_type = num_to_tensor(y_type)
+        dtype = get_out_dtype(x_type.dtype, y_type.dtype)
+        if len(x_type.shape) > len(y_type.shape):
+            shape = self.infer_return_shape(x_type.shape, y_type.shape)
+        else:
+            shape = self.infer_return_shape(y_type.shape, x_type.shape)
+        return TyTorchTensor(dtype, shape)
 
-        try:
-            ty_ret = type_of_value(self.fn(x, y))
-        except Exception as e:
-            ty_ret = handle_inference_error(e, op.__class__.__name__, node)
-
-        if is_incomplete_shape(x_type.shape) or \
-                is_incomplete_shape(y_type.shape):
-            ty_ret.shape = (ShapeElem(None),) * ty_ret.ndim
-        return ty_ret
+    def infer_return_shape(self, x_shape, y_shape):
+        ret_shape = [None for _ in x_shape]
+        for i in range(len(x_shape) - len(y_shape)):
+            ret_shape[i] = copy_ShapeElem(x_shape[i])
+        for i in range(1, len(y_shape) + 1):
+            if x_shape[-i] == y_shape[-i]:
+                # TODO(momohatt): Choose the one with shorter expression
+                ret_shape[-i] = copy_ShapeElem(x_shape[-i])
+            elif x_shape[-i] == 1:
+                ret_shape[-i] = copy_ShapeElem(y_shape[-i])
+            elif y_shape[-i] == 1:
+                ret_shape[-i] = copy_ShapeElem(x_shape[-i])
+            else:
+                assert False
+        return ret_shape
 
 
 ## Other operations

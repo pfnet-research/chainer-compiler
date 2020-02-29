@@ -7,6 +7,7 @@ __all__ = [ 'ShapeElem'
           , 'wrap_shape'
           , 'unwrap_shape'
           , 'is_incomplete_shape'
+          , 'copy_ShapeElem'
           , 'unify_shape'
           ]
 
@@ -132,7 +133,10 @@ class ShapeElem():
         else:
             # value
             self.value = value_or_name
-            self.expr = simplify(expr) if expr is not None else type_check.Constant(value_or_name)
+            if expr is None:
+                self.expr = type_check.Constant(value_or_name)
+            else:
+                self.expr = simplify(expr)
 
     def __str__(self):
         # self.expr = simplify(self.expr)
@@ -220,6 +224,9 @@ def unwrap_shape(shape_seq):
 
 def is_incomplete_shape(shape_seq):
     return any([not s.has_value() for s in shape_seq])
+
+def copy_ShapeElem(e):
+    return ShapeElem(e.value, expr=e.expr)
 
 
 def unify_shape(shape1, shape2):

@@ -44,7 +44,7 @@ class ty_NumpyArray():
         # get element dtype of nested TySequence
         if isinstance(ty, TySequence):
             return self.get_element_dtype(ty.get())
-        return tyobj2dtype(ty)
+        return tyobj_to_dtype(ty)
 
 
 class ty_NumpyIdentical():
@@ -76,7 +76,7 @@ class ty_NumpyOnes():
 class ty_NumpyFull():
     def __call__(self, ty_args, ty_kwargs):
         shape_type, value_type = ty_args
-        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', tyobj2dtype(value_type))
+        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', tyobj_to_dtype(value_type))
 
         assert not lacks_dtype
 
