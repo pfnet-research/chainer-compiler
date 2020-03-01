@@ -704,11 +704,9 @@ class InferenceEngine():
             ty_fun = self.infer_expr(node.func, is_callee=True)
             unify(ty_fun, TyArrow(ty_args, ty_ret))
         except self.ArgumentRequired as e:
-            # Attribute
-            if isinstance(e.func, tuple):
-                (func, ty_obj) = e.func
-                e.func = func
-                ty_args_ = [ty_obj] + ty_args
+            if e.ty_obj is not None:
+                # Attribute
+                ty_args_ = [e.ty_obj] + ty_args
             else:
                 ty_args_ = ty_args
 
@@ -750,10 +748,10 @@ class InferenceEngine():
                 return TyInt()
             if ty_obj.is_ndarray() and is_callee:
                 func = getattr(np.ndarray, node.attr)
-                raise self.ArgumentRequired((func, ty_obj))
+                raise self.ArgumentRequired(func=func, ty_obj=ty_obj)
             if ty_obj.is_torch_tensor() and is_callee:
                 func = getattr(torch.Tensor, node.attr)
-                raise self.ArgumentRequired((func, ty_obj))
+                raise self.ArgumentRequired(func=func, ty_obj=ty_obj)
             assert False
 
         if isinstance(ty_obj, TyUserDefinedClass):
