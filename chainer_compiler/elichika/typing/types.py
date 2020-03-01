@@ -12,10 +12,11 @@ from   chainer_compiler.elichika.typing.shape_elem import ShapeElem, wrap_shape,
 __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
           , 'TyString', 'TyArrow', 'TySequence', 'TyList', 'TyTuple'
           , 'TyDict', 'TyUserDefinedClass', 'TyDType', 'TyVar'
-          , 'TyTensor', 'TyNdarray', 'TyChainerVariable', 'TyTorchTensor'
+          , 'TyTensor', 'TensorKind'
+          , 'TyNdarray', 'TyChainerVariable', 'TyTorchTensor'
           , 'torch_dtype_to_np_dtype', 'all_same_ty'
           , 'type_of_value', 'extract_value_from_ty'
-          , 'lacks_value', 'generate_dummy_value', 'tyobj2dtype'
+          , 'lacks_value', 'generate_dummy_value', 'tyobj_to_dtype'
           , 'choose_stronger_ty', 'copy_ty'
           , 'unify', 'UnifyError'
           ]
@@ -286,25 +287,23 @@ class TyDType(TyObj):
 
 
 class TyTensor(TyObj):
-    def __init__(self, dtype, kind, ndim, shape=None):  # we do not allow heterogeneous type ndarray
+    def __init__(self, kind, dtype, shape):  # we do not allow heterogeneous type ndarray
         super().__init__()
         if isinstance(dtype, torch.dtype):
             self.dtype = torch_dtype_to_np_dtype(dtype)
         else:
             self.dtype = np.dtype(dtype)
         self.kind = kind
-        self.ndim = ndim
-        if shape is None:
-            shape = (None,) * ndim
+        self.ndim = len(shape)
         self.shape = wrap_shape(shape)  # Tuple[ShapeElem]
 
     def show(self):
         if self.kind == TensorKind.ndarray:
-            return "ndarray(dtype={}, shape={})".format(self.dtype, self.shape)
+            return "ndarray({}, {})".format(self.dtype, self.shape)
         if self.kind == TensorKind.chainer_variable:
-            return "Variable(dtype={}, shape={})".format(self.dtype, self.shape)
+            return "Variable({}, {})".format(self.dtype, self.shape)
         if self.kind == TensorKind.torch_tensor:
-            return "torch.Tensor(dtype={}, shape={})".format(self.dtype, self.shape)
+            return "torch.Tensor({}, {})".format(self.dtype, self.shape)
 
     def __eq__(self, other):
         # TODO: shape?
@@ -323,21 +322,21 @@ class TyTensor(TyObj):
         return self.kind == TensorKind.torch_tensor
 
 
-def TyNdarray(dtype, ndim=None, shape=None):
+def TyNdarray(dtype, shape=None, ndim=None):
     # ndim and shape cannot be None at the same time
-    if ndim is None:
-        ndim = len(shape)
-    return TyTensor(dtype, TensorKind.ndarray, ndim=ndim, shape=shape)
+    if shape is None:
+        shape = (None,) * ndim
+    return TyTensor(TensorKind.ndarray, dtype, shape)
 
-def TyChainerVariable(dtype, ndim=None, shape=None):
-    if ndim is None:
-        ndim = len(shape)
-    return TyTensor(dtype, TensorKind.chainer_variable, ndim=ndim, shape=shape)
+def TyChainerVariable(dtype, shape=None, ndim=None):
+    if shape is None:
+        shape = (None,) * ndim
+    return TyTensor(TensorKind.chainer_variable, dtype, shape)
 
-def TyTorchTensor(dtype, ndim=None, shape=None):
-    if ndim is None:
-        ndim = len(shape)
-    return TyTensor(dtype, TensorKind.torch_tensor, ndim=ndim, shape=shape)
+def TyTorchTensor(dtype, shape=None, ndim=None):
+    if shape is None:
+        shape = (None,) * ndim
+    return TyTensor(TensorKind.torch_tensor, dtype, shape)
 
 def torch_dtype_to_np_dtype(dtype):
     # TODO(momohatt): Better way to do this?
@@ -572,7 +571,7 @@ def copy_ty(ty):
     elif isinstance(ty, TyDType):
         ret = TyDType()
     elif isinstance(ty, TyTensor):
-        ret = TyTensor(ty.dtype, ty.kind, ty.ndim, shape=ty.shape)
+        ret = TyTensor(ty.kind, ty.dtype, ty.shape)
     elif isinstance(ty, TyVar):
         ret = TyVar(None)
         if ty.ty is not None:
@@ -582,10 +581,9 @@ def copy_ty(ty):
     return ret
 
 
-def tyobj2dtype(ty):
-    if isinstance(ty, TyNum):
-        return np.dtype(str(NumKind(ty.kind)))
-    assert False
+def tyobj_to_dtype(ty):
+    assert isinstance(ty, TyNum), "tyobj_to_dtype: Unknown dtype"
+    return np.dtype(str(NumKind(ty.kind)))
 
 
 # ==============================================================================
