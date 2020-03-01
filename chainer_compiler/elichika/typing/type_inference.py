@@ -217,26 +217,6 @@ class InferenceEngine():
         return t
 
 
-    def evaluate(self, node):
-        if isinstance(node, gast.Attribute):
-            v_value = self.evaluate(node.value)
-            if v_value is None:
-                return None
-            attr = getattr(v_value, node.attr)
-            return attr
-
-        if isinstance(node, gast.Constant):
-            return node.value
-
-        if isinstance(node, gast.Name) and hasattr(self.module, node.id):
-            return getattr(self.module, node.id)
-
-        if isinstance(node, gast.Name) and node.id in self.tyenv.keys() and \
-                isinstance(self.tyenv[node.id], TyUserDefinedClass):
-            # ex. value of 'self'
-            return self.tyenv[node.id].instance
-
-
     def infer(self, node):
         self.infer_mod(node)
         return self.nodetype
