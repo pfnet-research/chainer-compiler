@@ -8,6 +8,7 @@ import types
 import typing
 
 from   chainer_compiler.elichika.parser.utils             import clip_head
+from   chainer_compiler.elichika.typing.ext.common        import ty_TensorArith
 from   chainer_compiler.elichika.typing.ext.numpy_functions   import numpy_func_ty
 from   chainer_compiler.elichika.typing.ext.chainer_functions import chainer_func_ty, chainer_callable_ty
 from   chainer_compiler.elichika.typing.ext.pytorch_functions import pytorch_func_ty, pytorch_callable_ty
@@ -112,6 +113,11 @@ def call_builtin_function(func, node, ty_args):
 
 
 def call_binop(op, node, tyl, tyr):
+    if isinstance(tyl, TyTensor):
+        return ty_TensorArith(tyl.kind)([tyl, tyr], {})
+    if isinstance(tyr, TyTensor):
+        return ty_TensorArith(tyr.kind)([tyl, tyr], {})
+
     semantics = {
             gast.Add : (lambda x, y: x + y),
             gast.Sub : (lambda x, y: x - y),
@@ -130,12 +136,6 @@ def call_binop(op, node, tyl, tyr):
             not (tyl.is_fixed_len and tyr.is_fixed_len):
         ty_ret.coerce_to_variable_len()
 
-    if isinstance(ty_ret, TyTensor) and \
-            (isinstance(tyl, TyTensor) and is_incomplete_shape(tyl.shape) or \
-             isinstance(tyr, TyTensor) and is_incomplete_shape(tyr.shape)):
-        # TODO(momohatt): shape broadcasting rule
-        # TODO(momohatt): shape expr collision
-        ty_ret.shape = tuple([ShapeElem(None) for _ in range(ty_ret.ndim)])
     return ty_ret
 
 
@@ -178,10 +178,6 @@ class InferenceEngine():
         # map from user-defined function call points to inlined function ASTs
         # Node (Call) -> Node (FunctionDef)
         self.subroutine_node = collections.OrderedDict()
-
-        # typing type hints
-        # string -> TyObj
-        self.type_hints = {}
 
 
     def dump_tyenv(self):
@@ -263,8 +259,6 @@ class InferenceEngine():
         if self.is_debug:
             print("\x1b[33m==================== function {} ====================\x1b[39m".format(node.name))
 
-        self.type_hints = type_hints
-
         for arg_node, ty in zip(node.args.args, ty_args):
             self.tyenv[arg_node.id] = ty
         for ty in ty_args:
@@ -274,7 +268,7 @@ class InferenceEngine():
                             type_of_value(val)
 
         # apply type hints
-        for n, t in self.type_hints.items():
+        for n, t in type_hints.items():
             # TODO(momohatt): use term-match instead of unify?
             unify(self.tyenv[n], t)
             if isinstance(t, TyTensor):
@@ -550,8 +544,8 @@ class InferenceEngine():
         ty_iteration = self.infer_expr(node.iter)
         ty_i = self.infer_expr(node.target)
         if isinstance(ty_iteration, TyTensor):
-            unify(ty_i, TyTensor(ty_iteration.dtype, ty_iteration.kind,
-                shape=ty_iteration.shape[1:]))
+            unify(ty_i, TyTensor(ty_iteration.kind, ty_iteration.dtype,
+                ty_iteration.shape[1:]))
         else:
             unify(ty_iteration, TySequence(ty_i, None))
 
@@ -701,9 +695,8 @@ class InferenceEngine():
         ty_iteration = tc.infer_expr(gen.iter)
         ty_i = tc.generate_fresh_TyVar(gen.target)
         if isinstance(ty_iteration, TyTensor):
-            ty_i_ = TyTensor(ty_iteration.dtype, ty_iteration.kind,
-                    ty_iteration.ndim - 1,
-                    shape=ty_iteration.shape[1:])
+            ty_i_ = TyTensor(ty_iteration.kind, ty_iteration.dtype,
+                    ty_iteration.shape[1:])
             if ty_iteration.shape is not None:
                 ty_i_.shape = ty_iteration.shape[1:]
             unify(ty_i, ty_i_)
@@ -840,8 +833,7 @@ class InferenceEngine():
         if isinstance(ty_obj, TyTensor):
             self.infer_slice(node.slice)
             ret_shape = self.infer_Subscript_shape(ty_obj.shape, node.slice)
-            return TyTensor(ty_obj.dtype, ty_obj.kind,
-                    len(ret_shape), shape=ret_shape)
+            return TyTensor(ty_obj.kind, ty_obj.dtype, ret_shape)
 
 
     def infer_Subscript_shape(self, shape, node_slice):

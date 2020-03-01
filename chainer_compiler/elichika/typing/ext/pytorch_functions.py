@@ -21,11 +21,13 @@ pytorch_func_ty = {
         torch.randn   : ty_TorchTensorOfShape(),
 
         # https://pytorch.org/docs/stable/torch.html#indexing-slicing-joining-mutating-ops
-        torch.cat     : ty_TorchCat(),
-        torch.chunk   : ty_TorchChunk(),
-        torch.split   : ty_TorchSplit(),
-        torch.stack   : ty_TorchStack(),
-        torch.reshape : ty_TorchReshape(),
+        torch.cat       : ty_TorchCat(),
+        torch.chunk     : ty_TorchChunk(),
+        torch.reshape   : ty_TorchReshape(),
+        torch.split     : ty_TorchSplit(),
+        torch.squeeze   : ty_TorchSqueeze(),
+        torch.stack     : ty_TorchStack(),
+        torch.unsqueeze : ty_TorchUnsqueeze(),
 
         # https://pytorch.org/docs/stable/torch.html#random-sampling
         torch.rand_like  : ty_TorchIdentical(),
@@ -44,7 +46,9 @@ pytorch_func_ty = {
         torch.tan     : ty_TorchIdentical(),
         torch.tanh    : ty_TorchIdentical(),
 
-        torch.mul     : ty_TorchArith(torch.mul),
+        torch.add     : ty_TorchArith(),
+        torch.sub     : ty_TorchArith(),
+        torch.mul     : ty_TorchArith(),
 
         torch.flatten : ty_TorchFlatten(),
 
@@ -66,12 +70,12 @@ pytorch_func_ty = {
         # https://pytorch.org/docs/stable/nn.functional.html#vision-functions
         F.interpolate : ty_TorchInterpolate(),
 
-        torch.Tensor.add  : ty_TorchArith(torch.add),
-        torch.Tensor.add_ : ty_TorchArith(torch.add),
-        torch.Tensor.sub  : ty_TorchArith(torch.sub),
-        torch.Tensor.sub_ : ty_TorchArith(torch.sub),
-        torch.Tensor.mul  : ty_TorchArith(torch.mul),
-        torch.Tensor.mul_ : ty_TorchArith(torch.mul),
+        torch.Tensor.add  : ty_TorchArith(),
+        torch.Tensor.add_ : ty_TorchArith(),
+        torch.Tensor.sub  : ty_TorchArith(),
+        torch.Tensor.sub_ : ty_TorchArith(),
+        torch.Tensor.mul  : ty_TorchArith(),
+        torch.Tensor.mul_ : ty_TorchArith(),
 
         torch.Tensor.chunk     : ty_TorchChunk(),
         torch.Tensor.repeat    : ty_TorchRepeat(),

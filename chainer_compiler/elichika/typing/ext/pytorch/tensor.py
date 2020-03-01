@@ -3,6 +3,7 @@ import numpy as np
 
 from   chainer.utils import type_check
 
+from   chainer_compiler.elichika.typing.ext.common        import *
 from   chainer_compiler.elichika.typing.ext.utils         import *
 from   chainer_compiler.elichika.typing.types             import *
 from   chainer_compiler.elichika.typing.ext.pytorch.utils import *
@@ -43,40 +44,12 @@ class ty_TorchIdentical():
 # Tensors
 ## Creation Ops
 
-# TODO: Unify with NumpyArray
-class ty_TorchTensor():
+class ty_TorchTensor(ty_MakeTensor):
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
-        default_dtype = self.get_element_dtype(x_type)
-        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', default_dtype)
-        assert not lacks_dtype, "torch.tensor: dtype couldn't inferred"
-
-        return TyNdarray(dtype,
-                shape=self.calculate_shape(x_type))
-
-    def calculate_shape(self, x_type):
-        if not isinstance(x_type, TySequence):
-            return ()
-        if not x_type.is_fixed_len:
-            return (None,)
-
-        x_tys = x_type.get_tys()
-
-        if isinstance(x_tys[0], TySequence):
-            list_lengths = [t.size() if t.is_fixed_len else None for t in x_tys]
-            list_lengths_nonnull = [l for l in list_lengths if l is not None]
-
-            # for example, we will not accept np.array([[1,2,3], [4,5]])
-            assert all_same(list_lengths_nonnull), \
-                    "numpy.array: incompatible list length"
-
-        return (len(x_tys),) + self.calculate_shape(x_tys[0])
-
-    def get_element_dtype(self, ty):
-        # get element dtype of nested TySequence
-        if isinstance(ty, TySequence):
-            return self.get_element_dtype(ty.get())
-        return tyobj2dtype(ty)
+        # TODO(momohatt): Use global default dtype
+        dtype = self.get_element_dtype(x_type)
+        return TyTorchTensor(dtype, shape=self.calculate_shape(x_type))
 
 
 class ty_TorchTensorOfShape():
@@ -89,7 +62,7 @@ class ty_TorchTensorOfShape():
         assert not lacks_dtype
 
         shape = wrap_shape([extract_value_from_ty(ty) for ty in ty_args])
-        return TyNdarray(dtype, shape=shape)
+        return TyTorchTensor(dtype, shape=shape)
 
 
 ## Indexing, Slicing, Joining, Mutating Ops
@@ -134,7 +107,7 @@ class ty_TorchCat():
     def infer_return(self, xs_type):
         ret_shape = list(xs_type[0].shape)
         ret_shape[self.dim] = sum([x_type.shape[self.dim] for x_type in xs_type])
-        return TyTorchTensor(dtype=xs_type[0].dtype, shape=ret_shape)
+        return TyTorchTensor(xs_type[0].dtype, shape=ret_shape)
 
 
 class ty_TorchChunk():
@@ -258,7 +231,7 @@ class ty_TorchStack():
 
         if xs_type.is_fixed_len:
             for ty in xs_type.get_tys():
-                unify(xs_type.get_ty(), ty)
+                unify(xs_type.get(), ty)
 
         self.dim, lacks_dim = get_kwarg(ty_kwargs, 'dim', default=0)
 
@@ -291,23 +264,9 @@ class ty_TorchUnsqueeze():
 # Math operations
 ## Pointwise Ops
 
-class ty_TorchArith():
-    def __init__(self, fn):
-        self.fn = fn
-
-    def __call__(self, ty_args, ty_kwargs):
-        x_type, y_type = ty_args
-        x, y = generate_dummy_value(x_type), generate_dummy_value(y_type)
-
-        try:
-            ty_ret = type_of_value(self.fn(x, y))
-        except Exception as e:
-            ty_ret = handle_inference_error(e, op.__class__.__name__, node)
-
-        if is_incomplete_shape(x_type.shape) or \
-                is_incomplete_shape(y_type.shape):
-            ty_ret.shape = (ShapeElem(None),) * ty_ret.ndim
-        return ty_ret
+class ty_TorchArith(ty_TensorArith):
+    def __init__(self):
+        super().__init__(TensorKind.torch_tensor)
 
 
 ## Other operations
@@ -324,7 +283,7 @@ class ty_TorchFlatten():
         postfix_shape = shape[end_dim:][2:]
         size = size_of_shape(middle_shape)
         out_shape = prefix_shape + (size,) + postfix_shape
-        return TyTorchTensor(shape=out_shape, dtype=input_type.dtype)
+        return TyTorchTensor(input_type.dtype, shape=out_shape)
 
 
 # torch.Tensor

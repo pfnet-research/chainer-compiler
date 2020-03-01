@@ -7,6 +7,8 @@ __all__ = [ 'ShapeElem'
           , 'wrap_shape'
           , 'unwrap_shape'
           , 'is_incomplete_shape'
+          , 'copy_ShapeElem'
+          , 'size_of_ShapeElem'
           , 'unify_shape'
           ]
 
@@ -80,19 +82,26 @@ def simplify(expr):
         return type_check.Constant(n)
 
     if isinstance(expr, type_check.BinaryOperator):
-        if (expr.exp == '+' or expr.exp == '-') and _try_eval(expr.rhs) == 0:
-            return simplify(expr.lhs)
+        rhs_value = _try_eval(expr.rhs)
+        if rhs_value is not None:
+            if (expr.exp == '+' or expr.exp == '-') and rhs_value == 0:
+                return simplify(expr.lhs)
 
-        if expr.exp == '+' and _try_eval(expr.rhs) < 0:
-            expr_rhs = type_check.Constant(- _try_eval(expr.rhs))
-            return simplify(_make_binop_expr(expr.lhs, expr_rhs, '-'))
+            if expr.exp == '+' and rhs_value < 0:
+                expr_rhs = type_check.Constant(- rhs_value)
+                return simplify(_make_binop_expr(expr.lhs, expr_rhs, '-'))
 
-        if expr.exp == '-' and _try_eval(expr.rhs) < 0:
-            expr_rhs = type_check.Constant(- _try_eval(expr.rhs))
-            return simplify(_make_binop_expr(expr.lhs, expr_rhs, '+'))
+            if expr.exp == '-' and rhs_value < 0:
+                expr_rhs = type_check.Constant(- rhs_value)
+                return simplify(_make_binop_expr(expr.lhs, expr_rhs, '+'))
 
-        if (expr.exp == '*' or expr.exp == '/' or expr.exp == '//') and _try_eval(expr.rhs) == 1:
-            return simplify(expr.lhs)
+            if (expr.exp == '*' or expr.exp == '/' or expr.exp == '//') and rhs_value == 1:
+                return simplify(expr.lhs)
+
+        lhs_value = _try_eval(expr.lhs)
+        if lhs_value is not None:
+            if expr.exp == '+' and lhs_value == 0:
+                return simplify(expr.rhs)
 
         if isinstance(expr.lhs, type_check.BinaryOperator) and \
                 expr.lhs.priority == expr.priority:
@@ -132,10 +141,12 @@ class ShapeElem():
         else:
             # value
             self.value = value_or_name
-            self.expr = simplify(expr) if expr is not None else type_check.Constant(value_or_name)
+            if expr is None:
+                self.expr = type_check.Constant(value_or_name)
+            else:
+                self.expr = simplify(expr)
 
     def __str__(self):
-        # self.expr = simplify(self.expr)
         if isinstance(self.expr, type_check.Constant):
             return str(self.value)
         return "{} ({})".format(self.value, self.expr)
@@ -220,6 +231,19 @@ def unwrap_shape(shape_seq):
 
 def is_incomplete_shape(shape_seq):
     return any([not s.has_value() for s in shape_seq])
+
+def copy_ShapeElem(e):
+    return ShapeElem(e.value, expr=e.expr)
+
+
+def size_of_ShapeElem(e):
+    if isinstance(e.expr, type_check.BinaryOperator):
+        return size_of_ShapeElem(e.lhs) + size_of_ShapeElem(e.rhs)
+    if isinstance(e.expr, type_check.UnaryOperator):
+        return size_of_ShapeElem(e.term)
+    if isinstance(e.expr, type_check.Variable):
+        return 1
+    return 0
 
 
 def unify_shape(shape1, shape2):
