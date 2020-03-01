@@ -705,7 +705,6 @@ class InferenceEngine():
             unify(ty_fun, TyArrow(ty_args, ty_ret))
         except self.ArgumentRequired as e:
             if e.ty_obj is not None:
-                # Attribute
                 ty_args_ = [e.ty_obj] + ty_args
             else:
                 ty_args_ = ty_args
@@ -758,18 +757,13 @@ class InferenceEngine():
             # x: value of existing instance
             x = getattr(ty_obj.instance, node.attr)
 
-            if callable(x) and x in __builtins__.keys():
-                raise self.ArgumentRequired(func=x)
-
-            if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
-                ty_node = self.attribute_tyenv[(ty_obj.instance, node.attr)]
-            else:
-                ty_node = type_of_value(x)
-
             if is_callee:
                 raise self.ArgumentRequired(func=x)
 
-            return ty_node
+            if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
+                return self.attribute_tyenv[(ty_obj.instance, node.attr)]
+
+            return type_of_value(x)
 
         if isinstance(ty_obj, TyNone):
             return TyVar()
