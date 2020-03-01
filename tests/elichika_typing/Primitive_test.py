@@ -450,7 +450,7 @@ class TestControl(unittest.TestCase):
         self.assertEqual(str(id2type[27]), "class Test -> optional(int) -> int")	# FunctionDef f (line 1)
         self.assertEqual(str(id2type[33]), "NoneType")	# If
         self.assertEqual(str(id2type[34]), "bool")	# Compare  (line 2)
-        self.assertEqual(str(id2type[35]), "int")	# Name x (line 2)
+        self.assertEqual(str(id2type[35]), "optional(int)")	# Name x (line 2)
         self.assertEqual(str(id2type[39]), "NoneType")	# Assign
         self.assertEqual(str(id2type[40]), "int")	# Name x (line 3)
         self.assertEqual(str(id2type[42]), "int")	# Constant 2 (line 3)
@@ -698,7 +698,7 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(str(id2type[1]), "class Test -> NoneType -> int")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# If
         self.assertEqual(str(id2type[8]), "bool")	# Compare  (line 2)
-        self.assertEqual(str(id2type[9]), "int")	# Name x (line 2)
+        self.assertEqual(str(id2type[9]), "NoneType")	# Name x (line 2)
         self.assertEqual(str(id2type[13]), "NoneType")	# Assign
         self.assertEqual(str(id2type[14]), "int")	# Name x (line 3)
         self.assertEqual(str(id2type[16]), "int")	# Num 42 (line 3)
@@ -722,7 +722,7 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(str(id2type[1]), "class Test -> NoneType -> int")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# If
         self.assertEqual(str(id2type[8]), "bool")	# Compare  (line 2)
-        self.assertEqual(str(id2type[9]), "int")	# Name x (line 2)
+        self.assertEqual(str(id2type[9]), "NoneType")	# Name x (line 2)
         self.assertEqual(str(id2type[13]), "NoneType")	# Assign
         self.assertEqual(str(id2type[14]), "int")	# Name x (line 3)
         self.assertEqual(str(id2type[16]), "int")	# Num 42 (line 3)
@@ -776,10 +776,10 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(str(id2type[1]), "class Test -> int")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[5]), "NoneType")	# If
         self.assertEqual(str(id2type[6]), "bool")	# Compare  (line 2)
-        self.assertEqual(str(id2type[7]), "int")	# Attribute self.y (line 2)
+        self.assertEqual(str(id2type[7]), "NoneType")	# Attribute self.y (line 2)
         self.assertEqual(str(id2type[8]), "class Test")	# Name self (line 2)
         self.assertEqual(str(id2type[13]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[14]), "NoneType")	# Attribute self.y (line 3)
+        self.assertEqual(str(id2type[14]), "int")	# Attribute self.y (line 3)
         self.assertEqual(str(id2type[15]), "class Test")	# Name self (line 3)
         self.assertEqual(str(id2type[18]), "int")	# Num 42 (line 3)
         self.assertEqual(str(id2type[19]), "int")	# Return

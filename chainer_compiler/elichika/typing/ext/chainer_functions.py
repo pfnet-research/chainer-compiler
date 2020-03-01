@@ -648,21 +648,16 @@ class ty_ChainerLinear():
         return TyChainerVariable(x_type.dtype, shape=out_shape)
 
     def infer_return_shape(self, linear, x_type):
-        x_shape = x_type.shape
+        if x_type.ndim == self.n_batch_axes + 1:
+            x_shape = x_type.shape
+        else:
+            x_shape = calculate_reshape(
+                    x_type.shape, x_type.shape[:self.n_batch_axes] + (-1,))
 
         if linear.in_size is not None:
-            assert x_shape[1] == linear.in_size
+            assert x_shape[-1] == linear.in_size
 
-        if self.n_batch_axes > 1:
-            batch_shape = x_shape[:self.n_batch_axes]
-            x_shape = calculate_reshape(x_shape, (size_of_shape(batch_shape), -1))
-        elif x_type.ndim > 2:
-            x_shape = calculate_reshape(x_shape, (x_shape[0], -1))
-
-        y_shape = wrap_shape((x_shape[0], linear.out_size))
-        if self.n_batch_axes > 1:
-            y_shape = calculate_reshape(y_shape, (batch_shape + (-1,)))
-        return y_shape
+        return wrap_shape(x_shape[:-1] + (linear.out_size,))
 
 
 class ty_ChainerConvolution2D():

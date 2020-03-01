@@ -487,10 +487,11 @@ class InferenceEngine():
             return
 
         if isinstance(target, gast.Attribute):
-            self.infer_expr(target)
+            self.infer_expr(target.value)
             ty_obj = self.nodetype[target.value]
             assert isinstance(ty_obj, TyUserDefinedClass)
             self.attribute_tyenv[(ty_obj.instance, target.attr)] = ty_val
+            self.nodetype[target] = ty_val
             return
 
         if isinstance(target, (gast.Tuple, gast.List)):
@@ -575,8 +576,11 @@ class InferenceEngine():
             utils.add_dict(self.subroutine_node, tc1.subroutine_node)
             utils.add_dict(self.subroutine_node, tc2.subroutine_node)
 
-        if x is not None:
-            self.infer_expr(x).is_optional = False
+        if isinstance(x, gast.Name):
+            self.tyenv[x.id].is_optional = False
+        elif isinstance(x, gast.Attribute):
+            obj = self.infer_expr(x.value).instance
+            self.attribute_tyenv[(obj, x.attr)].is_optional = False
 
         return ty_ret
 
@@ -603,6 +607,9 @@ class InferenceEngine():
             self.nodetype[node] = self.infer_ListComp(node)
         elif isinstance(node, gast.Compare):
             # Compare(expr left, cmpop* ops, expr* comparators)
+            self.infer_expr(node.left)
+            for comparator in node.comparators:
+                self.infer_expr(comparator)
             self.nodetype[node] = TyBool()
         elif isinstance(node, gast.Call):
             self.nodetype[node] = self.infer_Call(node)
