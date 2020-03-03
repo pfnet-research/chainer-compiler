@@ -6,10 +6,16 @@ from   chainer.utils import type_check
 
 from   chainer_compiler.elichika.typing.ext.utils          import *
 from   chainer_compiler.elichika.typing.types              import *
+from   chainer_compiler.elichika.typing.ext.common         import *
 from   chainer_compiler.elichika.typing.ext.pytorch.nn     import *
 from   chainer_compiler.elichika.typing.ext.pytorch.tensor import *
 
-__all__ = [ 'pytorch_func_ty', 'pytorch_callable_ty' ]
+__all__ = [ 'pytorch_attr_ty', 'pytorch_func_ty', 'pytorch_callable_ty' ]
+
+
+pytorch_attr_ty = {
+        'shape' : ty_Shape,
+        }
 
 
 pytorch_func_ty = {

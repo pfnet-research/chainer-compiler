@@ -9,9 +9,9 @@ import typing
 
 from   chainer_compiler.elichika.parser.utils             import clip_head
 from   chainer_compiler.elichika.typing.ext.common        import ty_TensorArith
-from   chainer_compiler.elichika.typing.ext.numpy_functions   import numpy_func_ty
-from   chainer_compiler.elichika.typing.ext.chainer_functions import chainer_func_ty, chainer_callable_ty
-from   chainer_compiler.elichika.typing.ext.pytorch_functions import pytorch_func_ty, pytorch_callable_ty
+from   chainer_compiler.elichika.typing.ext.numpy_functions   import *
+from   chainer_compiler.elichika.typing.ext.chainer_functions import *
+from   chainer_compiler.elichika.typing.ext.pytorch_functions import *
 from   chainer_compiler.elichika.typing.types             import *
 from   chainer_compiler.elichika.typing.shape_elem        import *
 from   chainer_compiler.elichika.typing                   import utils
@@ -761,13 +761,15 @@ class InferenceEngine():
             return list_attr_ty[node.attr](ty_obj)
 
         if isinstance(ty_obj, TyTensor):
-            # TODO: compare by numpy objects, not names
-            if node.attr == 'shape':
-                if ty_obj.shape is None:
-                    return TyTuple(TyInt())
-                return type_of_value(ty_obj.shape)
-            if ty_obj.is_ndarray() and node.attr == 'size':
-                return TyInt()
+            if not is_callee:
+                if ty_obj.is_ndarray():
+                    logic = numpy_attr_ty[node.attr]
+                elif ty_obj.is_chainer_variable():
+                    logic = chainer_attr_ty[node.attr]
+                else:
+                    logic = pytorch_attr_ty[node.attr]
+                return logic(ty_obj)
+
             if ty_obj.is_ndarray() and is_callee:
                 func = getattr(np.ndarray, node.attr)
                 raise self.ArgumentRequired((func, ty_obj))
