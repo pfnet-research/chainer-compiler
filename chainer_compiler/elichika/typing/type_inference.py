@@ -687,6 +687,45 @@ class InferenceEngine():
         return self.nodetype[node]
 
 
+    def get_function_instance(self, node):
+        if isinstance(node, gast.Attribute):
+            if isinstance(node.value, gast.Name) and \
+                    hasattr(self.module, node.value.id):
+                # function of imported libraries (eg. np, chainer, F, L)
+                module = getattr(self.module, node.value.id)
+                return getattr(module, node.attr), None
+
+            ty_obj = self.infer_expr(node.value).deref()
+
+            if isinstance(ty_obj, TySequence) and ty_obj.is_list():
+                ty_obj.coerce_to_variable_len()
+                return getattr(list, node.attr), ty_obj
+
+            if isinstance(ty_obj, TyTensor):
+                if ty_obj.is_ndarray():
+                    return getattr(np.ndarray, node.attr), ty_obj
+                if ty_obj.is_torch_tensor():
+                    return getattr(torch.Tensor, node.attr), ty_obj
+
+            if isinstance(ty_obj, TyUserDefinedClass):
+                # x: value of existing instance
+                return getattr(ty_obj.instance, node.attr), None
+
+        if isinstance(node, gast.Name):
+            if node.id in self.tyenv.keys():
+                ty = self.tyenv[node.id]
+                if isinstance(ty, TyUserDefinedClass):
+                    return ty.instance, None
+
+            if node.id in __builtins__.keys():
+                return __builtins__[node.id], None
+
+            if hasattr(self.module, node.id):
+                return getattr(self.module, node.id), None
+
+        assert False
+
+
     def infer_Call(self, node):
         # Call(expr func, expr* args, keyword* keywords)
 
@@ -696,21 +735,17 @@ class InferenceEngine():
                 for kwarg in node.keywords}
         ty_ret = TyVar()
 
-        try:
-            ty_fun = self.infer_expr(node.func, is_callee=True)
-            unify(ty_fun, TyArrow(ty_args, ty_ret))
-        except self.ArgumentRequired as e:
-            if e.ty_obj is not None:
-                ty_args_ = [e.ty_obj] + ty_args
-            else:
-                ty_args_ = ty_args
+        func, ty_obj = self.get_function_instance(node.func)
 
-            if e.func in func_to_ignore:
-                return TyNone()
+        if ty_obj is not None:
+            ty_args_ = [ty_obj] + ty_args
+        else:
+            ty_args_ = ty_args
 
-            ty_ret = self.infer_function_instance(
-                    node, e.func, ty_args_, ty_kwargs)
+        if func in func_to_ignore:
+            return TyNone()
 
+        ty_ret = self.infer_function_instance(node, func, ty_args_, ty_kwargs)
         self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
         return ty_ret.deref()
 
@@ -723,17 +758,9 @@ class InferenceEngine():
             # function of imported libraries (eg. np, chainer, F, L)
             module = getattr(self.module, node.value.id)
             attr = getattr(module, node.attr)
-            if is_callee:
-                raise self.ArgumentRequired(func=attr)
             return type_of_value(attr)
 
         ty_obj = self.infer_expr(node.value).deref()
-
-        if isinstance(ty_obj, TySequence) and ty_obj.is_list():
-            if is_callee:
-                ty_obj.coerce_to_variable_len()
-                func = getattr(list, node.attr)
-                raise self.ArgumentRequired(func=func, ty_obj=ty_obj)
 
         if isinstance(ty_obj, TyTensor):
             # TODO: compare by numpy objects, not names
@@ -743,20 +770,10 @@ class InferenceEngine():
                 return type_of_value(ty_obj.shape)
             if node.attr == 'size':
                 return TyInt()
-            if ty_obj.is_ndarray() and is_callee:
-                func = getattr(np.ndarray, node.attr)
-                raise self.ArgumentRequired(func=func, ty_obj=ty_obj)
-            if ty_obj.is_torch_tensor() and is_callee:
-                func = getattr(torch.Tensor, node.attr)
-                raise self.ArgumentRequired(func=func, ty_obj=ty_obj)
-            assert False
 
         if isinstance(ty_obj, TyUserDefinedClass):
             # x: value of existing instance
             x = getattr(ty_obj.instance, node.attr)
-
-            if is_callee:
-                raise self.ArgumentRequired(func=x)
 
             if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
                 return self.attribute_tyenv[(ty_obj.instance, node.attr)]
