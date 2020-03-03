@@ -274,12 +274,9 @@ class TensorKind(Enum):
 
 
 class TyDType(TyObj):
-    def __init__(self, t=None):
+    def __init__(self, t):
         super().__init__()
-        if t is None:
-            self.t = None
-        else:
-            self.t = np.dtype(t)
+        self.t = np.dtype(t)
     def __str__(self):
         return "dtype({})".format(str(self.t))
     def __eq__(self, other):
@@ -697,7 +694,7 @@ def unify(ty1, ty2, inspect_shape=True):
             return
 
     if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
-        utils.set_attr_if_None(ty1.dtype, ty2.dtype, 't')
+        assert ty1.t == ty2.t
         return
 
     if isinstance(ty1, TyUserDefinedClass) and \
