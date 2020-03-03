@@ -12,6 +12,7 @@ from   chainer_compiler.elichika.typing.ext.common        import ty_TensorArith
 from   chainer_compiler.elichika.typing.ext.numpy_functions   import numpy_func_ty
 from   chainer_compiler.elichika.typing.ext.chainer_functions import chainer_func_ty, chainer_callable_ty
 from   chainer_compiler.elichika.typing.ext.pytorch_functions import pytorch_func_ty, pytorch_callable_ty
+from   chainer_compiler.elichika.typing.std.list_functions    import list_func_ty
 from   chainer_compiler.elichika.typing.types             import *
 from   chainer_compiler.elichika.typing.shape_elem        import *
 from   chainer_compiler.elichika.typing                   import utils
@@ -139,15 +140,7 @@ def call_binop(op, node, tyl, tyr):
     return ty_ret
 
 
-# ==============================================================================
-
 func_to_ignore = [logging.info]
-
-
-list_attr_ty = {
-        'append'  : lambda x: TyArrow([x.get_ty()], TyNone()),
-        'reverse' : lambda x: TyArrow([], TyNone()),
-        }
 
 # ==============================================================================
 
@@ -340,6 +333,9 @@ class InferenceEngine():
                 return x_type
 
             return call_ext_callable(pytorch_callable_ty, func, node, ty_args, ty_kwargs)
+
+        if func in list_func_ty.keys():
+            return call_ext_function(list_func_ty, func, node, ty_args, ty_kwargs)
 
         if func in __builtins__.values():
             # builtin functions
@@ -734,8 +730,10 @@ class InferenceEngine():
         ty_obj = self.infer_expr(node.value).deref()
 
         if isinstance(ty_obj, TySequence) and ty_obj.is_list():
-            ty_obj.coerce_to_variable_len()
-            return list_attr_ty[node.attr](ty_obj)
+            if is_callee:
+                ty_obj.coerce_to_variable_len()
+                func = getattr(list, node.attr)
+                raise self.ArgumentRequired(func=func, ty_obj=ty_obj)
 
         if isinstance(ty_obj, TyTensor):
             # TODO: compare by numpy objects, not names
