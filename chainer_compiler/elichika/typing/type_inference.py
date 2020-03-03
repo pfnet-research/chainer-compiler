@@ -145,12 +145,6 @@ func_to_ignore = [logging.info]
 # ==============================================================================
 
 class InferenceEngine():
-    # TODO(momohatt): Don't use Exception
-    class ArgumentRequired(Exception):
-        def __init__(self, func=None, ty_obj=None):
-            self.func = func  # callables
-            self.ty_obj = ty_obj  # method call against
-
     def __init__(self, tyenv=None, attribute_tyenv=None, is_debug=False, module=None):
         # type environments for local objects
         # string -> TyObj
@@ -562,7 +556,7 @@ class InferenceEngine():
 
 
     # ================================= expr ===================================
-    def infer_expr(self, node, is_callee=False):
+    def infer_expr(self, node):
         if node in self.nodetype.keys():
             return self.nodetype[node]
 
@@ -593,11 +587,11 @@ class InferenceEngine():
             # Constant(constant value)
             self.nodetype[node] = type_of_value(node.value)
         elif isinstance(node, gast.Attribute):
-            self.nodetype[node] = self.infer_Attribute(node, is_callee)
+            self.nodetype[node] = self.infer_Attribute(node)
         elif isinstance(node, gast.Subscript):
             self.nodetype[node] = self.infer_Subscript(node)
         elif isinstance(node, gast.Name):
-            self.nodetype[node] = self.infer_Name(node, is_callee)
+            self.nodetype[node] = self.infer_Name(node)
         elif isinstance(node, gast.List):
             # List(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
@@ -750,7 +744,7 @@ class InferenceEngine():
         return ty_ret.deref()
 
 
-    def infer_Attribute(self, node, is_callee):
+    def infer_Attribute(self, node):
         # Attribute(expr value, identifier attr, expr_context ctx)
 
         if isinstance(node.value, gast.Name) and \
@@ -844,22 +838,15 @@ class InferenceEngine():
             return ret_shape
 
 
-    def infer_Name(self, node, is_callee):
+    def infer_Name(self, node):
         # Name(identifier id, expr_context ctx, expr? annotation)
         if node.id in self.tyenv.keys():
-            ty = self.tyenv[node.id]
-            if is_callee and isinstance(ty, TyUserDefinedClass):
-                raise self.ArgumentRequired(func=ty.instance)
             return self.tyenv[node.id]
         if node.id in __builtins__.keys():
             value = __builtins__[node.id]
-            if is_callee:
-                raise self.ArgumentRequired(func=value)
             return type_of_value(value)
         if hasattr(self.module, node.id):
             x = getattr(self.module, node.id)
-            if is_callee:
-                raise self.ArgumentRequired(func=x)
             return type_of_value(x)
 
         # XXX: print comes here
