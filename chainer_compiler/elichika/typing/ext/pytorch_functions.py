@@ -6,10 +6,16 @@ from   chainer.utils import type_check
 
 from   chainer_compiler.elichika.typing.ext.utils          import *
 from   chainer_compiler.elichika.typing.types              import *
+from   chainer_compiler.elichika.typing.ext.common         import *
 from   chainer_compiler.elichika.typing.ext.pytorch.nn     import *
 from   chainer_compiler.elichika.typing.ext.pytorch.tensor import *
 
-__all__ = [ 'pytorch_func_ty', 'pytorch_callable_ty' ]
+__all__ = [ 'pytorch_attr_ty', 'pytorch_func_ty', 'pytorch_callable_ty' ]
+
+
+pytorch_attr_ty = {
+        'shape' : ty_Shape,
+        }
 
 
 pytorch_func_ty = {
@@ -67,6 +73,9 @@ pytorch_func_ty = {
         F.tanh        : ty_TorchIdentical(),
         F.sigmoid     : ty_TorchIdentical(),
 
+        # https://pytorch.org/docs/stable/nn.functional.html#sparse-functions
+        F.embedding   : ty_TorchEmbed(),
+
         # https://pytorch.org/docs/stable/nn.functional.html#vision-functions
         F.interpolate : ty_TorchInterpolate(),
 
@@ -79,9 +88,12 @@ pytorch_func_ty = {
 
         torch.Tensor.chunk     : ty_TorchChunk(),
         torch.Tensor.repeat    : ty_TorchRepeat(),
+        torch.Tensor.size      : ty_TorchSize(),
         torch.Tensor.squeeze   : ty_TorchSqueeze(),
         torch.Tensor.unsqueeze : ty_TorchUnsqueeze(),
         torch.Tensor.view      : ty_TorchView(),
+
+        torch.Tensor.detach    : ty_TorchIdentical(),
         }
 
 
@@ -143,6 +155,9 @@ pytorch_callable_ty = {
         nn.Dropout2d        : ty_TorchIdentical(ndim_min=1).nn,
         nn.Dropout3d        : ty_TorchIdentical(ndim_min=1).nn,
         nn.AlphaDropout     : ty_TorchIdentical().nn,
+
+        # https://pytorch.org/docs/stable/nn.html#sparse-layers
+        nn.Embedding        : ty_TorchEmbed().nn,
 
         # https://pytorch.org/docs/stable/nn.html#loss-functions
         nn.CrossEntropyLoss : ty_TorchNNCrossEntropyLoss().nn,

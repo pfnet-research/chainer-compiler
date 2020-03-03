@@ -8,10 +8,13 @@ import math
 from   chainer.utils.conv import get_conv_outsize
 from   chainer.utils import type_check
 
+from   chainer_compiler.elichika.typing.ext.common import *
 from   chainer_compiler.elichika.typing.ext.utils  import *
 from   chainer_compiler.elichika.typing.shape_elem import *
 from   chainer_compiler.elichika.typing.types      import *
 from   chainer_compiler.elichika.typing.utils      import all_same
+
+__all__ = [ 'chainer_attr_ty', 'chainer_func_ty', 'chainer_callable_ty' ]
 
 
 class ty_ChainerVariable():
@@ -750,6 +753,12 @@ class ty_ChainerNStepBiLSTM():
         ys_type = TyList([TyChainerVariable(xs_dtypes[0], shape=s) for s in ys_shapes])
 
         return TyTuple([hy_type, cy_type, ys_type])
+
+
+chainer_attr_ty = {
+        'shape'  : ty_Shape,
+        'size'   : ty_Size,
+        }
 
 
 chainer_func_ty = {

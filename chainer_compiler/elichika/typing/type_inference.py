@@ -9,10 +9,10 @@ import typing
 
 from   chainer_compiler.elichika.parser.utils             import clip_head
 from   chainer_compiler.elichika.typing.ext.common        import ty_TensorArith
-from   chainer_compiler.elichika.typing.ext.numpy_functions   import numpy_func_ty
-from   chainer_compiler.elichika.typing.ext.chainer_functions import chainer_func_ty, chainer_callable_ty
-from   chainer_compiler.elichika.typing.ext.pytorch_functions import pytorch_func_ty, pytorch_callable_ty
-from   chainer_compiler.elichika.typing.std.list_functions    import list_func_ty
+from   chainer_compiler.elichika.typing.ext.numpy_functions   import *
+from   chainer_compiler.elichika.typing.ext.chainer_functions import *
+from   chainer_compiler.elichika.typing.ext.pytorch_functions import *
+from   chainer_compiler.elichika.typing.std.list_functions    import *
 from   chainer_compiler.elichika.typing.types             import *
 from   chainer_compiler.elichika.typing.shape_elem        import *
 from   chainer_compiler.elichika.typing                   import utils
@@ -73,10 +73,10 @@ def lazy_initializer(node):
 
 
 def handle_inference_error(exception, func, node):
-    if hasattr(func, '__class__'):
-        name = func.__class__.__name__
-    elif hasattr(func, '__name__'):
+    if hasattr(func, '__name__'):
         name = func.__name__
+    elif hasattr(func, '__class__'):
+        name = func.__class__.__name__
     else:
         name = str(func)
     utils.print_warning(str(exception))
@@ -509,7 +509,7 @@ class InferenceEngine():
 
     def infer_For(self, node):
         # For(expr target, expr iter, stmt* body, stmt* orelse)
-        assert type(node.target) in [gast.Name, gast.Tuple]
+        assert isinstance(node.target, (gast.Name, gast.Tuple))
 
         ty_iteration = self.infer_expr(node.iter)
         ty_i = self.infer_expr(node.target)
@@ -756,13 +756,13 @@ class InferenceEngine():
         ty_obj = self.infer_expr(node.value).deref()
 
         if isinstance(ty_obj, TyTensor):
-            # TODO: compare by numpy objects, not names
-            if node.attr == 'shape':
-                if ty_obj.shape is None:
-                    return TyTuple(TyInt())
-                return type_of_value(ty_obj.shape)
-            if node.attr == 'size':
-                return TyInt()
+            if ty_obj.is_ndarray():
+                logic = numpy_attr_ty[node.attr]
+            elif ty_obj.is_chainer_variable():
+                logic = chainer_attr_ty[node.attr]
+            else:
+                logic = pytorch_attr_ty[node.attr]
+            return logic(ty_obj)
 
         if isinstance(ty_obj, TyUserDefinedClass):
             # x: value of existing instance

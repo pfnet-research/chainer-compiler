@@ -5,6 +5,8 @@ from   chainer_compiler.elichika.typing.ext.common import *
 from   chainer_compiler.elichika.typing.ext.utils  import *
 from   chainer_compiler.elichika.typing.types      import *
 
+__all__ = [ 'numpy_attr_ty', 'numpy_func_ty' ]
+
 
 class ty_NumpyAstype():
     def __call__(self, ty_args, ty_kwargs):
@@ -63,6 +65,11 @@ class ty_NumpyFull():
             shape = (shape,)
         return TyNdarray(dtype, shape=shape)
 
+
+numpy_attr_ty = {
+        'shape'  : ty_Shape,
+        'size'   : ty_Size,
+        }
 
 numpy_func_ty = {
         np.ndarray.astype : ty_NumpyAstype(),
