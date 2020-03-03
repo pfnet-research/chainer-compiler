@@ -831,13 +831,12 @@ class InferenceEngine():
         # Name(identifier id, expr_context ctx, expr? annotation)
         if node.id in self.tyenv.keys():
             ty = self.tyenv[node.id]
-            if is_callee and isinstance(ty, TyUserDefinedClass) and \
-                    callable(ty.instance):
+            if is_callee and isinstance(ty, TyUserDefinedClass):
                 raise self.ArgumentRequired(func=ty.instance)
             return self.tyenv[node.id]
         if node.id in __builtins__.keys():
             value = __builtins__[node.id]
-            if callable(value) and is_callee:
+            if is_callee:
                 raise self.ArgumentRequired(func=value)
             return type_of_value(value)
         if hasattr(self.module, node.id):
