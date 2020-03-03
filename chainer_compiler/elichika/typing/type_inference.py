@@ -539,7 +539,7 @@ class InferenceEngine():
 
     def infer_For(self, node):
         # For(expr target, expr iter, stmt* body, stmt* orelse)
-        assert type(node.target) in [gast.Name, gast.Tuple]
+        assert isinstance(node.target, (gast.Name, gast.Tuple))
 
         ty_iteration = self.infer_expr(node.iter)
         ty_i = self.infer_expr(node.target)
