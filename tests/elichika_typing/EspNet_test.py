@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 import unittest
 
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
@@ -318,8 +317,6 @@ class TestEspNet(unittest.TestCase):
         # === END ASSERTIONS for AttDot ===
 
 
-    # TODO(hamaji): Run this test on CI.
-    @pytest.mark.skip
     def test_AttLoc(self):
         model, forward_args = gen_AttLoc_model()
         id2type = generate_id2type_from_forward(model, forward_args)
@@ -549,8 +546,6 @@ class TestEspNet(unittest.TestCase):
         # === END ASSERTIONS for AttLoc ===
 
 
-    # TODO(hamaji): Run this test on CI.
-    @pytest.mark.skip
     def test_StatelessLSTM(self):
         model, forward_args = gen_StatelessLSTM_model()
         id2type = generate_id2type_from_forward(model, forward_args)
