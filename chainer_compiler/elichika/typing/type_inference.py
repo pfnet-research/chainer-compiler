@@ -72,10 +72,10 @@ def lazy_initializer(node):
 
 
 def handle_inference_error(exception, func, node):
-    if hasattr(func, '__class__'):
-        name = func.__class__.__name__
-    elif hasattr(func, '__name__'):
+    if hasattr(func, '__name__'):
         name = func.__name__
+    elif hasattr(func, '__class__'):
+        name = func.__class__.__name__
     else:
         name = str(func)
     utils.print_warning(str(exception))
