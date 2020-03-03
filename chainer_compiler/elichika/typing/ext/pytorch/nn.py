@@ -15,6 +15,7 @@ __all__ = [ 'ty_TorchConv'
           , 'ty_TorchInstanceNorm'
           , 'ty_TorchLSTMCell'
           , 'ty_TorchLinear'
+          , 'ty_TorchEmbed'
           , 'ty_TorchNNCrossEntropyLoss'
           , 'ty_TorchPixelShuffle'
           , 'ty_TorchInterpolate'
@@ -229,6 +230,25 @@ class ty_TorchLinear():
 # Dropout
 
 # Sparse
+
+class ty_TorchEmbed():
+    def nn(self, obj, ty_args, ty_kwargs):
+        x_type, = ty_args
+        assert x_type.dtype == np.int64, "dtype of input must be int64"
+        embedding_dim = obj.embedding_dim
+        shape = x_type.shape + (embedding_dim,)
+        # TODO(momohatt): Use global dtype
+        return TyTorchTensor(np.float32, shape=shape)
+
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, weight_type = ty_args
+        assert x_type.dtype == np.int64, "dtype of input must be int64"
+        assert weight_type.dtype.kind == 'f'
+        assert weight_type.ndim == 2
+        embedding_dim = weight_type.shape[1]
+        shape = x_type.shape + (embedding_dim,)
+        return TyTorchTensor(weight_type.dtype, shape=shape)
+
 
 # Distance functions
 

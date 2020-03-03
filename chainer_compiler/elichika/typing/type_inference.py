@@ -766,7 +766,7 @@ class InferenceEngine():
                 if ty_obj.shape is None:
                     return TyTuple(TyInt())
                 return type_of_value(ty_obj.shape)
-            if node.attr == 'size':
+            if ty_obj.is_ndarray() and node.attr == 'size':
                 return TyInt()
             if ty_obj.is_ndarray() and is_callee:
                 func = getattr(np.ndarray, node.attr)

@@ -14,6 +14,7 @@ __all__ = [ 'ty_TorchIdentical'
           , 'ty_TorchCat'
           , 'ty_TorchChunk'
           , 'ty_TorchReshape'
+          , 'ty_TorchSize'
           , 'ty_TorchSplit'
           , 'ty_TorchSqueeze'
           , 'ty_TorchStack'
@@ -144,6 +145,12 @@ class ty_TorchReshape():
     def infer_return(self, x_type):
         ret_shape = calculate_reshape(x_type.shape, self.shape)
         return TyTorchTensor(x_type.dtype, shape=ret_shape)
+
+
+class ty_TorchSize():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, = ty_args
+        return TyTuple([TyInt(e.value) for e in x_type.shape])
 
 
 class ty_TorchSplit():
