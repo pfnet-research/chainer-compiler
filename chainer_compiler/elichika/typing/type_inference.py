@@ -702,7 +702,6 @@ class InferenceEngine():
                     return getattr(torch.Tensor, node.attr), ty_obj
 
             if isinstance(ty_obj, TyUserDefinedClass):
-                # x: value of existing instance
                 return getattr(ty_obj.instance, node.attr), None
 
         if isinstance(node, gast.Name):
