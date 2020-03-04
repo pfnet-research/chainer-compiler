@@ -118,6 +118,11 @@ def call_binop(op, node, tyl, tyr):
         return ty_TensorArith(tyl.kind)([tyl, tyr], {})
     if isinstance(tyr, TyTensor):
         return ty_TensorArith(tyr.kind)([tyl, tyr], {})
+    if isinstance(tyl, TySequence) and isinstance(tyr, TyNum):
+        assert tyr.is_int()
+        if tyr.value is None:
+            return TySequence(tyl.get())
+        return TySequence([tyl.get() for _ in range(tyr.value)])
 
     semantics = {
             gast.Add : (lambda x, y: x + y),
