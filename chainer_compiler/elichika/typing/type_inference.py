@@ -116,11 +116,8 @@ def call_builtin_function(func, node, ty_args):
 
 
 def call_binop(op, node, tyl, tyr):
-    if isinstance(tyl, TyTensor):
-        return ty_TensorArith(tyl.kind)([tyl, tyr], {})
-    if isinstance(tyr, TyTensor):
-        return ty_TensorArith(tyr.kind)([tyl, tyr], {})
-    if isinstance(tyl, TySequence) and isinstance(tyr, TyNum):
+    if isinstance(tyl, TySequence) and isinstance(tyr, TyNum) and \
+            isinstance(op, gast.Mult):
         assert tyr.is_int()
         if tyr.value is None:
             return TySequence(tyl.kind, tyl.get())
@@ -134,6 +131,12 @@ def call_binop(op, node, tyl, tyr):
             gast.FloorDiv : (lambda x, y: x // y),
             }
     func = semantics[type(op)]
+
+    if isinstance(tyl, TyTensor):
+        return ty_TensorArith(tyl.kind, func)([tyl, tyr], {})
+    if isinstance(tyr, TyTensor):
+        return ty_TensorArith(tyr.kind, func)([tyl, tyr], {})
+
     try:
         vall, valr = generate_dummy_value(tyl), generate_dummy_value(tyr)
         ty_ret = type_of_value(func(vall, valr))

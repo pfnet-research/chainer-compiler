@@ -321,8 +321,8 @@ class ty_TorchUnsqueeze():
 ## Pointwise Ops
 
 class ty_TorchArith(ty_TensorArith):
-    def __init__(self):
-        super().__init__(TensorKind.torch_tensor)
+    def __init__(self, op):
+        super().__init__(TensorKind.torch_tensor, op)
 
 
 ## Other operations

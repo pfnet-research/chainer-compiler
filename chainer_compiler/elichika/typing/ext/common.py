@@ -53,14 +53,15 @@ class ty_MakeTensor():
 
 
 class ty_TensorArith():
-    def __init__(self, kind):
+    def __init__(self, kind, op):
         self.kind = kind
+        self.op = op
 
     def __call__(self, ty_args, ty_kwargs):
         x_type, y_type = ty_args
         x_shape = x_type.shape if isinstance(x_type, TyTensor) else ()
         y_shape = y_type.shape if isinstance(y_type, TyTensor) else ()
-        dtype = self.get_out_dtype(x_type, y_type)
+        dtype = self.get_out_dtype(x_type, y_type, self.op)
 
         if len(x_shape) > len(y_shape):
             shape = self.infer_return_shape(x_shape, y_shape)
@@ -90,7 +91,7 @@ class ty_TensorArith():
                 assert False
         return ret_shape
 
-    def get_out_dtype(self, x_type, y_type):
+    def get_out_dtype(self, x_type, y_type, op):
         x = generate_dummy_value(x_type)
         y = generate_dummy_value(y_type)
-        return (x + y).dtype
+        return op(x, y).dtype
