@@ -15,6 +15,7 @@ __all__ = [ 'pytorch_attr_ty', 'pytorch_func_ty', 'pytorch_callable_ty' ]
 
 pytorch_attr_ty = {
         'shape' : ty_Shape,
+        'dtype' : ty_DType,
         }
 
 

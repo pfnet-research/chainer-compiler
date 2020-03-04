@@ -69,6 +69,7 @@ class ty_NumpyFull():
 numpy_attr_ty = {
         'shape'  : ty_Shape,
         'size'   : ty_Size,
+        'dtype'  : ty_DType,
         }
 
 numpy_func_ty = {

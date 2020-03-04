@@ -5,6 +5,7 @@ from   chainer_compiler.elichika.typing.shape_elem import *
 __all__ = [ 'ty_MakeTensor'
           , 'ty_Shape'
           , 'ty_Size'
+          , 'ty_DType'
           , 'ty_TensorArith'
           ]
 
@@ -16,6 +17,10 @@ def ty_Shape(ty_obj):
 def ty_Size(ty_obj):
     size = size_of_shape(ty_obj.shape)
     return TyInt(size.value)
+
+
+def ty_DType(ty_obj):
+    return TyDType(ty_obj.dtype)
 
 
 class ty_MakeTensor():

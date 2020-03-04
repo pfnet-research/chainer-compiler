@@ -758,6 +758,7 @@ class ty_ChainerNStepBiLSTM():
 chainer_attr_ty = {
         'shape'  : ty_Shape,
         'size'   : ty_Size,
+        'dtype'  : ty_DType,
         }
 
 

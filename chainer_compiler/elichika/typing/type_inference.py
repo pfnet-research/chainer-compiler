@@ -773,6 +773,9 @@ class InferenceEngine():
 
             return type_of_value(x)
 
+        if isinstance(ty_obj, TyDType):
+            return type_of_value(getattr(ty_obj.t, node.attr))
+
         if isinstance(ty_obj, TyNone):
             return TyVar()
 
