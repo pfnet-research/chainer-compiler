@@ -242,7 +242,6 @@ class InferenceEngine():
                 n = len(node.args.args) - i
                 assert isinstance(node.args.defaults[-n], gast.Constant)
                 self.tyenv[arg_node.id] = type_of_value(node.args.defaults[-n].value)
-                print('---', arg_node.id, self.tyenv[arg_node.id])
 
         for ty in ty_args:
             if isinstance(ty, TyUserDefinedClass):

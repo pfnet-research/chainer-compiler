@@ -46,6 +46,8 @@ class ty_MakeTensor():
         # get element dtype of nested TySequence
         if isinstance(ty, TySequence):
             return self.get_element_dtype(ty.get())
+        if isinstance(ty, TyTensor):
+            return ty.dtype
         return tyobj_to_dtype(ty)
 
 
