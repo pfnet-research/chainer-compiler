@@ -123,8 +123,8 @@ def call_binop(op, node, tyl, tyr):
     if isinstance(tyl, TySequence) and isinstance(tyr, TyNum):
         assert tyr.is_int()
         if tyr.value is None:
-            return TySequence(tyl.get(), tyl.kind)
-        return TySequence([tyl.get() for _ in range(tyr.value)], tyl.kind)
+            return TySequence(tyl.kind, tyl.get())
+        return TySequence(tyl.kind, [tyl.get() for _ in range(tyr.value)])
 
     semantics = {
             gast.Add : (lambda x, y: x + y),
@@ -545,7 +545,7 @@ class InferenceEngine():
             unify(ty_i, TyTensor(ty_iteration.kind, ty_iteration.dtype,
                 ty_iteration.shape[1:]))
         else:
-            unify(ty_iteration, TySequence(ty_i, None))
+            unify(ty_iteration, TySequence(None, ty_i))
 
         for _ in range(2):
             tc = copy_InferenceEngine(self)
@@ -699,7 +699,7 @@ class InferenceEngine():
                 ty_i_.shape = ty_iteration.shape[1:]
             unify(ty_i, ty_i_)
         else:
-            unify(TySequence(ty_i, None), ty_iteration)
+            unify(TySequence(None, ty_i), ty_iteration)
         tc.infer_expr(node.elt)
 
         utils.add_dict(self.nodetype, tc.nodetype)
