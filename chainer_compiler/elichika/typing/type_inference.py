@@ -471,7 +471,7 @@ class InferenceEngine():
                 ty_target = TyList([self.generate_fresh_TyVar(e) for e in target.elts])
             self.nodetype[target] = ty_target
             unify(ty_target, ty_val)
-            for (var, ty) in zip(target.elts, ty_val.get_tys()):
+            for (var, ty) in zip(target.elts, ty_val.deref().get_tys()):
                 self.tyenv[var.id] = ty
                 self.nodetype[var] = ty
             return
@@ -702,7 +702,8 @@ class InferenceEngine():
                     return getattr(torch.Tensor, node.attr), ty_obj
 
             if isinstance(ty_obj, TyUserDefinedClass):
-                return getattr(ty_obj.instance, node.attr), None
+                # if there is no such attribute, just return None (undefined)
+                return getattr(ty_obj.instance, node.attr, None), None
 
         if isinstance(node, gast.Name):
             if node.id in self.tyenv.keys():
