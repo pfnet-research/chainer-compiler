@@ -29,13 +29,15 @@ __all__ = [ 'ty_TorchIdentical'
 
 
 class ty_TorchIdentical():
-    def __init__(self, ndim_min=None):
+    def __init__(self, is_float_only=True, ndim_min=None):
+        self.is_float_only = is_float_only
         self.ndim_min = ndim_min
 
     def __call__(self, ty_args, ty_kwargs):
         x_type = ty_args[0]
         assert isinstance(x_type, TyTensor)
-        assert x_type.dtype.kind == 'f'
+        if self.is_float_only:
+            assert x_type.dtype.kind == 'f'
         if self.ndim_min:
             assert x_type.ndim >= self.ndim_min
         return copy_ty(x_type)

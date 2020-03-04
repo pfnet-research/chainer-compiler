@@ -90,6 +90,7 @@ pytorch_func_ty = {
         torch.Tensor.mul_ : ty_TorchArith(),
 
         torch.Tensor.chunk     : ty_TorchChunk(),
+        torch.Tensor.cpu       : ty_TorchIdentical(is_float_only=False),
         torch.Tensor.repeat    : ty_TorchRepeat(),
         torch.Tensor.size      : ty_TorchSize(),
         torch.Tensor.squeeze   : ty_TorchSqueeze(),
@@ -97,7 +98,7 @@ pytorch_func_ty = {
         torch.Tensor.unsqueeze : ty_TorchUnsqueeze(),
         torch.Tensor.view      : ty_TorchView(),
 
-        torch.Tensor.detach    : ty_TorchIdentical(),
+        torch.Tensor.detach    : ty_TorchIdentical(is_float_only=False),
         }
 
 
