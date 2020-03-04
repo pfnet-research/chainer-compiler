@@ -92,11 +92,13 @@ pytorch_func_ty = {
         torch.Tensor.mul_ : ty_TorchArith(lambda x, y: x * y),
 
         torch.Tensor.chunk     : ty_TorchChunk(),
+        torch.Tensor.contiguous : ty_TorchIdentical(is_float_only=False),
         torch.Tensor.cpu       : ty_TorchIdentical(is_float_only=False),
         torch.Tensor.numpy     : ty_TorchNumpy(),
         torch.Tensor.repeat    : ty_TorchRepeat(),
         torch.Tensor.size      : ty_TorchSize(),
         torch.Tensor.squeeze   : ty_TorchSqueeze(),
+        torch.Tensor.tolist    : ty_TensorToList(),
         torch.Tensor.transpose : ty_TorchTranspose(),
         torch.Tensor.unsqueeze : ty_TorchUnsqueeze(),
         torch.Tensor.view      : ty_TorchView(),

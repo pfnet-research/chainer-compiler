@@ -79,6 +79,7 @@ numpy_attr_ty = {
 
 numpy_func_ty = {
         np.ndarray.astype : ty_NumpyAstype(),
+        np.ndarray.tolist : ty_TensorToList(),
         np.array          : ty_NumpyArray(),
         np.cumsum         : ty_NumpyIdentical(),
         np.full           : ty_NumpyFull(),

@@ -16,7 +16,7 @@ __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
           , 'TyNdarray', 'TyChainerVariable', 'TyTorchTensor'
           , 'torch_dtype_to_np_dtype', 'all_same_ty'
           , 'type_of_value', 'extract_value_from_ty'
-          , 'lacks_value', 'generate_dummy_value', 'tyobj_to_dtype'
+          , 'lacks_value', 'generate_dummy_value', 'tyobj_to_dtype', 'dtype_to_tyobj'
           , 'choose_stronger_ty', 'copy_ty'
           , 'unify', 'UnifyError'
           ]
@@ -588,6 +588,16 @@ def copy_ty(ty):
 def tyobj_to_dtype(ty):
     assert isinstance(ty, TyNum), "tyobj_to_dtype: Unknown dtype"
     return np.dtype(str(NumKind(ty.kind)))
+
+
+def dtype_to_tyobj(dtype):
+    if not hasattr(dtype, 'kind'):
+        assert dtype == np.bool # XXX: temporary
+        return TyBool()
+    if dtype.kind == 'i':
+        return TyInt()
+    if dtype.kind == 'f':
+        return TyFloat()
 
 
 # ==============================================================================
