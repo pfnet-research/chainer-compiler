@@ -219,15 +219,24 @@ class InferenceEngine():
         # TODO(momohatt): varargs
         assert isinstance(node, gast.FunctionDef)
         if node.args.vararg is None:
-            assert len(ty_args) == len(node.args.args), \
-                    "Wrong number of arguments: expected {}, got {}".format(
-                            len(node.args.args), len(ty_args))
+            assert len(ty_args) >= len(node.args.args) - len(node.args.defaults) and \
+                    len(ty_args) <= len(node.args.args) + len(node.args.defaults), \
+                    "Wrong number of arguments: expected {}, default {}, got {}".format(
+                            len(node.args.args), len(node.args.defaults), len(ty_args))
 
         if self.is_debug:
             print("\x1b[33m==================== function {} ====================\x1b[39m".format(node.name))
 
-        for arg_node, ty in zip(node.args.args, ty_args):
-            self.tyenv[arg_node.id] = ty
+        for i, arg_node in enumerate(node.args.args):
+            if i < len(ty_args):
+                self.tyenv[arg_node.id] = ty_args[i]
+            else:
+                # Use default value
+                n = len(node.args.args) - i
+                assert isinstance(node.args.defaults[-n], gast.Constant)
+                self.tyenv[arg_node.id] = type_of_value(node.args.defaults[-n].value)
+                print('---', arg_node.id, self.tyenv[arg_node.id])
+
         for ty in ty_args:
             if isinstance(ty, TyUserDefinedClass):
                 for attr, val in ty.instance.__dict__.items():
