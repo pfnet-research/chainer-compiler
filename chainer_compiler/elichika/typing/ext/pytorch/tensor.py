@@ -11,6 +11,7 @@ from   chainer_compiler.elichika.typing.ext.pytorch.utils import *
 __all__ = [ 'ty_TorchIdentical'
           , 'ty_TorchTensor'
           , 'ty_TorchTensorOfShape'
+          , 'ty_TorchFromNumpy'
           , 'ty_TorchCat'
           , 'ty_TorchChunk'
           , 'ty_TorchReshape'
@@ -64,6 +65,15 @@ class ty_TorchTensorOfShape():
 
         shape = wrap_shape([extract_value_from_ty(ty) for ty in ty_args])
         return TyTorchTensor(dtype, shape=shape)
+
+
+class ty_TorchFromNumpy():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, = ty_args
+        assert x_type.is_ndarray()
+        x_type.kind = TensorKind.torch_tensor
+        # XXX: Share reference of shape
+        return TyTorchTensor(x_type.dtype, shape=x_type.shape)
 
 
 ## Indexing, Slicing, Joining, Mutating Ops

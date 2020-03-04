@@ -21,11 +21,12 @@ pytorch_attr_ty = {
 
 pytorch_func_ty = {
         # https://pytorch.org/docs/stable/torch.html#creation-ops
-        torch.tensor  : ty_TorchTensor(),
-        torch.zeros   : ty_TorchTensorOfShape(),
-        torch.ones    : ty_TorchTensorOfShape(),
-        torch.rand    : ty_TorchTensorOfShape(),
-        torch.randn   : ty_TorchTensorOfShape(),
+        torch.tensor     : ty_TorchTensor(),
+        torch.zeros      : ty_TorchTensorOfShape(),
+        torch.ones       : ty_TorchTensorOfShape(),
+        torch.rand       : ty_TorchTensorOfShape(),
+        torch.randn      : ty_TorchTensorOfShape(),
+        torch.from_numpy : ty_TorchFromNumpy(),
 
         # https://pytorch.org/docs/stable/torch.html#indexing-slicing-joining-mutating-ops
         torch.cat       : ty_TorchCat(),
