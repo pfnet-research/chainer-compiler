@@ -735,7 +735,7 @@ class InferenceEngine():
 
         if isinstance(node, gast.Name):
             if node.id in self.tyenv.keys():
-                ty = self.tyenv[node.id]
+                ty = self.tyenv[node.id].deref()
                 if isinstance(ty, TyUserDefinedClass):
                     return ty.instance, None
 
@@ -745,11 +745,15 @@ class InferenceEngine():
             if hasattr(self.module, node.id):
                 return getattr(self.module, node.id), None
 
-        assert False
+        assert False, gast.dump(node)
 
 
     def infer_Call(self, node):
         # Call(expr func, expr* args, keyword* keywords)
+        func, ty_obj = self.get_function_instance(node.func)
+
+        if func in func_to_ignore:
+            return TyNone()
 
         # XXX: no need to deref() argument type later on
         ty_args = [self.infer_expr(arg).deref() for arg in node.args]
@@ -757,15 +761,10 @@ class InferenceEngine():
                 for kwarg in node.keywords}
         ty_ret = TyVar()
 
-        func, ty_obj = self.get_function_instance(node.func)
-
         if ty_obj is not None:
             ty_args_ = [ty_obj] + ty_args
         else:
             ty_args_ = ty_args
-
-        if func in func_to_ignore:
-            return TyNone()
 
         ty_ret = self.infer_function_instance(node, func, ty_args_, ty_kwargs)
         self.nodetype[node.func] = TyArrow(ty_args, ty_ret)

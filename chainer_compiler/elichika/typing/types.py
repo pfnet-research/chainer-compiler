@@ -423,6 +423,8 @@ def type_of_value(value):
         return TyList([type_of_value(v) for v in value])
     if isinstance(value, enumerate):
         return TyList([type_of_value(v) for v in value])
+    if isinstance(value, zip):
+        return TyList([type_of_value(v) for v in value])
     if isinstance(value, tuple):
         return TyTuple([type_of_value(v) for v in value])
     if isinstance(value, dict):
@@ -447,6 +449,8 @@ def type_of_value(value):
         if isinstance(value.value, int):
             return TyInt(value.value)
         return TyInt()
+    if isinstance(value, torch.nn.ModuleList):
+        return TyList([type_of_value(m) for m in value])
 
     return TyUserDefinedClass(type(value).__name__, value)
 
@@ -507,6 +511,9 @@ def generate_dummy_value(ty) -> object:
             return torch.as_tensor(ret)
     if isinstance(ty, TyDType):
         return ty.t
+    if isinstance(ty, TyUserDefinedClass):
+        # We don't need to copy the instance because it won't be overwritten
+        return ty.instance
 
     assert False, "generate_dummy_value: type not understood: " + str(ty)
 
@@ -701,8 +708,11 @@ def unify(ty1, ty2, inspect_shape=True):
             isinstance(ty2, TyUserDefinedClass):
         if ty1.name == ty2.name:
             return
-        else:
-            # TODO(momohatt): subtyping?
-            raise UnifyError(ty1, ty2)
+        # TODO(momohatt): Find least common superclass and check that
+        # it is not 'object'
+        if isinstance(ty1.instance, torch.nn.Module) and \
+                isinstance(ty2.instance, torch.nn.Module):
+            return
+        raise UnifyError(ty1, ty2)
 
     raise UnifyError(ty1, ty2)
