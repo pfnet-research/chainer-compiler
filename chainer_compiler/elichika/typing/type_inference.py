@@ -419,6 +419,16 @@ class InferenceEngine():
             pass
         elif isinstance(node, gast.If):
             self.nodetype[node] = self.infer_If(node)
+        elif isinstance(node, gast.Raise):
+            self.nodetype[node] = TyVar()
+        elif isinstance(node, gast.Try):
+            # TODO(momohatt): What is 'finalbody' ?
+            ty_ret = self.infer_2blocks(self, self, node.body, node.orelse)
+            self.nodetype[node] = ty_ret
+        elif isinstance(node, gast.Assert):
+            self.nodetype[node] = TyNone()
+        elif isinstance(node, (gast.Import, gast.ImportFrom)):
+            self.nodetype[node] = TyNone()
         elif isinstance(node, gast.Expr):
             # Expr(expr value)
             self.infer_expr(node.value)
