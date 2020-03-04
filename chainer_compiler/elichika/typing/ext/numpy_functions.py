@@ -84,4 +84,5 @@ numpy_func_ty = {
         np.full           : ty_NumpyFull(),
         np.ones           : ty_NumpyOnes(),
         np.zeros          : ty_NumpyOnes(),
+        np.ceil           : ty_TensorCeil(TensorKind.ndarray),
         }

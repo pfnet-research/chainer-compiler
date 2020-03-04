@@ -7,6 +7,7 @@ __all__ = [ 'ty_MakeTensor'
           , 'ty_Size'
           , 'ty_DType'
           , 'ty_TensorArith'
+          , 'ty_TensorCeil'
           ]
 
 
@@ -95,3 +96,18 @@ class ty_TensorArith():
         x = generate_dummy_value(x_type)
         y = generate_dummy_value(y_type)
         return op(x, y).dtype
+
+
+class ty_TensorCeil():
+    def __init__(self, kind):
+        self.kind = kind
+
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, = ty_args
+        dtype = self.get_out_dtype(x_type)
+        return TyTensor(self.kind, dtype, x_type.shape)
+
+    def get_out_dtype(self, x_type):
+        # Behavior of ceil is the same in np and torch
+        x = np.array(1, dtype=x_type.dtype)
+        return np.ceil(x).dtype
