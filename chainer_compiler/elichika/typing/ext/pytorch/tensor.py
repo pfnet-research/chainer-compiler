@@ -8,12 +8,14 @@ from   chainer_compiler.elichika.typing.ext.utils         import *
 from   chainer_compiler.elichika.typing.types             import *
 from   chainer_compiler.elichika.typing.ext.pytorch.utils import *
 
-__all__ = [ 'ty_TorchIdentical'
+__all__ = [ 'ty_TorchIsTensor'
+          , 'ty_TorchIdentical'
           , 'ty_TorchTensor'
           , 'ty_TorchTensorOfShape'
           , 'ty_TorchFromNumpy'
           , 'ty_TorchCat'
           , 'ty_TorchChunk'
+          , 'ty_TorchNumpy'
           , 'ty_TorchReshape'
           , 'ty_TorchSize'
           , 'ty_TorchSplit'
@@ -26,6 +28,12 @@ __all__ = [ 'ty_TorchIdentical'
           , 'ty_TorchView'
           , 'ty_TorchRepeat'
           ]
+
+
+class ty_TorchIsTensor():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, = ty_args
+        return TyBool(isinstance(x_type, TyTensor) and x_type.is_torch_tensor())
 
 
 class ty_TorchIdentical():
@@ -144,6 +152,13 @@ class ty_TorchChunk():
         ret_shape[self.dim] = ret_shape[self.dim] // chunks
         return TyTuple([TyTorchTensor(x_type.dtype, shape=ret_shape)
             for _ in range(chunks)])
+
+
+class ty_TorchNumpy():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, = ty_args
+        assert x_type.is_torch_tensor()
+        return TyNdarray(x_type.dtype, x_type.shape)
 
 
 class ty_TorchReshape():
