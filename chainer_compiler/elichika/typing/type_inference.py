@@ -7,15 +7,17 @@ import sys
 import types
 import typing
 
-from   chainer_compiler.elichika.parser.utils             import clip_head
-from   chainer_compiler.elichika.typing.ext.common        import ty_TensorArith
+from   chainer_compiler.elichika.parser.utils       import clip_head
+from   chainer_compiler.elichika.typing.types       import *
+from   chainer_compiler.elichika.typing.shape_elem  import *
+from   chainer_compiler.elichika.typing             import utils
+
+from   chainer_compiler.elichika.typing.ext.common            import ty_TensorArith
 from   chainer_compiler.elichika.typing.ext.numpy_functions   import *
 from   chainer_compiler.elichika.typing.ext.chainer_functions import *
 from   chainer_compiler.elichika.typing.ext.pytorch_functions import *
+from   chainer_compiler.elichika.typing.std.builtin_functions import *
 from   chainer_compiler.elichika.typing.std.list_functions    import *
-from   chainer_compiler.elichika.typing.types             import *
-from   chainer_compiler.elichika.typing.shape_elem        import *
-from   chainer_compiler.elichika.typing                   import utils
 
 import chainer
 from   chainer.backends import cuda
@@ -86,7 +88,7 @@ def handle_inference_error(exception, func, node):
     return TyVar(lineno=getattr(node, 'lineno', None))
 
 
-def call_ext_function(table, func, node, ty_args, ty_kwargs):
+def call_function(table, func, node, ty_args, ty_kwargs):
     inference_logic = table[func]
     try:
         ty_ret = inference_logic(ty_args, ty_kwargs)
@@ -95,7 +97,7 @@ def call_ext_function(table, func, node, ty_args, ty_kwargs):
     return ty_ret
 
 
-def call_ext_callable(table, obj, node, ty_args, ty_kwargs):
+def call_callable(table, obj, node, ty_args, ty_kwargs):
     inference_logic = table[type(obj)]
     try:
         ty_ret = inference_logic(obj, ty_args, ty_kwargs)
@@ -103,7 +105,7 @@ def call_ext_callable(table, obj, node, ty_args, ty_kwargs):
         ty_ret = handle_inference_error(e, obj, node)
     return ty_ret
 
-
+# TODO(momohatt): Deprecate this function.
 def call_builtin_function(func, node, ty_args):
     try:
         dummy_args = [generate_dummy_value(t) for t in ty_args]
@@ -121,8 +123,8 @@ def call_binop(op, node, tyl, tyr):
     if isinstance(tyl, TySequence) and isinstance(tyr, TyNum):
         assert tyr.is_int()
         if tyr.value is None:
-            return TySequence(tyl.get())
-        return TySequence([tyl.get() for _ in range(tyr.value)])
+            return TySequence(tyl.get(), tyl.kind)
+        return TySequence([tyl.get() for _ in range(tyr.value)], tyl.kind)
 
     semantics = {
             gast.Add : (lambda x, y: x + y),
@@ -319,18 +321,18 @@ class InferenceEngine():
 
     def infer_function_instance(self, node, func, ty_args, ty_kwargs):
         if func in numpy_func_ty.keys():
-            return call_ext_function(numpy_func_ty, func, node, ty_args, ty_kwargs)
+            return call_function(numpy_func_ty, func, node, ty_args, ty_kwargs)
 
         if func in chainer_func_ty.keys():
             # external (eg. np/chainer) functions
-            return call_ext_function(chainer_func_ty, func, node, ty_args, ty_kwargs)
+            return call_function(chainer_func_ty, func, node, ty_args, ty_kwargs)
 
         if func in pytorch_func_ty.keys():
-            return call_ext_function(pytorch_func_ty, func, node, ty_args, ty_kwargs)
+            return call_function(pytorch_func_ty, func, node, ty_args, ty_kwargs)
 
         if type(func) in L.__dict__.values():
             # chainer links
-            return call_ext_callable(chainer_callable_ty, func, node, ty_args, ty_kwargs)
+            return call_callable(chainer_callable_ty, func, node, ty_args, ty_kwargs)
 
         if type(func) in nn.__dict__.values():
             # torch.nn
@@ -340,13 +342,15 @@ class InferenceEngine():
                     x_type = self.infer_function_instance(node, module, [x_type], {})
                 return x_type
 
-            return call_ext_callable(pytorch_callable_ty, func, node, ty_args, ty_kwargs)
+            return call_callable(pytorch_callable_ty, func, node, ty_args, ty_kwargs)
 
         if func in list_func_ty.keys():
-            return call_ext_function(list_func_ty, func, node, ty_args, ty_kwargs)
+            return call_function(list_func_ty, func, node, ty_args, ty_kwargs)
 
         if func in __builtins__.values():
             # builtin functions
+            if func in builtin_func_ty.keys():
+                return call_function(builtin_func_ty, func, node, ty_args, {})
             return call_builtin_function(func, node, ty_args)
 
         # user defined functions/methods/callables, need to inline
