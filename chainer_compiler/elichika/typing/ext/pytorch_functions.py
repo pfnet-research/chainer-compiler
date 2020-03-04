@@ -35,6 +35,7 @@ pytorch_func_ty = {
         torch.split     : ty_TorchSplit(),
         torch.squeeze   : ty_TorchSqueeze(),
         torch.stack     : ty_TorchStack(),
+        torch.transpose : ty_TorchTranspose(),
         torch.unsqueeze : ty_TorchUnsqueeze(),
 
         # https://pytorch.org/docs/stable/torch.html#random-sampling
@@ -92,6 +93,7 @@ pytorch_func_ty = {
         torch.Tensor.repeat    : ty_TorchRepeat(),
         torch.Tensor.size      : ty_TorchSize(),
         torch.Tensor.squeeze   : ty_TorchSqueeze(),
+        torch.Tensor.transpose : ty_TorchTranspose(),
         torch.Tensor.unsqueeze : ty_TorchUnsqueeze(),
         torch.Tensor.view      : ty_TorchView(),
 

@@ -19,6 +19,7 @@ __all__ = [ 'ty_TorchIdentical'
           , 'ty_TorchSplit'
           , 'ty_TorchSqueeze'
           , 'ty_TorchStack'
+          , 'ty_TorchTranspose'
           , 'ty_TorchUnsqueeze'
           , 'ty_TorchArith'
           , 'ty_TorchFlatten'
@@ -159,6 +160,14 @@ class ty_TorchReshape():
 
 class ty_TorchSize():
     def __call__(self, ty_args, ty_kwargs):
+        if len(ty_args) == 2:
+            x_type, index_type = ty_args
+            assert isinstance(index_type, TyNum)
+            assert index_type.is_int()
+            if index_type.value is None:
+                return TyInt()
+            return TyInt(x_type.shape[index_type.value])
+
         x_type, = ty_args
         return TyTuple([TyInt(e.value) for e in x_type.shape])
 
@@ -263,6 +272,19 @@ class ty_TorchStack():
         ret_shape = list(xs_type.get().shape)
         ret_shape.insert(self.dim, ShapeElem(xs_type.size()))
         return TyTorchTensor(xs_type.get().dtype, shape=ret_shape)
+
+
+class ty_TorchTranspose():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, dim1_type, dim2_type = ty_args
+        assert isinstance(dim1_type, TyNum)
+        assert isinstance(dim2_type, TyNum)
+        dim1 = dim1_type.value
+        dim2 = dim2_type.value
+        assert dim1 is not None and dim2 is not None
+        shape = list(x_type.shape)
+        shape[dim1], shape[dim2] = x_type.shape[dim2], x_type.shape[dim1]
+        return TyTorchTensor(x_type.dtype, shape=shape)
 
 
 class ty_TorchUnsqueeze():
