@@ -591,13 +591,13 @@ def tyobj_to_dtype(ty):
 
 
 def dtype_to_tyobj(dtype):
-    if not hasattr(dtype, 'kind'):
-        assert dtype == np.bool # XXX: temporary
+    if dtype.kind == 'b':
         return TyBool()
-    if dtype.kind == 'i':
+    if dtype.kind in 'iu':
         return TyInt()
     if dtype.kind == 'f':
         return TyFloat()
+    assert False
 
 
 # ==============================================================================
