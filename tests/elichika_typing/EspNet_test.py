@@ -714,17 +714,6 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[10]), "string")	# Constant "..." (line 7)
         self.assertEqual(str(id2type[11]), "NoneType")	# Expr
         self.assertEqual(str(id2type[12]), "NoneType")	# Call logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens)) (line 8)
-        self.assertEqual(str(id2type[17]), "string")	# BinOp self.__class__.__name__ + ' input lengths: ' + str(ilens) (line 8)
-        self.assertEqual(str(id2type[18]), "string")	# BinOp self.__class__.__name__ + ' input lengths: ' (line 8)
-        self.assertEqual(str(id2type[19]), "string")	# Attribute self.__class__.__name__ (line 8)
-        self.assertEqual(str(id2type[20]), "class base_metaclass")	# Attribute self.__class__ (line 8)
-        self.assertEqual(str(id2type[21]), "class VGG2L")	# Name self (line 8)
-        self.assertEqual(str(id2type[25]), "string -> string -> string")	# Add
-        self.assertEqual(str(id2type[26]), "string")	# Constant ' input lengths: ' (line 8)
-        self.assertEqual(str(id2type[27]), "string -> string -> string")	# Add
-        self.assertEqual(str(id2type[28]), "string")	# Call str(ilens) (line 8)
-        self.assertEqual(str(id2type[29]), "ndarray(int64, (3,)) -> string")	# Name str (line 8)
-        self.assertEqual(str(id2type[31]), "ndarray(int64, (3,))")	# Name ilens (line 8)
         self.assertEqual(str(id2type[33]), "NoneType")	# Assign
         self.assertEqual(str(id2type[34]), "Variable(float32, (3, 4, 5))")	# Name xs (line 11)
         self.assertEqual(str(id2type[36]), "Variable(float32, (3, 4, 5))")	# Call F.pad_sequence(xs) (line 11)
@@ -885,17 +874,6 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[10]), "string")	# Constant "..." (line 7)
         self.assertEqual(str(id2type[11]), "NoneType")	# Expr
         self.assertEqual(str(id2type[12]), "NoneType")	# Call logging.info(self.__class__.__name__ + ' input lengths: ' + str(ilens)) (line 8)
-        self.assertEqual(str(id2type[17]), "string")	# BinOp self.__class__.__name__ + ' input lengths: ' + str(ilens) (line 8)
-        self.assertEqual(str(id2type[18]), "string")	# BinOp self.__class__.__name__ + ' input lengths: ' (line 8)
-        self.assertEqual(str(id2type[19]), "string")	# Attribute self.__class__.__name__ (line 8)
-        self.assertEqual(str(id2type[20]), "class base_metaclass")	# Attribute self.__class__ (line 8)
-        self.assertEqual(str(id2type[21]), "class BLSTM")	# Name self (line 8)
-        self.assertEqual(str(id2type[25]), "string -> string -> string")	# Add
-        self.assertEqual(str(id2type[26]), "string")	# Constant ' input lengths: ' (line 8)
-        self.assertEqual(str(id2type[27]), "string -> string -> string")	# Add
-        self.assertEqual(str(id2type[28]), "string")	# Call str(ilens) (line 8)
-        self.assertEqual(str(id2type[29]), "ndarray(int64, (3,)) -> string")	# Name str (line 8)
-        self.assertEqual(str(id2type[31]), "ndarray(int64, (3,))")	# Name ilens (line 8)
         self.assertEqual(str(id2type[33]), "NoneType")	# Assign
         self.assertEqual(str(id2type[34]), "ndarray(int64, (3,))")	# Name ilens (line 10)
         self.assertEqual(str(id2type[36]), "ndarray(int64, (3,))")	# Call cuda.to_cpu(ilens) (line 10)

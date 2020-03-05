@@ -15,16 +15,20 @@ __all__ = [ 'pytorch_attr_ty', 'pytorch_func_ty', 'pytorch_callable_ty' ]
 
 pytorch_attr_ty = {
         'shape' : ty_Shape,
+        'dtype' : ty_DType,
         }
 
 
 pytorch_func_ty = {
+        torch.is_tensor  : ty_TorchIsTensor(),
+
         # https://pytorch.org/docs/stable/torch.html#creation-ops
-        torch.tensor  : ty_TorchTensor(),
-        torch.zeros   : ty_TorchTensorOfShape(),
-        torch.ones    : ty_TorchTensorOfShape(),
-        torch.rand    : ty_TorchTensorOfShape(),
-        torch.randn   : ty_TorchTensorOfShape(),
+        torch.tensor     : ty_TorchTensor(),
+        torch.zeros      : ty_TorchTensorOfShape(),
+        torch.ones       : ty_TorchTensorOfShape(),
+        torch.rand       : ty_TorchTensorOfShape(),
+        torch.randn      : ty_TorchTensorOfShape(),
+        torch.from_numpy : ty_TorchFromNumpy(),
 
         # https://pytorch.org/docs/stable/torch.html#indexing-slicing-joining-mutating-ops
         torch.cat       : ty_TorchCat(),
@@ -33,6 +37,7 @@ pytorch_func_ty = {
         torch.split     : ty_TorchSplit(),
         torch.squeeze   : ty_TorchSqueeze(),
         torch.stack     : ty_TorchStack(),
+        torch.transpose : ty_TorchTranspose(),
         torch.unsqueeze : ty_TorchUnsqueeze(),
 
         # https://pytorch.org/docs/stable/torch.html#random-sampling
@@ -52,9 +57,9 @@ pytorch_func_ty = {
         torch.tan     : ty_TorchIdentical(),
         torch.tanh    : ty_TorchIdentical(),
 
-        torch.add     : ty_TorchArith(),
-        torch.sub     : ty_TorchArith(),
-        torch.mul     : ty_TorchArith(),
+        torch.add     : ty_TorchArith(lambda x, y: x + y),
+        torch.sub     : ty_TorchArith(lambda x, y: x - y),
+        torch.mul     : ty_TorchArith(lambda x, y: x * y),
 
         torch.flatten : ty_TorchFlatten(),
 
@@ -79,21 +84,26 @@ pytorch_func_ty = {
         # https://pytorch.org/docs/stable/nn.functional.html#vision-functions
         F.interpolate : ty_TorchInterpolate(),
 
-        torch.Tensor.add  : ty_TorchArith(),
-        torch.Tensor.add_ : ty_TorchArith(),
-        torch.Tensor.sub  : ty_TorchArith(),
-        torch.Tensor.sub_ : ty_TorchArith(),
-        torch.Tensor.mul  : ty_TorchArith(),
-        torch.Tensor.mul_ : ty_TorchArith(),
+        torch.Tensor.add  : ty_TorchArith(lambda x, y: x + y),
+        torch.Tensor.add_ : ty_TorchArith(lambda x, y: x + y),
+        torch.Tensor.sub  : ty_TorchArith(lambda x, y: x - y),
+        torch.Tensor.sub_ : ty_TorchArith(lambda x, y: x - y),
+        torch.Tensor.mul  : ty_TorchArith(lambda x, y: x * y),
+        torch.Tensor.mul_ : ty_TorchArith(lambda x, y: x * y),
 
         torch.Tensor.chunk     : ty_TorchChunk(),
+        torch.Tensor.contiguous : ty_TorchIdentical(is_float_only=False),
+        torch.Tensor.cpu       : ty_TorchIdentical(is_float_only=False),
+        torch.Tensor.numpy     : ty_TorchNumpy(),
         torch.Tensor.repeat    : ty_TorchRepeat(),
         torch.Tensor.size      : ty_TorchSize(),
         torch.Tensor.squeeze   : ty_TorchSqueeze(),
+        torch.Tensor.tolist    : ty_TensorToList(),
+        torch.Tensor.transpose : ty_TorchTranspose(),
         torch.Tensor.unsqueeze : ty_TorchUnsqueeze(),
         torch.Tensor.view      : ty_TorchView(),
 
-        torch.Tensor.detach    : ty_TorchIdentical(),
+        torch.Tensor.detach    : ty_TorchIdentical(is_float_only=False),
         }
 
 

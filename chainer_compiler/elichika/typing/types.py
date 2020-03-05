@@ -16,7 +16,7 @@ __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
           , 'TyNdarray', 'TyChainerVariable', 'TyTorchTensor'
           , 'torch_dtype_to_np_dtype', 'all_same_ty'
           , 'type_of_value', 'extract_value_from_ty'
-          , 'lacks_value', 'generate_dummy_value', 'tyobj_to_dtype'
+          , 'lacks_value', 'generate_dummy_value', 'tyobj_to_dtype', 'dtype_to_tyobj'
           , 'choose_stronger_ty', 'copy_ty'
           , 'unify', 'UnifyError'
           ]
@@ -140,7 +140,7 @@ class SequenceKind(Enum):
     TUPLE = 1
 
 class TySequence(TyObj):
-    def __init__(self, ty, kind):
+    def __init__(self, kind, ty):
         super().__init__()
         self.kind = kind
         self.is_fixed_len = isinstance(ty, list)
@@ -221,10 +221,10 @@ class TySequence(TyObj):
 
 
 def TyList(ty):  # shorthand notation
-    return TySequence(ty, SequenceKind.LIST)
+    return TySequence(SequenceKind.LIST, ty)
 
 def TyTuple(ty):  # shorthand notation
-    return TySequence(ty, SequenceKind.TUPLE)
+    return TySequence(SequenceKind.TUPLE, ty)
 
 
 class TyDict(TyObj):
@@ -423,6 +423,8 @@ def type_of_value(value):
         return TyList([type_of_value(v) for v in value])
     if isinstance(value, enumerate):
         return TyList([type_of_value(v) for v in value])
+    if isinstance(value, zip):
+        return TyList([type_of_value(v) for v in value])
     if isinstance(value, tuple):
         return TyTuple([type_of_value(v) for v in value])
     if isinstance(value, dict):
@@ -447,6 +449,8 @@ def type_of_value(value):
         if isinstance(value.value, int):
             return TyInt(value.value)
         return TyInt()
+    if isinstance(value, torch.nn.ModuleList):
+        return TyList([type_of_value(m) for m in value])
 
     return TyUserDefinedClass(type(value).__name__, value)
 
@@ -507,6 +511,9 @@ def generate_dummy_value(ty) -> object:
             return torch.as_tensor(ret)
     if isinstance(ty, TyDType):
         return ty.t
+    if isinstance(ty, TyUserDefinedClass):
+        # We don't need to copy the instance because it won't be overwritten
+        return ty.instance
 
     assert False, "generate_dummy_value: type not understood: " + str(ty)
 
@@ -557,9 +564,9 @@ def copy_ty(ty):
         ret = TyArrow([copy_ty(t) for t in ty.argty], copy_ty(ty.retty))
     elif isinstance(ty, TySequence):
         if ty.is_fixed_len:
-            ret = TySequence([copy_ty(t) for t in ty.get_tys()], ty.kind)
+            ret = TySequence(ty.kind, [copy_ty(t) for t in ty.get_tys()])
         else:
-            ret = TySequence(copy_ty(ty.get_ty()), ty.kind)
+            ret = TySequence(ty.kind, copy_ty(ty.get_ty()))
     elif isinstance(ty, TyDict):
         # XXX: do not copy instance
         ret = TyDict(ty.keyty, ty.valty)
@@ -581,6 +588,16 @@ def copy_ty(ty):
 def tyobj_to_dtype(ty):
     assert isinstance(ty, TyNum), "tyobj_to_dtype: Unknown dtype"
     return np.dtype(str(NumKind(ty.kind)))
+
+
+def dtype_to_tyobj(dtype):
+    if dtype.kind == 'b':
+        return TyBool()
+    if dtype.kind in 'iu':
+        return TyInt()
+    if dtype.kind == 'f':
+        return TyFloat()
+    assert False
 
 
 # ==============================================================================
@@ -701,8 +718,11 @@ def unify(ty1, ty2, inspect_shape=True):
             isinstance(ty2, TyUserDefinedClass):
         if ty1.name == ty2.name:
             return
-        else:
-            # TODO(momohatt): subtyping?
-            raise UnifyError(ty1, ty2)
+        # TODO(momohatt): Find least common superclass and check that
+        # it is not 'object'
+        if isinstance(ty1.instance, torch.nn.Module) and \
+                isinstance(ty2.instance, torch.nn.Module):
+            return
+        raise UnifyError(ty1, ty2)
 
     raise UnifyError(ty1, ty2)

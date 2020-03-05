@@ -8,16 +8,20 @@ from   chainer_compiler.elichika.typing.ext.utils         import *
 from   chainer_compiler.elichika.typing.types             import *
 from   chainer_compiler.elichika.typing.ext.pytorch.utils import *
 
-__all__ = [ 'ty_TorchIdentical'
+__all__ = [ 'ty_TorchIsTensor'
+          , 'ty_TorchIdentical'
           , 'ty_TorchTensor'
           , 'ty_TorchTensorOfShape'
+          , 'ty_TorchFromNumpy'
           , 'ty_TorchCat'
           , 'ty_TorchChunk'
+          , 'ty_TorchNumpy'
           , 'ty_TorchReshape'
           , 'ty_TorchSize'
           , 'ty_TorchSplit'
           , 'ty_TorchSqueeze'
           , 'ty_TorchStack'
+          , 'ty_TorchTranspose'
           , 'ty_TorchUnsqueeze'
           , 'ty_TorchArith'
           , 'ty_TorchFlatten'
@@ -26,14 +30,22 @@ __all__ = [ 'ty_TorchIdentical'
           ]
 
 
+class ty_TorchIsTensor():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, = ty_args
+        return TyBool(isinstance(x_type, TyTensor) and x_type.is_torch_tensor())
+
+
 class ty_TorchIdentical():
-    def __init__(self, ndim_min=None):
+    def __init__(self, is_float_only=True, ndim_min=None):
+        self.is_float_only = is_float_only
         self.ndim_min = ndim_min
 
     def __call__(self, ty_args, ty_kwargs):
         x_type = ty_args[0]
         assert isinstance(x_type, TyTensor)
-        assert x_type.dtype.kind == 'f'
+        if self.is_float_only:
+            assert x_type.dtype.kind == 'f'
         if self.ndim_min:
             assert x_type.ndim >= self.ndim_min
         return copy_ty(x_type)
@@ -64,6 +76,15 @@ class ty_TorchTensorOfShape():
 
         shape = wrap_shape([extract_value_from_ty(ty) for ty in ty_args])
         return TyTorchTensor(dtype, shape=shape)
+
+
+class ty_TorchFromNumpy():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, = ty_args
+        assert x_type.is_ndarray()
+        x_type.kind = TensorKind.torch_tensor
+        # XXX: Share reference of shape
+        return TyTorchTensor(x_type.dtype, shape=x_type.shape)
 
 
 ## Indexing, Slicing, Joining, Mutating Ops
@@ -133,6 +154,13 @@ class ty_TorchChunk():
             for _ in range(chunks)])
 
 
+class ty_TorchNumpy():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, = ty_args
+        assert x_type.is_torch_tensor()
+        return TyNdarray(x_type.dtype, x_type.shape)
+
+
 class ty_TorchReshape():
     def __call__(self, ty_args, ty_kwargs):
         x_type, shape_type = ty_args
@@ -149,6 +177,14 @@ class ty_TorchReshape():
 
 class ty_TorchSize():
     def __call__(self, ty_args, ty_kwargs):
+        if len(ty_args) == 2:
+            x_type, index_type = ty_args
+            assert isinstance(index_type, TyNum)
+            assert index_type.is_int()
+            if index_type.value is None:
+                return TyInt()
+            return TyInt(x_type.shape[index_type.value])
+
         x_type, = ty_args
         return TyTuple([TyInt(e.value) for e in x_type.shape])
 
@@ -255,6 +291,19 @@ class ty_TorchStack():
         return TyTorchTensor(xs_type.get().dtype, shape=ret_shape)
 
 
+class ty_TorchTranspose():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, dim1_type, dim2_type = ty_args
+        assert isinstance(dim1_type, TyNum)
+        assert isinstance(dim2_type, TyNum)
+        dim1 = dim1_type.value
+        dim2 = dim2_type.value
+        assert dim1 is not None and dim2 is not None
+        shape = list(x_type.shape)
+        shape[dim1], shape[dim2] = x_type.shape[dim2], x_type.shape[dim1]
+        return TyTorchTensor(x_type.dtype, shape=shape)
+
+
 class ty_TorchUnsqueeze():
     def __call__(self, ty_args, ty_kwargs):
         x_type, dim_type = ty_args
@@ -272,8 +321,8 @@ class ty_TorchUnsqueeze():
 ## Pointwise Ops
 
 class ty_TorchArith(ty_TensorArith):
-    def __init__(self):
-        super().__init__(TensorKind.torch_tensor)
+    def __init__(self, op):
+        super().__init__(TensorKind.torch_tensor, op)
 
 
 ## Other operations
