@@ -723,17 +723,19 @@ class InferenceEngine():
 
             if isinstance(ty_obj, TySequence) and ty_obj.is_list():
                 ty_obj.coerce_to_variable_len()
-                return getattr(list, node.attr), ty_obj
+                return getattr(list, node.attr, None), ty_obj
 
             if isinstance(ty_obj, TyTensor):
                 if ty_obj.is_ndarray():
-                    return getattr(np.ndarray, node.attr), ty_obj
+                    return getattr(np.ndarray, node.attr, None), ty_obj
                 if ty_obj.is_torch_tensor():
-                    return getattr(torch.Tensor, node.attr), ty_obj
+                    return getattr(torch.Tensor, node.attr, None), ty_obj
 
             if isinstance(ty_obj, TyUserDefinedClass):
                 # if there is no such attribute, just return None (undefined)
                 return getattr(ty_obj.instance, node.attr, None), None
+
+            return None, None
 
         if isinstance(node, gast.Name):
             if node.id in self.tyenv.keys():
