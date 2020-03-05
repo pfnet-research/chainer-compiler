@@ -243,8 +243,14 @@ class InferenceEngine():
             else:
                 # Use default value
                 n = len(node.args.args) - i
-                assert isinstance(node.args.defaults[-n], gast.Constant)
-                self.tyenv[arg_node.id] = type_of_value(node.args.defaults[-n].value)
+
+                try:
+                    value = eval(utils.expr_to_str(node.args.defaults[-n]))
+                except Exception:
+                    print("Default arguments must be constants")
+                    raise Exception
+
+                self.tyenv[arg_node.id] = type_of_value(value)
 
         for ty in ty_args:
             if isinstance(ty, TyUserDefinedClass):
