@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from   chainer_compiler.elichika.typing import utils
-from   chainer_compiler.elichika.typing.shape_elem import ShapeElem, wrap_shape, unwrap_shape, unify_shape
+from   chainer_compiler.elichika.typing.shape_elem import *
 
 __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
           , 'TyString', 'TyArrow', 'TySequence', 'TyList', 'TyTuple'
@@ -19,6 +19,7 @@ __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
           , 'lacks_value', 'generate_dummy_value', 'tyobj_to_dtype', 'dtype_to_tyobj'
           , 'choose_stronger_ty', 'copy_ty'
           , 'unify', 'UnifyError'
+          , 'match_types', 'MatchFail', 'apply_subst'
           ]
 
 
@@ -666,7 +667,7 @@ def unify(ty1, ty2, inspect_shape=True):
 
     if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow) and \
             len(ty1.argty) == len(ty2.argty):
-        for (at1, at2) in zip(ty1.argty, ty2.argty):
+        for at1, at2 in zip(ty1.argty, ty2.argty):
             unify(at1, at2)
         unify(ty1.retty, ty2.retty)
         return
@@ -678,7 +679,7 @@ def unify(ty1, ty2, inspect_shape=True):
                 ty2.coerce_to_variable_len()
                 unify(ty1.get_ty(), ty2.get_ty())
                 return
-            for (t1, t2) in zip(ty1.get_tys(), ty2.get_tys()):
+            for t1, t2 in zip(ty1.get_tys(), ty2.get_tys()):
                 unify(t1, t2)
             return
         if ty1.is_fixed_len and not ty2.is_fixed_len:
@@ -723,6 +724,77 @@ def unify(ty1, ty2, inspect_shape=True):
         if isinstance(ty1.instance, torch.nn.Module) and \
                 isinstance(ty2.instance, torch.nn.Module):
             return
-        raise UnifyError(ty1, ty2)
 
     raise UnifyError(ty1, ty2)
+
+
+def apply_subst(subst, ty):
+    if isinstance(ty, TySequence):
+        return TySequence(ty.kind,
+                [apply_subst(subst, t) for t in ty.get_tys()])
+
+    if isinstance(ty, TyDict):
+        return TyDict(apply_subst(subst, ty.keyty),
+                apply_subst(subst, ty.valty))
+
+    if isinstance(ty, TyTensor):
+        return TyTensor(ty.kind, ty.dtype, apply_subst_shape(subst, ty.shape))
+
+    return ty
+
+
+class MatchFail(Exception):
+    def __init__(self, ty1, ty2):
+        self.msg = "MatchFail: couldn't match {} and {}".format(ty1, ty2)
+
+
+def match_type(ty1, ty2):
+    assert not isinstance(ty1, (TyVar, TyArrow))
+    assert not isinstance(ty2, (TyVar, TyArrow))
+
+    if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
+        return {}
+
+    if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
+        ty1.kind = ty2.kind = max(ty1.kind, ty2.kind)
+        ty1.coerce_value()
+        ty2.coerce_value()
+        return {}
+
+    if isinstance(ty1, TyString) and isinstance(ty2, TyString):
+        return {}
+
+    if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
+        assert ty1.is_fixed_len and ty2.is_fixed_len
+        if len(ty1.get_tys()) == len(ty2.get_tys()):
+            return match_types(ty1.get_tys(), ty2.get_tys())
+
+    if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
+        return match_types([ty1.keyty, ty1.valty], [ty2.keyty, ty2.valty])
+
+    if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
+        if ty1.dtype == ty2.dtype and ty1.ndim == ty2.ndim:
+            try:
+                return match_shape(ty1.shape, ty2.shape)
+            except Exception:
+                raise MatchFail(ty1, ty2)
+
+    if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
+        if ty1.t == ty2.t:
+            return {}
+
+    if isinstance(ty1, TyUserDefinedClass) and \
+            isinstance(ty2, TyUserDefinedClass):
+        if ty1.name == ty2.name:
+            return {}
+
+    raise MatchFail(ty1, ty2)
+
+
+def match_types(tys1, tys2):
+    subst = {}
+    for t1, t2 in zip(tys1, tys2):
+        t1 = apply_subst(subst, t1)
+        t2 = apply_subst(subst, t2)
+        utils.add_dict(subst, match_type(t1, t2))
+    return subst

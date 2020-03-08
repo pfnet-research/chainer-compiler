@@ -10,6 +10,8 @@ __all__ = [ 'ShapeElem'
           , 'copy_ShapeElem'
           , 'size_of_ShapeElem'
           , 'unify_shape'
+          , 'apply_subst_shape'
+          , 'match_shape'
           ]
 
 
@@ -135,9 +137,9 @@ class ShapeElem():
     def __init__(self, value_or_name, expr=None):
         assert type(value_or_name) in [int, float, str, type(None)]
         if isinstance(value_or_name, str):
-            # name
-            self.value = None
-            self.expr = type_check.Variable(None, value_or_name)
+            # name (given via type hints)
+            self.value = value_or_name
+            self.expr = None
         else:
             # value
             self.value = value_or_name
@@ -248,9 +250,26 @@ def size_of_ShapeElem(e):
 
 def unify_shape(shape1, shape2):
     for e1, e2 in zip(shape1, shape2):
-        if e1.value and e2.value:
-            if e1.value != e2.value:
-                e1.value = e2.value = None
+        if e1.value != e2.value:
+            e1.value = e2.value = None
 
-        # TODO: which expr should we use?
-        utils.set_attr_if_None(e1, e2, 'value')
+
+def apply_subst_shapeElem(subst, e):
+    if e.value in subst.keys():
+        return ShapeElem(subst[e.value], expr=type_check.Variable(None, e.value))
+    return e
+
+
+def apply_subst_shape(subst, shape):
+    return [apply_subst_shapeElem(subst, e) for e in shape]
+
+
+def match_shape(shape1, shape2):
+    subst = {}
+    for e1, e2 in zip(shape1, shape2):
+        e2 = apply_subst_shapeElem(subst, e2)
+        if isinstance(e2.value, str):
+            subst[e2.value] = e1.value
+        else:
+            assert e1.value == e2.value
+    return subst
