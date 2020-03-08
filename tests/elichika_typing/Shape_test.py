@@ -5,6 +5,8 @@ import chainer.functions as F
 import chainer.links as L
 import numpy as np
 
+import torch
+
 from   chainer_compiler.elichika.testtools import generate_id2type_from_forward
 from   chainer_compiler.elichika.typing import types
 
@@ -16,7 +18,7 @@ class TestShape(unittest.TestCase):
                     x = x.expand(4, x.size(1) + 1)
                 return x
 
-        model, forward_args = Test(), (torch.Tensor(4, 1, dtype=torch.float),)
+        model, forward_args = Test(), (torch.ones(4, 1, dtype=torch.float),)
         id2type = generate_id2type_from_forward(model, forward_args)
 
         self.assertEqual(str(id2type[1]), "class Test -> torch.Tensor(float32, (4, None)) -> torch.Tensor(float32, (4, None))")	# FunctionDef forward (line 1)
