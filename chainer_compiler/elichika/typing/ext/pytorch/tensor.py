@@ -15,6 +15,7 @@ __all__ = [ 'ty_TorchIsTensor'
           , 'ty_TorchFromNumpy'
           , 'ty_TorchCat'
           , 'ty_TorchChunk'
+          , 'ty_TorchExpand'
           , 'ty_TorchNumpy'
           , 'ty_TorchReshape'
           , 'ty_TorchSize'
@@ -154,6 +155,14 @@ class ty_TorchChunk():
             for _ in range(chunks)])
 
 
+class ty_TorchExpand():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+        assert all([isinstance(ty, TyNum) for ty in ty_args[1:]])
+        shape = [ty.value for ty in ty_args[1:]]
+        return TyTorchTensor(x_type.dtype, shape=shape)
+
+
 class ty_TorchNumpy():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
@@ -183,7 +192,7 @@ class ty_TorchSize():
             assert index_type.is_int()
             if index_type.value is None:
                 return TyInt()
-            return TyInt(x_type.shape[index_type.value])
+            return TyInt(x_type.shape[index_type.value].value)
 
         x_type, = ty_args
         return TyTuple([TyInt(e.value) for e in x_type.shape])

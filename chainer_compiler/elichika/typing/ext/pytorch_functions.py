@@ -94,6 +94,7 @@ pytorch_func_ty = {
         torch.Tensor.chunk     : ty_TorchChunk(),
         torch.Tensor.contiguous : ty_TorchIdentical(is_float_only=False),
         torch.Tensor.cpu       : ty_TorchIdentical(is_float_only=False),
+        torch.Tensor.expand    : ty_TorchExpand(),
         torch.Tensor.numpy     : ty_TorchNumpy(),
         torch.Tensor.repeat    : ty_TorchRepeat(),
         torch.Tensor.size      : ty_TorchSize(),
