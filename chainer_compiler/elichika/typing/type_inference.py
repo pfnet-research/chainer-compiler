@@ -259,12 +259,10 @@ class InferenceEngine():
                             type_of_value(val)
 
         # apply type hints
+        subst = match_types([self.tyenv[n] for n in type_hints.keys()],
+            type_hints.values())
         for n, t in type_hints.items():
-            # TODO(momohatt): use term-match instead of unify?
-            unify(self.tyenv[n], t)
-            if isinstance(t, TyTensor):
-                for i in range(self.tyenv[n].ndim):
-                    self.tyenv[n].shape[i].expr = t.shape[i].expr
+            self.tyenv[n] = apply_subst(subst, type_hints[n])
 
         self.infer_stmt(node)
 
