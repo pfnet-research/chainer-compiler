@@ -78,6 +78,12 @@ pytorch_func_ty = {
         F.tanh        : ty_TorchIdentical(),
         F.sigmoid     : ty_TorchIdentical(),
 
+        # https://pytorch.org/docs/stable/nn.functional.html#dropout-functions
+        F.dropout         : ty_TorchIdentical(),
+        F.dropout2d       : ty_TorchIdentical(ndim_min=1),
+        F.dropout3d       : ty_TorchIdentical(ndim_min=1),
+        F.alpha_dropout   : ty_TorchIdentical(),
+
         # https://pytorch.org/docs/stable/nn.functional.html#sparse-functions
         F.embedding   : ty_TorchEmbed(),
 
