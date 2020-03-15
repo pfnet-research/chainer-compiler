@@ -281,13 +281,16 @@ class InferenceEngine():
         # unify the intersection of 2 tyenvs and update local tyenv
         for name, ty in tc.tyenv.items():
             if name in self.tyenv.keys():
-                unify(ty, self.tyenv[name])
-            self.tyenv[name] = ty
+                self.tyenv[name] = join(ty, self.tyenv[name])
+            else:
+                self.tyenv[name] = ty
 
         for (obj, name), ty in tc.attribute_tyenv.items():
             if (obj, name) in self.attribute_tyenv.keys():
-                unify(ty, self.attribute_tyenv[(obj, name)])
-            self.attribute_tyenv[(obj, name)] = ty
+                self.attribute_tyenv[(obj, name)] = \
+                        join(ty, self.attribute_tyenv[(obj, name)])
+            else:
+                self.attribute_tyenv[(obj, name)] = ty
 
         unify(ty_ret, TyNone())
         return TyNone()
@@ -302,8 +305,7 @@ class InferenceEngine():
         # unify the intersection of 2 tyenvs and update local tyenv
         for name, ty in tc1.tyenv.items():
             if name in tc2.tyenv.keys():
-                unify(ty, tc2.tyenv[name])
-                self.tyenv[name] = choose_stronger_ty(ty, tc2.tyenv[name])
+                self.tyenv[name] = join(ty, tc2.tyenv[name])
             else:
                 self.tyenv[name] = ty
         for name, ty in tc2.tyenv.items():
@@ -313,9 +315,8 @@ class InferenceEngine():
 
         for (obj, name), ty in tc1.attribute_tyenv.items():
             if (obj, name) in tc2.attribute_tyenv.keys():
-                unify(ty, tc2.attribute_tyenv[(obj, name)])
                 self.attribute_tyenv[(obj, name)] = \
-                        choose_stronger_ty(ty, tc2.attribute_tyenv[(obj, name)])
+                        join(ty, tc2.attribute_tyenv[(obj, name)])
             else:
                 self.attribute_tyenv[(obj, name)] = ty
         for (obj, name), ty in tc2.attribute_tyenv.items():
@@ -323,8 +324,7 @@ class InferenceEngine():
                 continue
             self.attribute_tyenv[(obj, name)] = ty
 
-        unify(ty_ret1, ty_ret2)
-        return choose_stronger_ty(ty_ret1, ty_ret2)
+        return join(ty_ret1, ty_ret2)
 
 
     def infer_function_instance(self, node, func, ty_args, ty_kwargs):
@@ -583,10 +583,14 @@ class InferenceEngine():
             utils.add_dict(self.subroutine_node, tc2.subroutine_node)
 
         if isinstance(x, gast.Name):
-            self.tyenv[x.id].is_optional = False
+            ty = self.tyenv[x.id]
+            if isinstance(ty, TyOptional):
+                self.tyenv[x.id] = ty.ty
         elif isinstance(x, gast.Attribute):
             obj = self.infer_expr(x.value).instance
-            self.attribute_tyenv[(obj, x.attr)].is_optional = False
+            ty = self.attribute_tyenv[(obj, x.attr)]
+            if isinstance(ty, TyOptional):
+                self.attribute_tyenv[(obj, x.attr)] = ty.ty
 
         return ty_ret
 
