@@ -612,7 +612,7 @@ def occur(var, ty):
     if isinstance(ty, TyVar):
         if var is ty:
             return True
-        occur(var, ty.ty)
+        return occur(var, ty.ty)
     if isinstance(ty, TyArrow):
         return any([occur(var, t) for t in ty.argty]) or occur(var, ty.retty)
     if isinstance(ty, TySequence):
