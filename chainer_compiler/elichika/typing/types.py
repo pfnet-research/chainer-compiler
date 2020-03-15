@@ -17,7 +17,7 @@ __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
           , 'torch_dtype_to_np_dtype', 'all_same_ty'
           , 'type_of_value', 'extract_value_from_ty'
           , 'lacks_value', 'generate_dummy_value', 'tyobj_to_dtype', 'dtype_to_tyobj'
-          , 'choose_stronger_ty', 'copy_ty'
+          , 'copy_ty'
           , 'unify', 'UnifyError', 'join'
           , 'match_types', 'MatchFail', 'apply_subst'
           ]
@@ -25,8 +25,6 @@ __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
 
 
 class TyObj():  # base type, meaning 'unknown'
-    def __init__(self):
-        self.is_optional = False
     def __str__(self):
         return self.show()
     # TODO(momohatt): fix __repr__
@@ -560,42 +558,32 @@ def extract_value_from_ty(ty):
     assert False, "extract_value_from_ty: type not understood: " + str(ty)
 
 
-def choose_stronger_ty(ty1, ty2):
-    if isinstance(ty1, TyNone):
-        return ty2
-    if isinstance(ty2, TyNone):
-        return ty1
-    return ty1  # whichever is okay
-
-
 def copy_ty(ty):
     if isinstance(ty, (TyNone, TyNum, TyString)):
-        ret = deepcopy(ty)
+        return deepcopy(ty)
     elif isinstance(ty, TyArrow):
-        ret = TyArrow([copy_ty(t) for t in ty.argty], copy_ty(ty.retty))
+        return TyArrow([copy_ty(t) for t in ty.argty], copy_ty(ty.retty))
     elif isinstance(ty, TySequence):
         if ty.is_fixed_len:
-            ret = TySequence(ty.kind, [copy_ty(t) for t in ty.get_tys()])
-        else:
-            ret = TySequence(ty.kind, copy_ty(ty.get_ty()))
+            return TySequence(ty.kind, [copy_ty(t) for t in ty.get_tys()])
+        return TySequence(ty.kind, copy_ty(ty.get_ty()))
     elif isinstance(ty, TyDict):
         # XXX: do not copy instance
-        ret = TyDict(ty.keyty, ty.valty)
+        return TyDict(ty.keyty, ty.valty)
     elif isinstance(ty, TyUserDefinedClass):
-        ret = TyUserDefinedClass(ty.name, ty.instance)
+        return TyUserDefinedClass(ty.name, ty.instance)
     elif isinstance(ty, TyDType):
-        ret = TyDType(ty.t)
+        return TyDType(ty.t)
     elif isinstance(ty, TyTensor):
-        ret = TyTensor(ty.kind, ty.dtype, ty.shape)
+        return TyTensor(ty.kind, ty.dtype, ty.shape)
     elif isinstance(ty, TyVar):
         ret = TyVar(None)
         if ty.ty is not None:
             ret.set(ty.deref())
+        return ret
     elif isinstance(ty, TyOptional):
-        ret = TyOptional(ty.ty)
-
-    ret.is_optional = ty.is_optional
-    return ret
+        return TyOptional(ty.ty)
+    assert False, "copy_ty: {}".format(ty)
 
 
 def tyobj_to_dtype(ty):
@@ -657,16 +645,6 @@ def unify(ty1, ty2, inspect_shape=True):
             raise UnifyError(ty1, ty2)
         ty2.set(ty1)
         return
-
-    if isinstance(ty1, TyNone):
-        ty2.is_optional = True
-        return
-
-    if isinstance(ty2, TyNone):
-        ty1.is_optional = True
-        return
-
-    ty1.is_optional = ty2.is_optional = ty1.is_optional or ty2.is_optional
 
     if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
         ty1.kind = ty2.kind = max(ty1.kind, ty2.kind)
