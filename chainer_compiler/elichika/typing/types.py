@@ -207,7 +207,7 @@ class TySequence(TyObj):
             if ty is None:
                 ty = TyVar()
             for t in self._ty:
-                unify(ty, t, inspect_shape=False)
+                ty = join(ty, t)
             self._ty = ty
             self.is_fixed_len = False
         return
@@ -624,8 +624,7 @@ def occur(var, ty):
     return False
 
 
-def unify(ty1, ty2, inspect_shape=True):
-    # inspect_shape: forces shapes to be identical iff True
+def unify(ty1, ty2):
     ty1 = ty1.deref()
     ty2 = ty2.deref()
 
@@ -688,8 +687,6 @@ def unify(ty1, ty2, inspect_shape=True):
         utils.set_attr_if_None(ty1, ty2, 'kind')
 
         if ty1.dtype == ty2.dtype and ty1.ndim == ty2.ndim:
-            if not inspect_shape:
-                return
             unify_shape(ty1.shape, ty2.shape)
             return
 
