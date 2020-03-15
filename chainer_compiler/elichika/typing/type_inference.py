@@ -143,6 +143,8 @@ def call_binop(op, node, tyl, tyr):
     except Exception as e:
         ty_ret = handle_inference_error(e, op.__class__.__name__, node)
 
+    if isinstance(ty_ret, TyNum) and (tyl.value is None or tyr.value is None):
+        ty_ret.value = None
     if isinstance(ty_ret, TySequence) and \
             not (tyl.is_fixed_len and tyr.is_fixed_len):
         ty_ret.coerce_to_variable_len()
