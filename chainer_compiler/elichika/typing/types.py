@@ -192,7 +192,9 @@ class TySequence(TyObj):
     def get(self):
         # get one type as a representative
         if self.is_fixed_len:
-            return self.get_tys()[0]
+            if len(self.get_tys()) > 0:
+                return self.get_tys()[0]
+            return TyVar()
         return self.get_ty()
 
     def get_ty(self):
@@ -574,7 +576,7 @@ def copy_ty(ty):
     elif isinstance(ty, TyUserDefinedClass):
         ret = TyUserDefinedClass(ty.name, ty.instance)
     elif isinstance(ty, TyDType):
-        ret = TyDType()
+        ret = TyDType(ty.t)
     elif isinstance(ty, TyTensor):
         ret = TyTensor(ty.kind, ty.dtype, ty.shape)
     elif isinstance(ty, TyVar):
