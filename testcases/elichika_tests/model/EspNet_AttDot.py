@@ -67,8 +67,11 @@ class AttDot(chainer.Chain):
         scaling = 2.0
         batch = len(enc_hs)
 
-        if self.pre_compute_enc_h is None:
+        # EDIT(momohatt): Make sure to initialize self.enc_h
+        if self.enc_h is None:
             self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+
+        if self.pre_compute_enc_h is None:
             self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
             self.pre_compute_enc_h = F.tanh(

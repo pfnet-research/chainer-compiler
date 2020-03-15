@@ -186,13 +186,13 @@ class ResNet(nn.Module):
 
         x = self.layer1(x)
         x = self.layer2(x)
-        # x = self.layer3(x)
-        # x = self.layer4(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
 
-        # x = self.avgpool(x)
-        # # EDIT(momohatt): Add 'start_dim='
-        # x = torch.flatten(x, start_dim=1)
-        # x = self.fc(x)
+        x = self.avgpool(x)
+        # EDIT(momohatt): Add 'start_dim='
+        x = torch.flatten(x, start_dim=1)
+        x = self.fc(x)
 
         return x
 
@@ -320,8 +320,3 @@ def wide_resnet101_2(pretrained=False, progress=True, **kwargs):
     kwargs['width_per_group'] = 64 * 2
     return _resnet('wide_resnet101_2', Bottleneck, [3, 4, 23, 3],
                    pretrained, progress, **kwargs)
-
-
-model = resnet18()
-x = torch.ones(1, 3, 224, 224)
-model(x)

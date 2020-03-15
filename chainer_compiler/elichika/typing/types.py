@@ -796,7 +796,7 @@ def join(ty1, ty2):
             return TyDict(ty1.keyty, ty1.valty)
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
-        assert ty1.kind == ty2.kind
+        assert ty1.kind == ty2.kind, str(ty1.kind) + " " + str(ty2.kind)
         if ty1.dtype == ty2.dtype and ty1.ndim == ty2.ndim:
             return TyTensor(ty1.kind, ty1.dtype, join_shape(ty1.shape, ty2.shape))
 
