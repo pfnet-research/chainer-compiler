@@ -188,9 +188,10 @@ class TySequence(TyObj):
     def get(self):
         # get one type as a representative
         if self.is_fixed_len:
-            if len(self._ty) > 0:
-                return self.get_tys()[0]
-            return TyVar()
+            ty = TyVar()
+            for t in self._ty:
+                ty = join(ty, t)
+            return ty.deref()
         return self.get_ty()
 
     def get_ty(self):
@@ -201,14 +202,10 @@ class TySequence(TyObj):
         assert self.is_fixed_len
         return self._ty
 
-    def coerce_to_variable_len(self, ty=None):
+    def coerce_to_variable_len(self):
         # does nothing if self is not fixed-length
         if self.is_fixed_len:
-            if ty is None:
-                ty = TyVar()
-            for t in self._ty:
-                ty = join(ty, t)
-            self._ty = ty
+            self._ty = self.get()
             self.is_fixed_len = False
         return
 
@@ -672,9 +669,11 @@ def unify(ty1, ty2):
                 unify(t1, t2)
             return
         if ty1.is_fixed_len and not ty2.is_fixed_len:
-            ty1.coerce_to_variable_len(ty2.get_ty())
+            ty1.coerce_to_variable_len()
+            unify(ty1.get_ty(), ty2.get_ty())
         elif (not ty1.is_fixed_len) and ty2.is_fixed_len:
-            ty2.coerce_to_variable_len(ty1.get_ty())
+            ty2.coerce_to_variable_len()
+            unify(ty1.get_ty(), ty2.get_ty())
         unify(ty1.get_ty(), ty2.get_ty())
         return
 
