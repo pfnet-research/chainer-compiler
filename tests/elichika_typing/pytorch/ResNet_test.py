@@ -52,29 +52,29 @@ class TestResNet(unittest.TestCase):
         self.assertEqual(str(id2type[56]), "class ResNet")	# Name self (line 6)
         self.assertEqual(str(id2type[59]), "torch.Tensor(float32, (1, 64, 112, 112))")	# Name x (line 6)
         self.assertEqual(str(id2type[61]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[62]), "torch.Tensor(float32, (1, None, None, None))")	# Name x (line 8)
-        self.assertEqual(str(id2type[64]), "torch.Tensor(float32, (1, None, None, None))")	# Call self.layer1(x) (line 8)
-        self.assertEqual(str(id2type[65]), "torch.Tensor(float32, (1, 64, 56, 56)) -> torch.Tensor(float32, (1, None, None, None))")	# Attribute self.layer1 (line 8)
+        self.assertEqual(str(id2type[62]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name x (line 8)
+        self.assertEqual(str(id2type[64]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Call self.layer1(x) (line 8)
+        self.assertEqual(str(id2type[65]), "torch.Tensor(float32, (1, 64, 56, 56)) -> torch.Tensor(float32, (1, 64, 56, 56))")	# Attribute self.layer1 (line 8)
         self.assertEqual(str(id2type[66]), "class ResNet")	# Name self (line 8)
         self.assertEqual(str(id2type[69]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name x (line 8)
         self.assertEqual(str(id2type[71]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[72]), "torch.Tensor(float32, (1, None, None, None))")	# Name x (line 9)
-        self.assertEqual(str(id2type[74]), "torch.Tensor(float32, (1, None, None, None))")	# Call self.layer2(x) (line 9)
-        self.assertEqual(str(id2type[75]), "torch.Tensor(float32, (1, None, None, None)) -> torch.Tensor(float32, (1, None, None, None))")	# Attribute self.layer2 (line 9)
+        self.assertEqual(str(id2type[72]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Name x (line 9)
+        self.assertEqual(str(id2type[74]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Call self.layer2(x) (line 9)
+        self.assertEqual(str(id2type[75]), "torch.Tensor(float32, (1, 64, 56, 56)) -> torch.Tensor(float32, (1, 128, 28, 28))")	# Attribute self.layer2 (line 9)
         self.assertEqual(str(id2type[76]), "class ResNet")	# Name self (line 9)
-        self.assertEqual(str(id2type[79]), "torch.Tensor(float32, (1, None, None, None))")	# Name x (line 9)
+        self.assertEqual(str(id2type[79]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name x (line 9)
         self.assertEqual(str(id2type[81]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[82]), "torch.Tensor(float32, (1, None, None, None))")	# Name x (line 10)
-        self.assertEqual(str(id2type[84]), "torch.Tensor(float32, (1, None, None, None))")	# Call self.layer3(x) (line 10)
-        self.assertEqual(str(id2type[85]), "torch.Tensor(float32, (1, None, None, None)) -> torch.Tensor(float32, (1, None, None, None))")	# Attribute self.layer3 (line 10)
+        self.assertEqual(str(id2type[82]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Name x (line 10)
+        self.assertEqual(str(id2type[84]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Call self.layer3(x) (line 10)
+        self.assertEqual(str(id2type[85]), "torch.Tensor(float32, (1, 128, 28, 28)) -> torch.Tensor(float32, (1, 256, 14, 14))")	# Attribute self.layer3 (line 10)
         self.assertEqual(str(id2type[86]), "class ResNet")	# Name self (line 10)
-        self.assertEqual(str(id2type[89]), "torch.Tensor(float32, (1, None, None, None))")	# Name x (line 10)
+        self.assertEqual(str(id2type[89]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Name x (line 10)
         self.assertEqual(str(id2type[91]), "NoneType")	# Assign
         self.assertEqual(str(id2type[92]), "torch.Tensor(float32, (1, 512, 7, 7))")	# Name x (line 11)
         self.assertEqual(str(id2type[94]), "torch.Tensor(float32, (1, 512, 7, 7))")	# Call self.layer4(x) (line 11)
-        self.assertEqual(str(id2type[95]), "torch.Tensor(float32, (1, None, None, None)) -> torch.Tensor(float32, (1, 512, 7, 7))")	# Attribute self.layer4 (line 11)
+        self.assertEqual(str(id2type[95]), "torch.Tensor(float32, (1, 256, 14, 14)) -> torch.Tensor(float32, (1, 512, 7, 7))")	# Attribute self.layer4 (line 11)
         self.assertEqual(str(id2type[96]), "class ResNet")	# Name self (line 11)
-        self.assertEqual(str(id2type[99]), "torch.Tensor(float32, (1, None, None, None))")	# Name x (line 11)
+        self.assertEqual(str(id2type[99]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Name x (line 11)
         self.assertEqual(str(id2type[101]), "NoneType")	# Assign
         self.assertEqual(str(id2type[102]), "torch.Tensor(float32, (1, 512, 1, 1))")	# Name x (line 13)
         self.assertEqual(str(id2type[104]), "torch.Tensor(float32, (1, 512, 1, 1))")	# Call self.avgpool(x) (line 13)
@@ -82,20 +82,20 @@ class TestResNet(unittest.TestCase):
         self.assertEqual(str(id2type[106]), "class ResNet")	# Name self (line 13)
         self.assertEqual(str(id2type[109]), "torch.Tensor(float32, (1, 512, 7, 7))")	# Name x (line 13)
         self.assertEqual(str(id2type[111]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[112]), "torch.Tensor(float32, (1, 512))")	# Name x (line 14)
-        self.assertEqual(str(id2type[114]), "torch.Tensor(float32, (1, 512))")	# Call torch.flatten(x, start_dim=1) (line 14)
-        self.assertEqual(str(id2type[115]), "torch.Tensor(float32, (1, 512, 1, 1)) -> torch.Tensor(float32, (1, 512))")	# Attribute torch.flatten (line 14)
-        self.assertEqual(str(id2type[119]), "torch.Tensor(float32, (1, 512, 1, 1))")	# Name x (line 14)
-        self.assertEqual(str(id2type[122]), "int")	# Constant 1 (line 14)
+        self.assertEqual(str(id2type[112]), "torch.Tensor(float32, (1, 512))")	# Name x (line 15)
+        self.assertEqual(str(id2type[114]), "torch.Tensor(float32, (1, 512))")	# Call torch.flatten(x, start_dim=1) (line 15)
+        self.assertEqual(str(id2type[115]), "torch.Tensor(float32, (1, 512, 1, 1)) -> torch.Tensor(float32, (1, 512))")	# Attribute torch.flatten (line 15)
+        self.assertEqual(str(id2type[119]), "torch.Tensor(float32, (1, 512, 1, 1))")	# Name x (line 15)
+        self.assertEqual(str(id2type[122]), "int")	# Constant 1 (line 15)
         self.assertEqual(str(id2type[123]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[124]), "torch.Tensor(float32, (1, 1000))")	# Name x (line 15)
-        self.assertEqual(str(id2type[126]), "torch.Tensor(float32, (1, 1000))")	# Call self.fc(x) (line 15)
-        self.assertEqual(str(id2type[127]), "torch.Tensor(float32, (1, 512)) -> torch.Tensor(float32, (1, 1000))")	# Attribute self.fc (line 15)
-        self.assertEqual(str(id2type[128]), "class ResNet")	# Name self (line 15)
-        self.assertEqual(str(id2type[131]), "torch.Tensor(float32, (1, 512))")	# Name x (line 15)
+        self.assertEqual(str(id2type[124]), "torch.Tensor(float32, (1, 1000))")	# Name x (line 16)
+        self.assertEqual(str(id2type[126]), "torch.Tensor(float32, (1, 1000))")	# Call self.fc(x) (line 16)
+        self.assertEqual(str(id2type[127]), "torch.Tensor(float32, (1, 512)) -> torch.Tensor(float32, (1, 1000))")	# Attribute self.fc (line 16)
+        self.assertEqual(str(id2type[128]), "class ResNet")	# Name self (line 16)
+        self.assertEqual(str(id2type[131]), "torch.Tensor(float32, (1, 512))")	# Name x (line 16)
         self.assertEqual(str(id2type[133]), "torch.Tensor(float32, (1, 1000))")	# Return
-        self.assertEqual(str(id2type[134]), "torch.Tensor(float32, (1, 1000))")	# Name x (line 17)
-        self.assertEqual(str(id2type[136]), "class BasicBlock -> torch.Tensor(float32, (1, 64, 56, 56)) -> torch.Tensor(float32, (1, None, None, None))")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[134]), "torch.Tensor(float32, (1, 1000))")	# Name x (line 18)
+        self.assertEqual(str(id2type[136]), "class BasicBlock -> torch.Tensor(float32, (1, 64, 56, 56)) -> torch.Tensor(float32, (1, 64, 56, 56))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[142]), "NoneType")	# Assign
         self.assertEqual(str(id2type[143]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name identity (line 2)
         self.assertEqual(str(id2type[145]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name x (line 2)
@@ -131,6 +131,9 @@ class TestResNet(unittest.TestCase):
         self.assertEqual(str(id2type[195]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name out (line 9)
         self.assertEqual(str(id2type[197]), "NoneType")	# If
         self.assertEqual(str(id2type[198]), "bool")	# Compare  (line 11)
+        self.assertEqual(str(id2type[199]), "NoneType")	# Attribute self.downsample (line 11)
+        self.assertEqual(str(id2type[200]), "class BasicBlock")	# Name self (line 11)
+        self.assertEqual(str(id2type[204]), "NoneType")	# Constant None (line 11)
         self.assertEqual(str(id2type[205]), "NoneType")	# Assign
         self.assertEqual(str(id2type[206]), "a80")	# Name identity (line 12)
         self.assertEqual(str(id2type[208]), "a78 (from line 12)")	# Call self.downsample(x) (line 12)
@@ -138,18 +141,18 @@ class TestResNet(unittest.TestCase):
         self.assertEqual(str(id2type[210]), "class BasicBlock")	# Name self (line 12)
         self.assertEqual(str(id2type[213]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name x (line 12)
         self.assertEqual(str(id2type[215]), "NoneType")	# AugAssign
-        self.assertEqual(str(id2type[216]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 14)
-        self.assertEqual(str(id2type[218]), "torch.Tensor(float32, (1, 64, 56, 56)) -> torch.Tensor(float32, (1, 64, 56, 56)) -> torch.Tensor(float32, (1, None, None, None))")	# Add
+        self.assertEqual(str(id2type[216]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name out (line 14)
+        self.assertEqual(str(id2type[218]), "torch.Tensor(float32, (1, 64, 56, 56)) -> torch.Tensor(float32, (1, 64, 56, 56)) -> torch.Tensor(float32, (1, 64, 56, 56))")	# Add
         self.assertEqual(str(id2type[219]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name identity (line 14)
         self.assertEqual(str(id2type[221]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[222]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 15)
-        self.assertEqual(str(id2type[224]), "torch.Tensor(float32, (1, None, None, None))")	# Call self.relu(out) (line 15)
-        self.assertEqual(str(id2type[225]), "torch.Tensor(float32, (1, None, None, None)) -> torch.Tensor(float32, (1, None, None, None))")	# Attribute self.relu (line 15)
+        self.assertEqual(str(id2type[222]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name out (line 15)
+        self.assertEqual(str(id2type[224]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Call self.relu(out) (line 15)
+        self.assertEqual(str(id2type[225]), "torch.Tensor(float32, (1, 64, 56, 56)) -> torch.Tensor(float32, (1, 64, 56, 56))")	# Attribute self.relu (line 15)
         self.assertEqual(str(id2type[226]), "class BasicBlock")	# Name self (line 15)
-        self.assertEqual(str(id2type[229]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 15)
-        self.assertEqual(str(id2type[231]), "torch.Tensor(float32, (1, None, None, None))")	# Return
-        self.assertEqual(str(id2type[232]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 17)
-        self.assertEqual(str(id2type[234]), "class BasicBlock -> torch.Tensor(float32, (1, 128, 28, 28)) -> torch.Tensor(float32, (1, None, None, None))")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[229]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name out (line 15)
+        self.assertEqual(str(id2type[231]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Return
+        self.assertEqual(str(id2type[232]), "torch.Tensor(float32, (1, 64, 56, 56))")	# Name out (line 17)
+        self.assertEqual(str(id2type[234]), "class BasicBlock -> torch.Tensor(float32, (1, 128, 28, 28)) -> torch.Tensor(float32, (1, 128, 28, 28))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[240]), "NoneType")	# Assign
         self.assertEqual(str(id2type[241]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Name identity (line 2)
         self.assertEqual(str(id2type[243]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Name x (line 2)
@@ -185,6 +188,9 @@ class TestResNet(unittest.TestCase):
         self.assertEqual(str(id2type[293]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Name out (line 9)
         self.assertEqual(str(id2type[295]), "NoneType")	# If
         self.assertEqual(str(id2type[296]), "bool")	# Compare  (line 11)
+        self.assertEqual(str(id2type[297]), "NoneType")	# Attribute self.downsample (line 11)
+        self.assertEqual(str(id2type[298]), "class BasicBlock")	# Name self (line 11)
+        self.assertEqual(str(id2type[302]), "NoneType")	# Constant None (line 11)
         self.assertEqual(str(id2type[303]), "NoneType")	# Assign
         self.assertEqual(str(id2type[304]), "a126")	# Name identity (line 12)
         self.assertEqual(str(id2type[306]), "a124 (from line 12)")	# Call self.downsample(x) (line 12)
@@ -192,18 +198,18 @@ class TestResNet(unittest.TestCase):
         self.assertEqual(str(id2type[308]), "class BasicBlock")	# Name self (line 12)
         self.assertEqual(str(id2type[311]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Name x (line 12)
         self.assertEqual(str(id2type[313]), "NoneType")	# AugAssign
-        self.assertEqual(str(id2type[314]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 14)
-        self.assertEqual(str(id2type[316]), "torch.Tensor(float32, (1, 128, 28, 28)) -> torch.Tensor(float32, (1, 128, 28, 28)) -> torch.Tensor(float32, (1, None, None, None))")	# Add
+        self.assertEqual(str(id2type[314]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Name out (line 14)
+        self.assertEqual(str(id2type[316]), "torch.Tensor(float32, (1, 128, 28, 28)) -> torch.Tensor(float32, (1, 128, 28, 28)) -> torch.Tensor(float32, (1, 128, 28, 28))")	# Add
         self.assertEqual(str(id2type[317]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Name identity (line 14)
         self.assertEqual(str(id2type[319]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[320]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 15)
-        self.assertEqual(str(id2type[322]), "torch.Tensor(float32, (1, None, None, None))")	# Call self.relu(out) (line 15)
-        self.assertEqual(str(id2type[323]), "torch.Tensor(float32, (1, None, None, None)) -> torch.Tensor(float32, (1, None, None, None))")	# Attribute self.relu (line 15)
+        self.assertEqual(str(id2type[320]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Name out (line 15)
+        self.assertEqual(str(id2type[322]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Call self.relu(out) (line 15)
+        self.assertEqual(str(id2type[323]), "torch.Tensor(float32, (1, 128, 28, 28)) -> torch.Tensor(float32, (1, 128, 28, 28))")	# Attribute self.relu (line 15)
         self.assertEqual(str(id2type[324]), "class BasicBlock")	# Name self (line 15)
-        self.assertEqual(str(id2type[327]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 15)
-        self.assertEqual(str(id2type[329]), "torch.Tensor(float32, (1, None, None, None))")	# Return
-        self.assertEqual(str(id2type[330]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 17)
-        self.assertEqual(str(id2type[332]), "class BasicBlock -> torch.Tensor(float32, (1, 256, 14, 14)) -> torch.Tensor(float32, (1, None, None, None))")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[327]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Name out (line 15)
+        self.assertEqual(str(id2type[329]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Return
+        self.assertEqual(str(id2type[330]), "torch.Tensor(float32, (1, 128, 28, 28))")	# Name out (line 17)
+        self.assertEqual(str(id2type[332]), "class BasicBlock -> torch.Tensor(float32, (1, 256, 14, 14)) -> torch.Tensor(float32, (1, 256, 14, 14))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[338]), "NoneType")	# Assign
         self.assertEqual(str(id2type[339]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Name identity (line 2)
         self.assertEqual(str(id2type[341]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Name x (line 2)
@@ -239,6 +245,9 @@ class TestResNet(unittest.TestCase):
         self.assertEqual(str(id2type[391]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Name out (line 9)
         self.assertEqual(str(id2type[393]), "NoneType")	# If
         self.assertEqual(str(id2type[394]), "bool")	# Compare  (line 11)
+        self.assertEqual(str(id2type[395]), "NoneType")	# Attribute self.downsample (line 11)
+        self.assertEqual(str(id2type[396]), "class BasicBlock")	# Name self (line 11)
+        self.assertEqual(str(id2type[400]), "NoneType")	# Constant None (line 11)
         self.assertEqual(str(id2type[401]), "NoneType")	# Assign
         self.assertEqual(str(id2type[402]), "a172")	# Name identity (line 12)
         self.assertEqual(str(id2type[404]), "a170 (from line 12)")	# Call self.downsample(x) (line 12)
@@ -246,17 +255,17 @@ class TestResNet(unittest.TestCase):
         self.assertEqual(str(id2type[406]), "class BasicBlock")	# Name self (line 12)
         self.assertEqual(str(id2type[409]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Name x (line 12)
         self.assertEqual(str(id2type[411]), "NoneType")	# AugAssign
-        self.assertEqual(str(id2type[412]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 14)
-        self.assertEqual(str(id2type[414]), "torch.Tensor(float32, (1, 256, 14, 14)) -> torch.Tensor(float32, (1, 256, 14, 14)) -> torch.Tensor(float32, (1, None, None, None))")	# Add
+        self.assertEqual(str(id2type[412]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Name out (line 14)
+        self.assertEqual(str(id2type[414]), "torch.Tensor(float32, (1, 256, 14, 14)) -> torch.Tensor(float32, (1, 256, 14, 14)) -> torch.Tensor(float32, (1, 256, 14, 14))")	# Add
         self.assertEqual(str(id2type[415]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Name identity (line 14)
         self.assertEqual(str(id2type[417]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[418]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 15)
-        self.assertEqual(str(id2type[420]), "torch.Tensor(float32, (1, None, None, None))")	# Call self.relu(out) (line 15)
-        self.assertEqual(str(id2type[421]), "torch.Tensor(float32, (1, None, None, None)) -> torch.Tensor(float32, (1, None, None, None))")	# Attribute self.relu (line 15)
+        self.assertEqual(str(id2type[418]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Name out (line 15)
+        self.assertEqual(str(id2type[420]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Call self.relu(out) (line 15)
+        self.assertEqual(str(id2type[421]), "torch.Tensor(float32, (1, 256, 14, 14)) -> torch.Tensor(float32, (1, 256, 14, 14))")	# Attribute self.relu (line 15)
         self.assertEqual(str(id2type[422]), "class BasicBlock")	# Name self (line 15)
-        self.assertEqual(str(id2type[425]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 15)
-        self.assertEqual(str(id2type[427]), "torch.Tensor(float32, (1, None, None, None))")	# Return
-        self.assertEqual(str(id2type[428]), "torch.Tensor(float32, (1, None, None, None))")	# Name out (line 17)
+        self.assertEqual(str(id2type[425]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Name out (line 15)
+        self.assertEqual(str(id2type[427]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Return
+        self.assertEqual(str(id2type[428]), "torch.Tensor(float32, (1, 256, 14, 14))")	# Name out (line 17)
         self.assertEqual(str(id2type[430]), "class BasicBlock -> torch.Tensor(float32, (1, 512, 7, 7)) -> torch.Tensor(float32, (1, 512, 7, 7))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[436]), "NoneType")	# Assign
         self.assertEqual(str(id2type[437]), "torch.Tensor(float32, (1, 512, 7, 7))")	# Name identity (line 2)
@@ -293,6 +302,9 @@ class TestResNet(unittest.TestCase):
         self.assertEqual(str(id2type[489]), "torch.Tensor(float32, (1, 512, 7, 7))")	# Name out (line 9)
         self.assertEqual(str(id2type[491]), "NoneType")	# If
         self.assertEqual(str(id2type[492]), "bool")	# Compare  (line 11)
+        self.assertEqual(str(id2type[493]), "NoneType")	# Attribute self.downsample (line 11)
+        self.assertEqual(str(id2type[494]), "class BasicBlock")	# Name self (line 11)
+        self.assertEqual(str(id2type[498]), "NoneType")	# Constant None (line 11)
         self.assertEqual(str(id2type[499]), "NoneType")	# Assign
         self.assertEqual(str(id2type[500]), "a218")	# Name identity (line 12)
         self.assertEqual(str(id2type[502]), "a216 (from line 12)")	# Call self.downsample(x) (line 12)

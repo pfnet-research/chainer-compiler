@@ -85,10 +85,15 @@ class AttLoc(chainer.Chain):
         # EDIT(hamaji): scaling is now a local variable.
         scaling = 2.0
         batch = len(enc_hs)
+
+        # EDIT(momohatt): Make sure to initialize self.enc_h and self.h_length
+        if self.enc_h is None:
+            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
+        if self.h_length is None:
+            self.h_length = self.enc_h.shape[1]
+
         # pre-compute all h outside the decoder loop
         if self.pre_compute_enc_h is None:
-            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
-            self.h_length = self.enc_h.shape[1]
             # utt x frame x att_dim
             self.pre_compute_enc_h = linear_tensor_3d(self.mlp_enc, self.enc_h)
 

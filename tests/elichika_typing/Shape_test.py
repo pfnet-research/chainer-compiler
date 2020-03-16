@@ -21,7 +21,7 @@ class TestShape(unittest.TestCase):
         model, forward_args = Test(), (torch.ones(4, 1, dtype=torch.float),)
         id2type = generate_id2type_from_forward(model, forward_args)
 
-        self.assertEqual(str(id2type[1]), "class Test -> torch.Tensor(float32, (4, None)) -> torch.Tensor(float32, (4, None))")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[1]), "class Test -> torch.Tensor(float32, (4, 1)) -> torch.Tensor(float32, (4, None))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# For
         self.assertEqual(str(id2type[8]), "int")	# Name i (line 2)
         self.assertEqual(str(id2type[10]), "int list")	# Call range(5) (line 2)

@@ -10,6 +10,7 @@ __all__ = [ 'ShapeElem'
           , 'copy_ShapeElem'
           , 'size_of_ShapeElem'
           , 'unify_shape'
+          , 'join_shape'
           , 'apply_subst_shape'
           , 'match_shape'
           ]
@@ -252,6 +253,14 @@ def unify_shape(shape1, shape2):
     for e1, e2 in zip(shape1, shape2):
         if e1.value != e2.value:
             e1.value = e2.value = None
+
+
+def join_shape(shape1, shape2):
+    ret = [None for _ in shape1]
+    for i, (e1, e2) in enumerate(zip(shape1, shape2)):
+        if e1.value == e2.value:
+            ret[i] = e1.value
+    return ret
 
 
 def apply_subst_shapeElem(subst, e):

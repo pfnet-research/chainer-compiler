@@ -259,7 +259,7 @@ class TestSequence(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), (0,))
 
-        self.assertEqual(str(id2type[1]), "class Test -> float -> float")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[1]), "class Test -> int -> float")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# For
         self.assertEqual(str(id2type[8]), "(int, float)")	# Tuple (x, y) (line 2)
         self.assertEqual(str(id2type[9]), "int")	# Name x (line 2)
@@ -400,7 +400,7 @@ class TestControl(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), (0,))
 
-        self.assertEqual(str(id2type[1]), "class Test -> float -> float")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[1]), "class Test -> int -> float")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# For (line 2)
         self.assertEqual(str(id2type[8]), "int")	# Name i (line 2)
         self.assertEqual(str(id2type[10]), "int list")	# Call (line 2)
