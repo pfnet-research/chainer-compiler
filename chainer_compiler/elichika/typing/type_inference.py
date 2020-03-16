@@ -49,28 +49,14 @@ def copy_InferenceEngine(tc):
     return new_tc
 
 
-def lazy_initializer(node):
-    def ident_eq(expr1, expr2):
-        if isinstance(expr1, gast.Name) and isinstance(expr2, gast.Name):
-            return expr1.id == expr2.id
-        if isinstance(expr1, gast.Attribute) and isinstance(expr2, gast.Attribute):
-            return ident_eq(expr1.value, expr2.value) and \
-                    expr1.attr == expr2.attr
-
-    # XXX: lazy initialization must be written as follows:
-    #   if x is None: ...  (else: ...)
-    #
-    # The reverse, 'if x is not None: ... else: ...' is not supported.
-    if isinstance(node.test, gast.Compare) and \
-            isinstance(node.test.left, (gast.Name, gast.Attribute)) and \
-            isinstance(node.test.ops[0], gast.Is) and \
-            isinstance(node.test.comparators[0], gast.Constant) and \
-            node.test.comparators[0].value is None:
-        x = node.test.left  # variable/attribute being initialized
-        assign_x = [isinstance(stmt, gast.Assign) and \
-                ident_eq(stmt.targets[0], x) for stmt in node.body]
-        if any(assign_x):
-            return node.test.left
+def is_isNone(node):
+    # Returns x if the 'node' is of the form 'x is None' for some x
+    if isinstance(node, gast.Compare) and \
+            isinstance(node.left, (gast.Name, gast.Attribute)) and \
+            isinstance(node.ops[0], gast.Is) and \
+            isinstance(node.comparators[0], gast.Constant) and \
+            node.comparators[0].value is None:
+        return node.left
     return None
 
 
@@ -214,6 +200,29 @@ class InferenceEngine():
         self.nodetype[node] = t
         self.tyenv[node.id] = t
         return t
+
+
+    def split_optional(self, tc1, tc2, x):
+        # tc1: type inference engine for 'then' branch
+        # tc2: type inference engine for 'else' branch
+        if isinstance(x, gast.Name):
+            if isinstance(self.tyenv[x.id], TyOptional):
+                tc1.tyenv[x.id] = TyNone()
+                tc2.tyenv[x.id] = self.tyenv[x.id].ty
+            elif isinstance(self.tyenv[x.id], TyNone):
+                tc2.tyenv[x.id] = TyVar()
+            else:
+                tc1.tyenv[x.id] = TyNone()
+        if isinstance(x, gast.Attribute):
+            obj = self.infer_expr(x.value).instance
+            if isinstance(self.attribute_tyenv[(obj, x.attr)], TyOptional):
+                tc1.attribute_tyenv[(obj, x.attr)] = TyNone()
+                tc2.attribute_tyenv[(obj, x.attr)] = \
+                        self.attribute_tyenv[(obj, x.attr)].ty
+            elif isinstance(self.attribute_tyenv[(obj, x.attr)], TyNone):
+                tc2.attribute_tyenv[(obj, x.attr)] = TyVar()
+            else:
+                tc1.attribute_tyenv[(obj, x.attr)] = TyNone()
 
 
     def infer(self, node):
@@ -566,32 +575,31 @@ class InferenceEngine():
         # If(expr test, stmt* body, stmt* orelse)
         # XXX: type of node.test can be anything
         self.infer_expr(node.test)
-        x = lazy_initializer(node)
+
+        x = is_isNone(node.test)
 
         if node.orelse == []:
             tc = copy_InferenceEngine(self)
+
+            if x is not None:
+                self.split_optional(tc, self, x)
+
             ty_ret = self.infer_block(tc, node.body)
             utils.add_dict(self.nodetype, tc.nodetype)
             utils.add_dict(self.subroutine_node, tc.subroutine_node)
-        else:
-            tc1 = copy_InferenceEngine(self)
-            tc2 = copy_InferenceEngine(self)
-            ty_ret = self.infer_2blocks(tc1, tc2, node.body, node.orelse)
-            utils.add_dict(self.nodetype, tc1.nodetype)
-            utils.add_dict(self.nodetype, tc2.nodetype)
-            utils.add_dict(self.subroutine_node, tc1.subroutine_node)
-            utils.add_dict(self.subroutine_node, tc2.subroutine_node)
+            return ty_ret
 
-        if isinstance(x, gast.Name):
-            ty = self.tyenv[x.id]
-            if isinstance(ty, TyOptional):
-                self.tyenv[x.id] = ty.ty
-        elif isinstance(x, gast.Attribute):
-            obj = self.infer_expr(x.value).instance
-            ty = self.attribute_tyenv[(obj, x.attr)]
-            if isinstance(ty, TyOptional):
-                self.attribute_tyenv[(obj, x.attr)] = ty.ty
+        tc1 = copy_InferenceEngine(self)
+        tc2 = copy_InferenceEngine(self)
 
+        if x is not None:
+            self.split_optional(tc1, tc2, x)
+
+        ty_ret = self.infer_2blocks(tc1, tc2, node.body, node.orelse)
+        utils.add_dict(self.nodetype, tc1.nodetype)
+        utils.add_dict(self.nodetype, tc2.nodetype)
+        utils.add_dict(self.subroutine_node, tc1.subroutine_node)
+        utils.add_dict(self.subroutine_node, tc2.subroutine_node)
         return ty_ret
 
 
