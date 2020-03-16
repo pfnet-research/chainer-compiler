@@ -724,8 +724,8 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(str(id2type[14]), "int")	# Name x (line 3)
         self.assertEqual(str(id2type[16]), "int")	# Num 42 (line 3)
         self.assertEqual(str(id2type[17]), "NoneType")	# AugAssign
-        self.assertEqual(str(id2type[18]), "a0 (from line 5)")	# Name x (line 5)
-        self.assertEqual(str(id2type[20]), "NoneType -> int -> a0 (from line 5)")	# Add
+        self.assertEqual(str(id2type[18]), "a1 (from line 5)")	# Name x (line 5)
+        self.assertEqual(str(id2type[20]), "a0 -> int -> a1 (from line 5)")	# Add
         self.assertEqual(str(id2type[21]), "int")	# Num 1 (line 5)
         self.assertEqual(str(id2type[22]), "int")	# Return
         self.assertEqual(str(id2type[23]), "int")	# Name x (line 6)
