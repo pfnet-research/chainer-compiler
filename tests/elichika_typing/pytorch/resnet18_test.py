@@ -5,7 +5,7 @@ import unittest
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 from chainer_compiler.elichika.testtools import type_inference_tools
 
-from testcases.pytorch.ResNet import resnet18
+from testcases.pytorch.resnet            import resnet18
 
 def gen_ResNet_model():
     model = resnet18()

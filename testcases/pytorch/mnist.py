@@ -1,4 +1,4 @@
-# from https://github.com/pytorch/examples/blob/master/mnist/main.py
+# Origial: https://github.com/pytorch/examples/blob/490243127c02a5ea3348fa4981ecd7e9bcf6144c/mnist/main.py
 
 import torch
 import torch.nn as nn
@@ -30,7 +30,7 @@ class Net(nn.Module):
         return output
 
 
-# Generate the model instance and arguments
+# Example input
 def gen_MNIST_test():
     model = Net()
     x = torch.rand(64, 1, 28, 28)

@@ -1,4 +1,4 @@
-# from https://github.com/pytorch/examples/blob/master/fast_neural_style/neural_style/transformer_net.py
+# Original: https://github.com/pytorch/examples/blob/490243127c02a5ea3348fa4981ecd7e9bcf6144c/fast_neural_style/neural_style/transformer_net.py
 
 import torch
 
@@ -101,6 +101,7 @@ class UpsampleConvLayer(torch.nn.Module):
         return out
 
 
+# Example input
 def gen_TransformerNet_test():
     model = TransformerNet()
     x = torch.rand(5, 3, 16, 16)

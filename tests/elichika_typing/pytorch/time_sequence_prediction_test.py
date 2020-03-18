@@ -5,7 +5,7 @@ import unittest
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 from chainer_compiler.elichika.testtools import type_inference_tools
 
-from testcases.pytorch.examples.time_sequence_prediction import gen_Sequence_test
+from testcases.pytorch.time_sequence_prediction import gen_Sequence_test
 
 
 class TestSequence(unittest.TestCase):

@@ -5,7 +5,7 @@ import unittest
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 from chainer_compiler.elichika.testtools import type_inference_tools
 
-from testcases.pytorch.examples.mnist import gen_MNIST_test
+from testcases.pytorch.mnist             import gen_MNIST_test
 
 
 class TestMNIST(unittest.TestCase):

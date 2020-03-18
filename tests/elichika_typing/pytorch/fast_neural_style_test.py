@@ -5,7 +5,7 @@ import unittest
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 from chainer_compiler.elichika.testtools import type_inference_tools
 
-from testcases.pytorch.examples.transformer_net import gen_TransformerNet_test
+from testcases.pytorch.fast_neural_style import gen_TransformerNet_test
 
 
 class TestTransformerNet(unittest.TestCase):
