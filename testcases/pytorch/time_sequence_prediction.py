@@ -33,7 +33,7 @@ class Sequence(nn.Module):
 
 
 # Example input
-def gen_Sequence_test():
+def gen_Sequence_model():
     model = Sequence()
     model.double()
     x = torch.rand(3, 4)

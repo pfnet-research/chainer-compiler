@@ -31,7 +31,7 @@ class Net(nn.Module):
 
 
 # Example input
-def gen_MNIST_test():
+def gen_MNIST_model():
     model = Net()
     x = torch.rand(64, 1, 28, 28)
     return model, (x,)

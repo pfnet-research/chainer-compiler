@@ -5,16 +5,17 @@ import unittest
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 from chainer_compiler.elichika.testtools import type_inference_tools
 
-from testcases.pytorch.vae               import gen_VAE_test
+from testcases.pytorch.vae               import gen_VAE_model
 
 
 class TestVAE(unittest.TestCase):
     def test_VAE(self):
         type_inference_tools.reset_state()
 
-        model, forward_args = gen_VAE_test()
+        model, forward_args = gen_VAE_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for VAE ===
         self.assertEqual(str(id2type[1]), "class VAE -> torch.Tensor(float32, (128, 1, 28, 28)) -> (torch.Tensor(float32, (128, 784)), torch.Tensor(float32, (128, 20)), torch.Tensor(float32, (128, 20)))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# Assign
         self.assertEqual(str(id2type[8]), "(torch.Tensor(float32, (128, 20)), torch.Tensor(float32, (128, 20)))")	# Tuple (mu, logvar) (line 2)
@@ -106,6 +107,7 @@ class TestVAE(unittest.TestCase):
         self.assertEqual(str(id2type[172]), "torch.Tensor(float32, (128, 400)) -> torch.Tensor(float32, (128, 784))")	# Attribute self.fc4 (line 3)
         self.assertEqual(str(id2type[173]), "class VAE")	# Name self (line 3)
         self.assertEqual(str(id2type[176]), "torch.Tensor(float32, (128, 400))")	# Name h3 (line 3)
+        # === END ASSERTIONS for VAE ===
 
 
 def main():

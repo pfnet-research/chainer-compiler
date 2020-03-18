@@ -5,16 +5,17 @@ import unittest
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 from chainer_compiler.elichika.testtools import type_inference_tools
 
-from testcases.pytorch.alexnet           import gen_AlexNet_test
+from testcases.pytorch.alexnet           import gen_AlexNet_model
 
 
 class TestAlexNet(unittest.TestCase):
     def test_AlexNet(self):
         type_inference_tools.reset_state()
 
-        model, forward_args = gen_AlexNet_test()
+        model, forward_args = gen_AlexNet_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for AlexNet ===
         self.assertEqual(str(id2type[1]), "class AlexNet -> torch.Tensor(float32, (1, 3, 224, 224)) -> torch.Tensor(float32, (1, 1000))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# Assign
         self.assertEqual(str(id2type[8]), "torch.Tensor(float32, (1, 256, 6, 6))")	# Name x (line 2)
@@ -42,6 +43,7 @@ class TestAlexNet(unittest.TestCase):
         self.assertEqual(str(id2type[47]), "torch.Tensor(float32, (1, 9216))")	# Name x (line 5)
         self.assertEqual(str(id2type[49]), "torch.Tensor(float32, (1, 1000))")	# Return
         self.assertEqual(str(id2type[50]), "torch.Tensor(float32, (1, 1000))")	# Name x (line 6)
+        # === END ASSERTIONS for AlexNet ===
 
 
 def main():

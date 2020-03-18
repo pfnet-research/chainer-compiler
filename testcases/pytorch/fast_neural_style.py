@@ -102,7 +102,7 @@ class UpsampleConvLayer(torch.nn.Module):
 
 
 # Example input
-def gen_TransformerNet_test():
+def gen_TransformerNet_model():
     model = TransformerNet()
     x = torch.rand(5, 3, 16, 16)
     return model, (x,)

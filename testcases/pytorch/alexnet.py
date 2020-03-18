@@ -43,7 +43,7 @@ class AlexNet(nn.Module):
 
 
 # Example input
-def gen_AlexNet_test():
+def gen_AlexNet_model():
     model = AlexNet()
     x = torch.rand(1, 3, 224, 224)
     return model, (x,)

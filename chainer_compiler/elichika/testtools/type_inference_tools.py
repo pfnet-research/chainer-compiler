@@ -43,6 +43,7 @@ def generate_id2node(node2id):
 
 
 def generate_node2type(tree, args, is_debug=False, module=None, type_hints={}):
+    reset_state()
     tc = InferenceEngine(is_debug=is_debug, module=module)
     func_body = tree.body[0]  # XXX: only checks first function
     try:

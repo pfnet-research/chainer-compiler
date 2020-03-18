@@ -38,7 +38,7 @@ class VAE(nn.Module):
 
 
 # Example input
-def gen_VAE_test():
+def gen_VAE_model():
     model = VAE()
     x = torch.rand(128, 1, 28, 28)
     return model, (x,)

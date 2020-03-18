@@ -5,16 +5,17 @@ import unittest
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 from chainer_compiler.elichika.testtools import type_inference_tools
 
-from testcases.pytorch.fast_neural_style import gen_TransformerNet_test
+from testcases.pytorch.fast_neural_style import gen_TransformerNet_model
 
 
 class TestTransformerNet(unittest.TestCase):
     def test_TransformerNet(self):
         type_inference_tools.reset_state()
 
-        model, forward_args = gen_TransformerNet_test()
+        model, forward_args = gen_TransformerNet_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for TransformerNet ===
         self.assertEqual(str(id2type[1]), "class TransformerNet -> torch.Tensor(float32, (5, 3, 16, 16)) -> torch.Tensor(float32, (5, 3, None, None))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# Assign
         self.assertEqual(str(id2type[8]), "torch.Tensor(float32, (5, 32, 16, 16))")	# Name y (line 2)
@@ -551,6 +552,7 @@ class TestTransformerNet(unittest.TestCase):
         self.assertEqual(str(id2type[981]), "torch.Tensor(float32, (5, 32, None, None))")	# Name out (line 3)
         self.assertEqual(str(id2type[983]), "torch.Tensor(float32, (5, 3, None, None))")	# Return
         self.assertEqual(str(id2type[984]), "torch.Tensor(float32, (5, 3, None, None))")	# Name out (line 4)
+        # === END ASSERTIONS for TransformerNet ===
 
 
 def main():
