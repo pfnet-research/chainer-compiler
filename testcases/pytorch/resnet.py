@@ -1,4 +1,4 @@
-# https://github.com/pytorch/vision/blob/master/torchvision/models/resnet.py
+# Original: https://github.com/pytorch/vision/blob/b70e333ac5be307d2d5e38c1653b755907a09f04/torchvision/models/resnet.py
 
 import torch
 import torch.nn as nn
@@ -17,7 +17,6 @@ def conv1x1(in_planes, out_planes, stride=1):
 
 class BasicBlock(nn.Module):
     expansion = 1
-    __constants__ = ['downsample']
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1,
                  base_width=64, dilation=1, norm_layer=None):
@@ -58,7 +57,6 @@ class BasicBlock(nn.Module):
 
 class Bottleneck(nn.Module):
     expansion = 4
-    __constants__ = ['downsample']
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1,
                  base_width=64, dilation=1, norm_layer=None):

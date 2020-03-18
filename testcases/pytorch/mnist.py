@@ -1,4 +1,4 @@
-# Origial: https://github.com/pytorch/examples/blob/490243127c02a5ea3348fa4981ecd7e9bcf6144c/mnist/main.py
+# Original: https://github.com/pytorch/examples/blob/490243127c02a5ea3348fa4981ecd7e9bcf6144c/mnist/main.py
 
 import torch
 import torch.nn as nn
