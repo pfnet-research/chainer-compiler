@@ -77,9 +77,9 @@ class TestTransformerNet(unittest.TestCase):
         self.assertEqual(str(id2type[102]), "class TransformerNet")	# Name self (line 8)
         self.assertEqual(str(id2type[105]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name y (line 8)
         self.assertEqual(str(id2type[107]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[108]), "torch.Tensor(float32, (5, 128, None, None))")	# Name y (line 9)
-        self.assertEqual(str(id2type[110]), "torch.Tensor(float32, (5, 128, None, None))")	# Call self.res5(y) (line 9)
-        self.assertEqual(str(id2type[111]), "torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 128, None, None))")	# Attribute self.res5 (line 9)
+        self.assertEqual(str(id2type[108]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name y (line 9)
+        self.assertEqual(str(id2type[110]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Call self.res5(y) (line 9)
+        self.assertEqual(str(id2type[111]), "torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 128, 4, 4))")	# Attribute self.res5 (line 9)
         self.assertEqual(str(id2type[112]), "class TransformerNet")	# Name self (line 9)
         self.assertEqual(str(id2type[115]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name y (line 9)
         self.assertEqual(str(id2type[117]), "NoneType")	# Assign
@@ -91,9 +91,9 @@ class TestTransformerNet(unittest.TestCase):
         self.assertEqual(str(id2type[126]), "torch.Tensor(float32, (5, 64, None, None)) -> torch.Tensor(float32, (5, 64, None, None))")	# Attribute self.in4 (line 10)
         self.assertEqual(str(id2type[127]), "class TransformerNet")	# Name self (line 10)
         self.assertEqual(str(id2type[130]), "torch.Tensor(float32, (5, 64, None, None))")	# Call self.deconv1(y) (line 10)
-        self.assertEqual(str(id2type[131]), "torch.Tensor(float32, (5, 128, None, None)) -> torch.Tensor(float32, (5, 64, None, None))")	# Attribute self.deconv1 (line 10)
+        self.assertEqual(str(id2type[131]), "torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 64, None, None))")	# Attribute self.deconv1 (line 10)
         self.assertEqual(str(id2type[132]), "class TransformerNet")	# Name self (line 10)
-        self.assertEqual(str(id2type[135]), "torch.Tensor(float32, (5, 128, None, None))")	# Name y (line 10)
+        self.assertEqual(str(id2type[135]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name y (line 10)
         self.assertEqual(str(id2type[137]), "NoneType")	# Assign
         self.assertEqual(str(id2type[138]), "torch.Tensor(float32, (5, 32, None, None))")	# Name y (line 11)
         self.assertEqual(str(id2type[140]), "torch.Tensor(float32, (5, 32, None, None))")	# Call self.relu(self.in5(self.deconv2(y))) (line 11)
@@ -411,7 +411,7 @@ class TestTransformerNet(unittest.TestCase):
         self.assertEqual(str(id2type[716]), "torch.Tensor(float32, (5, 128, 6, 6))")	# Name out (line 3)
         self.assertEqual(str(id2type[718]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Return
         self.assertEqual(str(id2type[719]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name out (line 4)
-        self.assertEqual(str(id2type[721]), "class ResidualBlock -> torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 128, None, None))")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[721]), "class ResidualBlock -> torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 128, 4, 4))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[727]), "NoneType")	# Assign
         self.assertEqual(str(id2type[728]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name residual (line 2)
         self.assertEqual(str(id2type[730]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name x (line 2)
@@ -437,13 +437,13 @@ class TestTransformerNet(unittest.TestCase):
         self.assertEqual(str(id2type[762]), "class ResidualBlock")	# Name self (line 4)
         self.assertEqual(str(id2type[765]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name out (line 4)
         self.assertEqual(str(id2type[767]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[768]), "torch.Tensor(float32, (5, 128, None, None))")	# Name out (line 5)
-        self.assertEqual(str(id2type[770]), "torch.Tensor(float32, (5, 128, None, None))")	# BinOp out + residual (line 5)
+        self.assertEqual(str(id2type[768]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name out (line 5)
+        self.assertEqual(str(id2type[770]), "torch.Tensor(float32, (5, 128, 4, 4))")	# BinOp out + residual (line 5)
         self.assertEqual(str(id2type[771]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name out (line 5)
-        self.assertEqual(str(id2type[773]), "torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 128, None, None))")	# Add
+        self.assertEqual(str(id2type[773]), "torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 128, 4, 4))")	# Add
         self.assertEqual(str(id2type[774]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name residual (line 5)
-        self.assertEqual(str(id2type[776]), "torch.Tensor(float32, (5, 128, None, None))")	# Return
-        self.assertEqual(str(id2type[777]), "torch.Tensor(float32, (5, 128, None, None))")	# Name out (line 6)
+        self.assertEqual(str(id2type[776]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Return
+        self.assertEqual(str(id2type[777]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name out (line 6)
         self.assertEqual(str(id2type[779]), "class ConvLayer -> torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 128, 4, 4))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[785]), "NoneType")	# Assign
         self.assertEqual(str(id2type[786]), "torch.Tensor(float32, (5, 128, 6, 6))")	# Name out (line 2)
@@ -474,20 +474,20 @@ class TestTransformerNet(unittest.TestCase):
         self.assertEqual(str(id2type[832]), "torch.Tensor(float32, (5, 128, 6, 6))")	# Name out (line 3)
         self.assertEqual(str(id2type[834]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Return
         self.assertEqual(str(id2type[835]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name out (line 4)
-        self.assertEqual(str(id2type[837]), "class UpsampleConvLayer -> torch.Tensor(float32, (5, 128, None, None)) -> torch.Tensor(float32, (5, 64, None, None))")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[837]), "class UpsampleConvLayer -> torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 64, None, None))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[843]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[844]), "torch.Tensor(float32, (5, 128, None, None))")	# Name x_in (line 2)
-        self.assertEqual(str(id2type[846]), "torch.Tensor(float32, (5, 128, None, None))")	# Name x (line 2)
+        self.assertEqual(str(id2type[844]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name x_in (line 2)
+        self.assertEqual(str(id2type[846]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name x (line 2)
         self.assertEqual(str(id2type[848]), "NoneType")	# If
         self.assertEqual(str(id2type[849]), "int")	# Attribute self.upsample (line 3)
         self.assertEqual(str(id2type[850]), "class UpsampleConvLayer")	# Name self (line 3)
         self.assertEqual(str(id2type[853]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[854]), "torch.Tensor(float32, (5, 128, None, None))")	# Name x_in (line 4)
-        self.assertEqual(str(id2type[856]), "torch.Tensor(float32, (5, 128, None, None))")	# Call torch.nn.functional.interpolate(x_in, mode='nearest', scale_factor=self.upsample) (line 4)
-        self.assertEqual(str(id2type[857]), "torch.Tensor(float32, (5, 128, None, None)) -> torch.Tensor(float32, (5, 128, None, None))")	# Attribute torch.nn.functional.interpolate (line 4)
+        self.assertEqual(str(id2type[854]), "torch.Tensor(float32, (5, 128, 8, 8))")	# Name x_in (line 4)
+        self.assertEqual(str(id2type[856]), "torch.Tensor(float32, (5, 128, 8, 8))")	# Call torch.nn.functional.interpolate(x_in, mode='nearest', scale_factor=self.upsample) (line 4)
+        self.assertEqual(str(id2type[857]), "torch.Tensor(float32, (5, 128, 4, 4)) -> torch.Tensor(float32, (5, 128, 8, 8))")	# Attribute torch.nn.functional.interpolate (line 4)
         self.assertEqual(str(id2type[858]), "class module")	# Attribute torch.nn.functional (line 4)
         self.assertEqual(str(id2type[859]), "class module")	# Attribute torch.nn (line 4)
-        self.assertEqual(str(id2type[865]), "torch.Tensor(float32, (5, 128, None, None))")	# Name x_in (line 4)
+        self.assertEqual(str(id2type[865]), "torch.Tensor(float32, (5, 128, 4, 4))")	# Name x_in (line 4)
         self.assertEqual(str(id2type[868]), "string")	# Constant 'nearest' (line 4)
         self.assertEqual(str(id2type[870]), "int")	# Attribute self.upsample (line 4)
         self.assertEqual(str(id2type[871]), "class UpsampleConvLayer")	# Name self (line 4)
