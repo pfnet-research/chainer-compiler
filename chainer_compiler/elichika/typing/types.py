@@ -727,8 +727,12 @@ def join(ty1, ty2):
         return TyNone()
 
     if isinstance(ty1, TyNone):
+        if isinstance(ty2, TyOptional):
+            return ty2
         return TyOptional(ty2)
     if isinstance(ty2, TyNone):
+        if isinstance(ty1, TyOptional):
+            return ty1
         return TyOptional(ty1)
 
     if isinstance(ty1, TyOptional) and isinstance(ty2, TyOptional):
