@@ -20,9 +20,7 @@ class TestNum(unittest.TestCase):
         self.assertEqual(str(id2type[1]), "class Test -> bool -> bool -> bool")	# FunctionDef (line 1)
         self.assertEqual(str(id2type[9]), "bool")	# Return (line 2)
         self.assertEqual(str(id2type[10]), "bool")	# BoolOp (line 2)
-        self.assertEqual(str(id2type[11]), "bool -> bool -> bool")	# Or
         self.assertEqual(str(id2type[12]), "bool")	# BoolOp (line 2)
-        self.assertEqual(str(id2type[13]), "bool -> bool -> bool")	# And
         self.assertEqual(str(id2type[14]), "bool")	# Name (line 2)
         self.assertEqual(str(id2type[16]), "bool")	# Name (line 2)
         self.assertEqual(str(id2type[18]), "bool")	# NameConstant (line 2)
@@ -41,13 +39,11 @@ class TestNum(unittest.TestCase):
         self.assertEqual(str(id2type[7]), "NoneType")	# Assign (line 2)
         self.assertEqual(str(id2type[8]), "int")	# Name (line 2)
         self.assertEqual(str(id2type[10]), "int")	# Call (line 2)
-        self.assertEqual(str(id2type[11]), "int -> int")	# Name (line 2)
         self.assertEqual(str(id2type[13]), "int")	# Name (line 2)
         self.assertEqual(str(id2type[15]), "NoneType")	# Assign (line 3)
         self.assertEqual(str(id2type[16]), "float")	# Name (line 3)
         self.assertEqual(str(id2type[18]), "float")	# BinOp (line 3)
         self.assertEqual(str(id2type[19]), "int")	# Name (line 3)
-        self.assertEqual(str(id2type[21]), "int -> float -> float")	# Add
         self.assertEqual(str(id2type[22]), "float")	# Num (line 3)
         self.assertEqual(str(id2type[23]), "float")	# Return (line 4)
         self.assertEqual(str(id2type[24]), "float")	# Name (line 4)
@@ -77,7 +73,6 @@ class TestNum(unittest.TestCase):
         self.assertEqual(str(id2type[17]), "float")	# Name b (line 5)
         self.assertEqual(str(id2type[19]), "float")	# BinOp (line 5)
         self.assertEqual(str(id2type[20]), "int")	# Name b (line 5)
-        self.assertEqual(str(id2type[22]), "int -> float -> float")	# Add
         self.assertEqual(str(id2type[23]), "float")	# Num (line 5)
         self.assertEqual(str(id2type[24]), "int")	# Return (line 6)
         self.assertEqual(str(id2type[25]), "int")	# Name a (line 6)
@@ -99,11 +94,9 @@ class TestNum(unittest.TestCase):
         self.assertEqual(str(id2type[8]), "bool")	# NameConstant (line 2)
         self.assertEqual(str(id2type[9]), "NoneType")	# AugAssign (line 3)
         self.assertEqual(str(id2type[10]), "int")	# Name x (line 3)
-        self.assertEqual(str(id2type[12]), "int -> int -> int")	# Add
         self.assertEqual(str(id2type[13]), "int")	# Num (line 3)
         self.assertEqual(str(id2type[14]), "NoneType")	# AugAssign (line 5)
         self.assertEqual(str(id2type[15]), "float")	# Name x (line 5)
-        self.assertEqual(str(id2type[17]), "int -> float -> float")	# Add
         self.assertEqual(str(id2type[18]), "float")	# Num (line 5)
         self.assertEqual(str(id2type[19]), "float")	# Return (line 6)
         self.assertEqual(str(id2type[20]), "float")	# Name x (line 6)
@@ -136,10 +129,8 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[18]), "NoneType")	# For (line 4)
         self.assertEqual(str(id2type[19]), "int")	# Name (line 4)
         self.assertEqual(str(id2type[21]), "int list")	# Call (line 4)
-        self.assertEqual(str(id2type[22]), "int -> int list")	# Name (line 4)
         self.assertEqual(str(id2type[24]), "int")	# Num (line 4)
         self.assertEqual(str(id2type[26]), "NoneType")	# Call (line 5)
-        self.assertEqual(str(id2type[27]), "int list -> NoneType")	# Attribute (line 5)
         self.assertEqual(str(id2type[28]), "int list list")	# Name (line 5)
         self.assertEqual(str(id2type[31]), "int list")	# Subscript (line 5)
         self.assertEqual(str(id2type[32]), "int list")	# Name (line 5)
@@ -168,7 +159,6 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[13]), "NoneType")	# For (line 3)
         self.assertEqual(str(id2type[14]), "int")	# Name (line 3)
         self.assertEqual(str(id2type[16]), "int list")	# Call (line 3)
-        self.assertEqual(str(id2type[17]), "int -> int -> int list")	# Name (line 3)
         self.assertEqual(str(id2type[19]), "int")	# Num (line 3)
         self.assertEqual(str(id2type[20]), "int")	# Num (line 3)
         self.assertEqual(str(id2type[21]), "NoneType")	# Assign (line 4)
@@ -197,7 +187,6 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[10]), "int")	# Num (line 2)
         self.assertEqual(str(id2type[12]), "NoneType")	# AugAssign (line 3)
         self.assertEqual(str(id2type[13]), "(int, int, int)")	# Name x (line 3)
-        self.assertEqual(str(id2type[15]), "(int, int) -> (int,) -> (int, int, int)")	# Add
         self.assertEqual(str(id2type[16]), "(int,)")	# Tuple (line 3)
         self.assertEqual(str(id2type[17]), "int")	# Num (line 3)
         self.assertEqual(str(id2type[19]), "(int, int, int)")	# Return (line 4)
@@ -223,7 +212,6 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[16]), "float")	# Return (line 3)
         self.assertEqual(str(id2type[17]), "float")	# BinOp (line 3)
         self.assertEqual(str(id2type[18]), "int")	# Name (line 3)
-        self.assertEqual(str(id2type[20]), "int -> float -> float")	# Add
         self.assertEqual(str(id2type[21]), "float")	# Name (line 3)
 
 
@@ -273,10 +261,8 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[21]), "float")	# Num 3.0 (line 2)
         self.assertEqual(str(id2type[24]), "NoneType")	# AugAssign
         self.assertEqual(str(id2type[25]), "float")	# Name v (line 3)
-        self.assertEqual(str(id2type[27]), "float -> float -> float")	# Add
         self.assertEqual(str(id2type[28]), "float")	# BinOp x + y (line 3)
         self.assertEqual(str(id2type[29]), "int")	# Name x (line 3)
-        self.assertEqual(str(id2type[31]), "int -> float -> float")	# Add
         self.assertEqual(str(id2type[32]), "float")	# Name y (line 3)
         self.assertEqual(str(id2type[34]), "float")	# Return
         self.assertEqual(str(id2type[35]), "float")	# Name v (line 4)
@@ -298,16 +284,13 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[8]), "int list")	# Name y (line 2)
         self.assertEqual(str(id2type[10]), "int list")	# ListComp  (line 2)
         self.assertEqual(str(id2type[11]), "int")	# Call self.f(i) (line 2)
-        self.assertEqual(str(id2type[12]), "int -> int")	# Attribute self.f (line 2)
         self.assertEqual(str(id2type[13]), "class Test")	# Name self (line 2)
         self.assertEqual(str(id2type[16]), "int")	# Name i (line 2)
         self.assertEqual(str(id2type[19]), "int")	# Name i (line 2)
         self.assertEqual(str(id2type[21]), "int list")	# Call range(x) (line 2)
-        self.assertEqual(str(id2type[22]), "int -> int list")	# Name range (line 2)
         self.assertEqual(str(id2type[24]), "int")	# Name x (line 2)
         self.assertEqual(str(id2type[26]), "int list")	# Return
         self.assertEqual(str(id2type[27]), "int list")	# Name y (line 3)
-        self.assertEqual(str(id2type[29]), "class Test -> int -> int")	# FunctionDef f (line 1)
         self.assertEqual(str(id2type[35]), "int")	# Return
         self.assertEqual(str(id2type[36]), "int")	# Name x (line 2)
 
@@ -333,7 +316,6 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[15]), "optional(int) list")	# Name xs (line 3)
         self.assertEqual(str(id2type[17]), "NoneType")	# Expr
         self.assertEqual(str(id2type[18]), "NoneType")	# Call xs.append(None) (line 4)
-        self.assertEqual(str(id2type[19]), "NoneType -> NoneType")	# Attribute xs.append (line 4)
         self.assertEqual(str(id2type[20]), "optional(int) list")	# Name xs (line 4)
         self.assertEqual(str(id2type[23]), "NoneType")	# Constant None (line 4)
         self.assertEqual(str(id2type[24]), "optional(int) list")	# Return
@@ -364,7 +346,6 @@ class TestOtherDataTypes(unittest.TestCase):
         self.assertEqual(str(id2type[14]), "string")	# Str (line 3)
         self.assertEqual(str(id2type[16]), "NoneType")	# AugAssign (line 4)
         self.assertEqual(str(id2type[17]), "string")	# Name (line 4)
-        self.assertEqual(str(id2type[19]), "string -> string -> string")	# Add
         self.assertEqual(str(id2type[20]), "string")	# Name (line 4)
         self.assertEqual(str(id2type[22]), "string")	# Return (line 5)
         self.assertEqual(str(id2type[23]), "string")	# Name (line 5)
@@ -448,15 +429,12 @@ class TestControl(unittest.TestCase):
         self.assertEqual(str(id2type[7]), "NoneType")	# For (line 2)
         self.assertEqual(str(id2type[8]), "int")	# Name i (line 2)
         self.assertEqual(str(id2type[10]), "int list")	# Call (line 2)
-        self.assertEqual(str(id2type[11]), "int -> int list")	# Name range (line 2)
         self.assertEqual(str(id2type[13]), "int")	# Num (line 2)
         self.assertEqual(str(id2type[14]), "NoneType")	# Assign (line 3)
         self.assertEqual(str(id2type[15]), "float")	# Name x (line 3)
         self.assertEqual(str(id2type[17]), "float")	# BinOp (line 3)
         self.assertEqual(str(id2type[18]), "float")	# Call (line 3)
-        self.assertEqual(str(id2type[19]), "int -> float")	# Name float (line 3)
         self.assertEqual(str(id2type[21]), "int")	# Name i (line 3)
-        self.assertEqual(str(id2type[23]), "float -> int -> float")	# Add
         self.assertEqual(str(id2type[24]), "int")	# Num (line 3)
         self.assertEqual(str(id2type[25]), "float")	# Return (line 4)
         self.assertEqual(str(id2type[26]), "float")	# Name x (line 4)
@@ -480,17 +458,14 @@ class TestControl(unittest.TestCase):
         self.assertEqual(str(id2type[7]), "NoneType")	# For
         self.assertEqual(str(id2type[8]), "int")	# Name i (line 2)
         self.assertEqual(str(id2type[10]), "int list")	# Call range(4) (line 2)
-        self.assertEqual(str(id2type[11]), "int -> int list")	# Name range (line 2)
         self.assertEqual(str(id2type[13]), "int")	# Constant 4 (line 2)
         self.assertEqual(str(id2type[14]), "NoneType")	# Assign
         self.assertEqual(str(id2type[15]), "int")	# Name x (line 3)
         self.assertEqual(str(id2type[17]), "int")	# Call self.f(x) (line 3)
-        self.assertEqual(str(id2type[18]), "optional(int) -> int")	# Attribute self.f (line 3)
         self.assertEqual(str(id2type[19]), "class Test")	# Name self (line 3)
         self.assertEqual(str(id2type[22]), "optional(int)")	# Name x (line 3)
         self.assertEqual(str(id2type[24]), "optional(int)")	# Return
         self.assertEqual(str(id2type[25]), "optional(int)")	# Name x (line 4)
-        self.assertEqual(str(id2type[27]), "class Test -> optional(int) -> int")	# FunctionDef f (line 1)
         self.assertEqual(str(id2type[33]), "NoneType")	# If
         self.assertEqual(str(id2type[34]), "bool")	# Compare  (line 2)
         self.assertEqual(str(id2type[35]), "optional(int)")	# Name x (line 2)
@@ -548,7 +523,6 @@ class TestAssign(unittest.TestCase):
         self.assertEqual(str(id2type[16]), "(int, int, int)")	# Name x (line 3)
         self.assertEqual(str(id2type[18]), "NoneType")	# AugAssign (line 4)
         self.assertEqual(str(id2type[19]), "(int, int, int, int)")	# Name x (line 4)
-        self.assertEqual(str(id2type[21]), "(int, int, int) -> (int,) -> (int, int, int, int)")	# Add
         self.assertEqual(str(id2type[22]), "(int,)")	# Tuple (line 4)
         self.assertEqual(str(id2type[23]), "int")	# Num (line 4)
         self.assertEqual(str(id2type[25]), "(int, int, int)")	# Return (line 5)
@@ -577,7 +551,6 @@ class TestAssign(unittest.TestCase):
         self.assertEqual(str(id2type[16]), "int list")	# Name x (line 3)
         self.assertEqual(str(id2type[18]), "NoneType")	# AugAssign (line 4)
         self.assertEqual(str(id2type[19]), "int list")	# Name x (line 4)
-        self.assertEqual(str(id2type[21]), "int list -> [int] -> int list")	# Add
         self.assertEqual(str(id2type[22]), "[int]")	# List (line 4)
         self.assertEqual(str(id2type[23]), "int")	# Num (line 4)
         self.assertEqual(str(id2type[25]), "int list")	# Return (line 5)
@@ -603,7 +576,6 @@ class TestAssign(unittest.TestCase):
         self.assertEqual(str(id2type[9]), "class Test")	# Name self (line 2)
         self.assertEqual(str(id2type[12]), "NoneType")	# AugAssign (line 3)
         self.assertEqual(str(id2type[13]), "int list")	# Name b (line 3)
-        self.assertEqual(str(id2type[15]), "int list -> [int] -> int list")	# Add
         self.assertEqual(str(id2type[16]), "[int]")	# List (line 3)
         self.assertEqual(str(id2type[17]), "int")	# Num (line 3)
         self.assertEqual(str(id2type[19]), "int list")	# Return (line 4)
@@ -630,14 +602,11 @@ class TestInline(unittest.TestCase):
         self.assertEqual(str(id2type[1]), "class Test -> int -> int")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "int")	# Return (line 2)
         self.assertEqual(str(id2type[8]), "int")	# Call (line 2)
-        self.assertEqual(str(id2type[9]), "int -> int -> int")	# Name h (line 2)
         self.assertEqual(str(id2type[11]), "int")	# Name x (line 2)
         self.assertEqual(str(id2type[13]), "int")	# Num (line 2)
-        self.assertEqual(str(id2type[14]), "int -> int -> int")	# FunctionDef h (line 1)
         self.assertEqual(str(id2type[20]), "int")	# Return (line 2)
         self.assertEqual(str(id2type[21]), "int")	# BinOp (line 2)
         self.assertEqual(str(id2type[22]), "int")	# Name x (line 2)
-        self.assertEqual(str(id2type[24]), "int -> int -> int")	# Add
         self.assertEqual(str(id2type[25]), "int")	# Name y (line 2)
 
 
@@ -658,11 +627,9 @@ class TestInline(unittest.TestCase):
         self.assertEqual(str(id2type[1]), "class Test -> int -> int")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "int")	# Return
         self.assertEqual(str(id2type[8]), "int")	# Call self.a.f(x) (line 2)
-        self.assertEqual(str(id2type[9]), "int -> int")	# Attribute self.a.f (line 2)
         self.assertEqual(str(id2type[10]), "class A")	# Attribute self.a (line 2)
         self.assertEqual(str(id2type[11]), "class Test")	# Name self (line 2)
         self.assertEqual(str(id2type[15]), "int")	# Name x (line 2)
-        self.assertEqual(str(id2type[17]), "class A -> int -> int")	# FunctionDef f (line 1)
         self.assertEqual(str(id2type[23]), "int")	# Return
         self.assertEqual(str(id2type[24]), "int")	# Name x (line 2)
 
@@ -685,11 +652,8 @@ class TestInline(unittest.TestCase):
         self.assertEqual(str(id2type[7]), "int")	# Return
         self.assertEqual(str(id2type[8]), "int")	# BinOp self.b() + x (line 2)
         self.assertEqual(str(id2type[9]), "int")	# Call self.b() (line 2)
-        self.assertEqual(str(id2type[10]), "(no argument) -> int")	# Attribute self.b (line 2)
         self.assertEqual(str(id2type[11]), "class Test")	# Name self (line 2)
-        self.assertEqual(str(id2type[14]), "int -> int -> int")	# Add
         self.assertEqual(str(id2type[15]), "int")	# Name x (line 2)
-        self.assertEqual(str(id2type[17]), "class B -> int")	# FunctionDef __call__ (line 1)
         self.assertEqual(str(id2type[21]), "int")	# Return
         self.assertEqual(str(id2type[22]), "int")	# Constant 1 (line 2)
 
@@ -714,14 +678,10 @@ class TestInline(unittest.TestCase):
         self.assertEqual(str(id2type[1]), "class Test -> int")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[5]), "int")	# Return
         self.assertEqual(str(id2type[6]), "int")	# Call self.b() (line 2)
-        self.assertEqual(str(id2type[7]), "(no argument) -> int")	# Attribute self.b (line 2)
         self.assertEqual(str(id2type[8]), "class Test")	# Name self (line 2)
-        self.assertEqual(str(id2type[11]), "class B -> int")	# FunctionDef __call__ (line 1)
         self.assertEqual(str(id2type[15]), "int")	# Return
         self.assertEqual(str(id2type[16]), "int")	# Call self.f() (line 2)
-        self.assertEqual(str(id2type[17]), "(no argument) -> int")	# Attribute self.f (line 2)
         self.assertEqual(str(id2type[18]), "class B")	# Name self (line 2)
-        self.assertEqual(str(id2type[21]), "class B -> int")	# FunctionDef f (line 1)
         self.assertEqual(str(id2type[25]), "int")	# Return
         self.assertEqual(str(id2type[26]), "int")	# Constant 1 (line 2)
 
@@ -769,7 +729,6 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(str(id2type[16]), "int")	# Num 42 (line 3)
         self.assertEqual(str(id2type[17]), "NoneType")	# AugAssign
         self.assertEqual(str(id2type[18]), "a1 (from line 5)")	# Name x (line 5)
-        self.assertEqual(str(id2type[20]), "a0 -> int -> a1 (from line 5)")	# Add
         self.assertEqual(str(id2type[21]), "int")	# Num 1 (line 5)
         self.assertEqual(str(id2type[22]), "int")	# Return
         self.assertEqual(str(id2type[23]), "int")	# Name x (line 6)
@@ -796,7 +755,6 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(str(id2type[16]), "int")	# Num 42 (line 3)
         self.assertEqual(str(id2type[17]), "NoneType")	# AugAssign
         self.assertEqual(str(id2type[18]), "int")	# Name x (line 5)
-        self.assertEqual(str(id2type[20]), "int -> int -> int")	# Add
         self.assertEqual(str(id2type[21]), "int")	# Num 1 (line 5)
         self.assertEqual(str(id2type[22]), "int")	# Return
         self.assertEqual(str(id2type[23]), "int")	# Name x (line 6)
