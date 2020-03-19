@@ -5,16 +5,17 @@ import unittest
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 from chainer_compiler.elichika.testtools import type_inference_tools
 
-from testcases.pytorch.examples.mnist import gen_MNIST_test
+from testcases.pytorch.mnist             import gen_MNIST_model
 
 
 class TestMNIST(unittest.TestCase):
     def test_MNIST(self):
         type_inference_tools.reset_state()
 
-        model, forward_args = gen_MNIST_test()
+        model, forward_args = gen_MNIST_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for MNIST ===
         self.assertEqual(str(id2type[1]), "class Net -> torch.Tensor(float32, (64, 1, 28, 28)) -> torch.Tensor(float32, (64, 10))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# Assign
         self.assertEqual(str(id2type[8]), "torch.Tensor(float32, (64, 32, 26, 26))")	# Name x (line 2)
@@ -82,7 +83,7 @@ class TestMNIST(unittest.TestCase):
         self.assertEqual(str(id2type[121]), "int")	# Constant 1 (line 12)
         self.assertEqual(str(id2type[122]), "torch.Tensor(float32, (64, 10))")	# Return
         self.assertEqual(str(id2type[123]), "torch.Tensor(float32, (64, 10))")	# Name output (line 13)
-
+        # === END ASSERTIONS for MNIST ===
 
 def main():
     unittest.main()

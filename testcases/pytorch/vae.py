@@ -1,4 +1,4 @@
-# https://github.com/pytorch/examples/blob/master/vae/main.py
+# Original: https://github.com/pytorch/examples/blob/490243127c02a5ea3348fa4981ecd7e9bcf6144c/vae/main.py
 
 import torch
 import torch.nn as nn
@@ -37,7 +37,8 @@ class VAE(nn.Module):
         return self.decode(z), mu, logvar
 
 
-def gen_VAE_test():
+# Example input
+def gen_VAE_model():
     model = VAE()
     x = torch.rand(128, 1, 28, 28)
     return model, (x,)

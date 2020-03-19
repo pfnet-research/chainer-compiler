@@ -5,21 +5,17 @@ import unittest
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 from chainer_compiler.elichika.testtools import type_inference_tools
 
-from testcases.pytorch.ResNet import resnet18
-
-def gen_ResNet_model():
-    model = resnet18()
-    x = torch.ones(1, 3, 224, 224)
-    return model, (x,)
+from testcases.pytorch.resnet            import gen_ResNet18_model
 
 
 class TestResNet(unittest.TestCase):
-    def test_ResNet(self):
+    def test_ResNet18(self):
         type_inference_tools.reset_state()
 
-        model, forward_args = gen_ResNet_model()
+        model, forward_args = gen_ResNet18_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for ResNet18 ===
         self.assertEqual(str(id2type[1]), "class ResNet -> torch.Tensor(float32, (1, 3, 224, 224)) -> torch.Tensor(float32, (1, 1000))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "torch.Tensor(float32, (1, 1000))")	# Return
         self.assertEqual(str(id2type[8]), "torch.Tensor(float32, (1, 1000))")	# Call self._forward_impl(x) (line 2)
@@ -323,6 +319,7 @@ class TestResNet(unittest.TestCase):
         self.assertEqual(str(id2type[523]), "torch.Tensor(float32, (1, 512, 7, 7))")	# Name out (line 15)
         self.assertEqual(str(id2type[525]), "torch.Tensor(float32, (1, 512, 7, 7))")	# Return
         self.assertEqual(str(id2type[526]), "torch.Tensor(float32, (1, 512, 7, 7))")	# Name out (line 17)
+        # === END ASSERTIONS for ResNet18 ===
 
 
 def main():

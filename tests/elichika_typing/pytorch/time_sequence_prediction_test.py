@@ -5,16 +5,17 @@ import unittest
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 from chainer_compiler.elichika.testtools import type_inference_tools
 
-from testcases.pytorch.examples.time_sequence_prediction import gen_Sequence_test
+from testcases.pytorch.time_sequence_prediction import gen_Sequence_model
 
 
 class TestSequence(unittest.TestCase):
     def test_Sequence(self):
         type_inference_tools.reset_state()
 
-        model, forward_args = gen_Sequence_test()
+        model, forward_args = gen_Sequence_model()
         id2type = generate_id2type_from_forward(model, forward_args)
 
+        # === BEGIN ASSERTIONS for Sequence ===
         self.assertEqual(str(id2type[1]), "class Sequence -> torch.Tensor(float32, (3, 4)) -> int -> torch.Tensor(float64, (3, None))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[9]), "NoneType")	# Assign
         self.assertEqual(str(id2type[10]), "[]")	# Name outputs (line 2)
@@ -155,7 +156,7 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[257]), "int")	# Constant 2 (line 19)
         self.assertEqual(str(id2type[258]), "torch.Tensor(float64, (3, None))")	# Return
         self.assertEqual(str(id2type[259]), "torch.Tensor(float64, (3, None))")	# Name outputs (line 20)
-
+        # === END ASSERTIONS for Sequence ===
 
 def main():
     unittest.main()

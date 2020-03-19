@@ -1,4 +1,4 @@
-# https://github.com/pytorch/examples/blob/master/time_sequence_prediction/train.py
+# Original: https://github.com/pytorch/examples/blob/490243127c02a5ea3348fa4981ecd7e9bcf6144c/time_sequence_prediction/train.py
 
 import torch
 import torch.nn as nn
@@ -32,7 +32,8 @@ class Sequence(nn.Module):
         return outputs
 
 
-def gen_Sequence_test():
+# Example input
+def gen_Sequence_model():
     model = Sequence()
     model.double()
     x = torch.rand(3, 4)

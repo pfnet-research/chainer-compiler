@@ -46,13 +46,22 @@ def rebase_testcase(filename, model_name, gen_model_fn):
 
 
 def main():
+    test_modules = [ 'EspNet'
+                   , 'Models'
+                   , 'pytorch/mnist'
+                   , 'pytorch/vae'
+                   , 'pytorch/fast_neural_style'
+                   , 'pytorch/time_sequence_prediction'
+                   , 'pytorch/alexnet'
+                   , 'pytorch/resnet'
+                   ]
     unsupported_models = set(['ResNet50', 'Decoder', 'E2E', 'GoogLeNet'])
 
-    for test_module_name in ['EspNet', 'Models']:
+    for test_module_name in test_modules:
         filename = 'tests/elichika_typing/{}_test.py'.format(test_module_name)
         assert os.path.exists(filename)
         module = importlib.import_module(
-            'elichika_typing.{}_test'.format(test_module_name))
+            'elichika_typing.{}_test'.format(test_module_name.replace('/', '.')))
         for symbol_name in dir(module):
             matched = re.match(r'gen_(\w+)_model', symbol_name)
             if not matched:
