@@ -715,8 +715,6 @@ class InferenceEngine():
         if isinstance(ty_iteration, TyTensor):
             ty_i_ = TyTensor(ty_iteration.kind, ty_iteration.dtype,
                     ty_iteration.shape[1:])
-            if ty_iteration.shape is not None:
-                ty_i_.shape = ty_iteration.shape[1:]
             unify(ty_i, ty_i_)
         else:
             unify(TySequence(None, ty_i), ty_iteration)
