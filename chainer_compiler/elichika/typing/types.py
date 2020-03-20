@@ -31,8 +31,6 @@ class TyObj():  # base type, meaning 'unknown'
     def __repr__(self):
         return self.__str__()
 
-    def is_mutable(self):
-        pass
     # dereference internal type
     def deref(self):
         return self
@@ -44,8 +42,6 @@ class TyNone(TyObj):
         return "NoneType"
     def __eq__(self, other):
         return isinstance(other, TyNone)
-    def is_mutable(self):
-        return False
 
 
 class NumKind(IntEnum):
@@ -74,9 +70,6 @@ class TyNum(TyObj):
     def __eq__(self, other):
         return isinstance(other, TyNum) and self.kind == other.kind
 
-    def is_mutable(self):
-        return False
-
     def coerce_value(self):
         if self.value is None:
             return
@@ -104,8 +97,6 @@ class TyString(TyObj):
         return "string"
     def __eq__(self, other):
         return isinstance(other, TyString)
-    def is_mutable(self):
-        return False
 
 
 class TyArrow(TyObj):
@@ -122,9 +113,6 @@ class TyArrow(TyObj):
     def __eq__(self, other):
         return isinstance(other, TyArrow) and self.argty == other.argty and \
                 self.retty == other.retty
-
-    def is_mutable(self):
-        return False
 
     def deref(self):
         self.argty = [t.deref() for t in self.argty]
@@ -168,9 +156,6 @@ class TySequence(TyObj):
     def __getitem__(self, i):
         assert self.is_fixed_len
         return self._ty[i]
-
-    def is_mutable(self):
-        return self.kind == SequenceKind.LIST
 
     def size(self):
         if self.is_fixed_len:
@@ -238,9 +223,6 @@ class TyDict(TyObj):
         return isinstance(other, TyDict) and self.keyty == other.keyty and \
                 self.valty == other.valty
 
-    def is_mutable(self):
-        return True
-
     def deref(self):
         self.keyty = self.keyty.deref()
         self.valty = self.valty.deref()
@@ -256,9 +238,6 @@ class TyUserDefinedClass(TyObj):
 
     def show(self):
         return "class " + self.name
-
-    def is_mutable(self):
-        return True
 
 
 class TyOptional(TyObj):
@@ -309,9 +288,6 @@ class TyTensor(TyObj):
     def __eq__(self, other):
         # TODO: shape?
         return isinstance(other, TyTensor) and self.dtype == other.dtype
-
-    def is_mutable(self):
-        return True
 
     def is_ndarray(self):
         return self.kind == TensorKind.ndarray
@@ -386,11 +362,6 @@ class TyVar(TyObj):
         if self.ty is None:
             return self is other
         return self.deref() == other.deref()
-
-    def is_mutable(self):
-        if self.is_set:
-            return self.ty.is_mutable()
-        return False
 
     def set(self, ty):
         assert self.is_set == False
