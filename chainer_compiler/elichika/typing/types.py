@@ -624,90 +624,84 @@ def unify(ty1, ty2):
     ty2 = ty2.deref()
 
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
-        return
+        return TyNone()
 
     if isinstance(ty1, TyVar):
         if isinstance(ty2, TyVar) and ty1 is ty2:
-            return
+            return ty1
         if occur(ty1, ty2):
             raise UnifyError(ty1, ty2)
         ty1.set(ty2)
-        return
+        return ty2
 
     if isinstance(ty2, TyVar):
         if occur(ty2, ty1):
             raise UnifyError(ty1, ty2)
         ty2.set(ty1)
-        return
+        return ty1
 
     if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
         ty1.kind = ty2.kind = max(ty1.kind, ty2.kind)
         ty1.coerce_value()
         ty2.coerce_value()
-        return
+        return copy_ty(ty1)
 
     if isinstance(ty1, TyString) and isinstance(ty2, TyString):
         return
 
-    if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow) and \
-            len(ty1.argty) == len(ty2.argty):
-        for at1, at2 in zip(ty1.argty, ty2.argty):
-            unify(at1, at2)
-        unify(ty1.retty, ty2.retty)
-        return
-
     if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
-        if ty1.is_fixed_len and ty2.is_fixed_len:
-            if not len(ty1.get_tys()) == len(ty2.get_tys()):
-                ty1.coerce_to_variable_len()
-                ty2.coerce_to_variable_len()
-                unify(ty1.get_ty(), ty2.get_ty())
-                return
-            for t1, t2 in zip(ty1.get_tys(), ty2.get_tys()):
-                unify(t1, t2)
-            return
-        if ty1.is_fixed_len and not ty2.is_fixed_len:
-            ty1.coerce_to_variable_len()
-            unify(ty1.get_ty(), ty2.get_ty())
-        elif (not ty1.is_fixed_len) and ty2.is_fixed_len:
-            ty2.coerce_to_variable_len()
-            unify(ty1.get_ty(), ty2.get_ty())
-        unify(ty1.get_ty(), ty2.get_ty())
-        return
+        if ty1.kind:
+            if ty2.kind and not ty1.kind == ty2.kind:
+                raise UnifyError(ty1, ty2)
+            kind = ty1.kind
+        else:
+            kind = ty2.kind
+
+        if ty1.is_fixed_len and ty2.is_fixed_len and \
+                len(ty1.get_tys()) == len(ty2.get_tys()):
+            # Overwrite the content of the sequence
+            tys = [unify(t1, t2) for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())]
+            ty1._ty = tys
+            ty2._ty = tys
+            return TySequence(kind, tys)
+        ty1.coerce_to_variable_len()
+        ty2.coerce_to_variable_len()
+        ty = unify(ty1.get(), ty2.get())
+        ty1._ty = ty
+        ty2._ty = ty
+        return TySequence(kind, ty)
 
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
-        unify(ty1.keyty, ty2.keyty)
-        unify(ty1.valty, ty2.valty)
-        return
+        return TyDict(unify(ty1.keyty, ty2.keyty),
+                unify(ty1.valty, ty2.valty))
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         utils.set_attr_if_None(ty1, ty2, 'kind')
 
         if ty1.dtype == ty2.dtype and ty1.ndim == ty2.ndim:
-            unify_shape(ty1.shape, ty2.shape)
-            return
+            return TyTensor(ty1.kind, ty1.dtype, unify_shape(ty1.shape, ty2.shape))
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyNum):
         if ty1.ndim == 0:
-            return
+            return ty1 # TODO
 
     if isinstance(ty1, TyNum) and isinstance(ty2, TyTensor):
         if ty2.ndim == 0:
-            return
+            return ty2 # TODO
 
     if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
         assert ty1.t == ty2.t
-        return
+        return ty1
 
     if isinstance(ty1, TyUserDefinedClass) and \
             isinstance(ty2, TyUserDefinedClass):
         if ty1.name == ty2.name:
-            return
+            return ty1
         # TODO(momohatt): Find least common superclass and check that
         # it is not 'object'
         if isinstance(ty1.instance, torch.nn.Module) and \
                 isinstance(ty2.instance, torch.nn.Module):
-            return
+            return ty1 # TODO
 
     raise UnifyError(ty1, ty2)
 
@@ -766,10 +760,9 @@ def join(ty1, ty2):
         if ty1.kind == ty2.kind:
             kind = ty1.kind
             if ty1.is_fixed_len and ty2.is_fixed_len:
-                if not len(ty1.get_tys()) == len(ty2.get_tys()):
-                    return TySequence(kind, join(ty1.get(), ty2.get()))
-                return TySequence(kind, [join(t1, t2)
-                    for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())])
+                if len(ty1.get_tys()) == len(ty2.get_tys()):
+                    return TySequence(kind, [join(t1, t2)
+                        for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())])
             return TySequence(kind, join(ty1.get(), ty2.get()))
 
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
