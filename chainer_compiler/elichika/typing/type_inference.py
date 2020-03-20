@@ -486,19 +486,8 @@ class InferenceEngine():
         ty_val = self.infer_expr(node.value)
 
         if isinstance(target, gast.Name):
-            if ty_val.is_mutable() and \
-                    isinstance(node.value, (gast.Name, gast.Attribute)):
-                # XXX: alias
-                self.tyenv[target.id] = ty_val
-                self.nodetype[target] = ty_val
-                return
-
-            # XXX: Changing following 2 lines into
-            #   self.tyenv[target.id] = self.nodetype[target] = copy_ty(ty_val)
-            # will allow self.nodetype[target] to change afterwards, which will
-            # be more suitable for elichika but contradict with python semantics.
-            self.tyenv[target.id] = copy_ty(ty_val)
-            self.nodetype[target] = copy_ty(ty_val)
+            self.tyenv[target.id] = ty_val
+            self.nodetype[target] = ty_val
             return
 
         if isinstance(target, gast.Attribute):
@@ -534,20 +523,12 @@ class InferenceEngine():
             unify(ty_target, ty_val)
 
         if isinstance(node.target, gast.Name):
-            if ty_target.is_mutable():
-                self.tyenv[node.target.id] = ty_val
-            else:
-                self.tyenv[node.target.id] = copy_ty(ty_val)
+            self.tyenv[node.target.id] = ty_val
 
         if isinstance(node.target, gast.Attribute):
             ty_obj = self.nodetype[node.target.value]
             assert isinstance(ty_obj, TyUserDefinedClass)
-            if ty_target.is_mutable():
-                self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = \
-                        ty_val
-            else:
-                self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = \
-                        copy_ty(ty_val)
+            self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = ty_val
 
         self.nodetype[node.target] = ty_val
 
