@@ -619,12 +619,30 @@ def occur(var, ty):
     return False
 
 
+# Solves constraint over type variables and the element of TyList,
+# which needs a special care since it is an invariant type
 def unify(ty1, ty2):
     ty1 = ty1.deref()
     ty2 = ty2.deref()
 
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
         return TyNone()
+
+    if isinstance(ty1, TyNone):
+        if isinstance(ty2, TyOptional):
+            return ty2
+        return TyOptional(ty2)
+    if isinstance(ty2, TyNone):
+        if isinstance(ty1, TyOptional):
+            return ty1
+        return TyOptional(ty1)
+
+    if isinstance(ty1, TyOptional) and isinstance(ty2, TyOptional):
+        return TyOptional(unify(ty1.ty, ty2.ty))
+    if isinstance(ty1, TyOptional):
+        return TyOptional(unify(ty1.ty, ty2))
+    if isinstance(ty2, TyOptional):
+        return TyOptional(unify(ty1, ty2.ty))
 
     if isinstance(ty1, TyVar):
         if isinstance(ty2, TyVar) and ty1 is ty2:
