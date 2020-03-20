@@ -565,8 +565,7 @@ def copy_ty(ty):
             return TySequence(ty.kind, [copy_ty(t) for t in ty.get_tys()])
         return TySequence(ty.kind, copy_ty(ty.get_ty()))
     elif isinstance(ty, TyDict):
-        # XXX: do not copy instance
-        return TyDict(ty.keyty, ty.valty)
+        return TyDict(copy_ty(ty.keyty), copy_ty(ty.valty))
     elif isinstance(ty, TyUserDefinedClass):
         return TyUserDefinedClass(ty.name, ty.instance)
     elif isinstance(ty, TyDType):
@@ -574,10 +573,9 @@ def copy_ty(ty):
     elif isinstance(ty, TyTensor):
         return TyTensor(ty.kind, ty.dtype, ty.shape)
     elif isinstance(ty, TyVar):
-        ret = TyVar(None)
         if ty.ty is not None:
-            ret.set(ty.deref())
-        return ret
+            return ty.deref()
+        return ty
     elif isinstance(ty, TyOptional):
         return TyOptional(ty.ty)
     assert False, "copy_ty: {}".format(ty)
@@ -775,8 +773,7 @@ def join(ty1, ty2):
             return TySequence(kind, join(ty1.get(), ty2.get()))
 
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
-        if ty1.keyty == ty2.keyty and ty1.valty == ty2.valty:
-            return TyDict(ty1.keyty, ty1.valty)
+        return TyDict(join(ty1.keyty, ty2.keyty), join(ty1.valty, ty2.valty))
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         if ty1.kind == ty2.kind and ty1.dtype == ty2.dtype and \

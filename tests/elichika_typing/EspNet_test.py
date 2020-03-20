@@ -224,7 +224,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[114]), "class AttDot")	# Name self (line 25)
         self.assertEqual(str(id2type[119]), "dtype(float32)")	# Attribute np.float32 (line 25)
         self.assertEqual(str(id2type[123]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[124]), "a17")	# Name dec_z (line 27)
+        self.assertEqual(str(id2type[124]), "a15 (from line 27)")	# Name dec_z (line 27)
         self.assertEqual(str(id2type[126]), "a15 (from line 27)")	# Call F.reshape(dec_z, (batch, self.dunits)) (line 27)
         self.assertEqual(str(id2type[127]), "a11 -> (int, int) -> a15 (from line 27)")	# Attribute F.reshape (line 27)
         self.assertEqual(str(id2type[131]), "a11")	# Name dec_z (line 27)
@@ -395,7 +395,7 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[117]), "class AttLoc")	# Name self (line 27)
         self.assertEqual(str(id2type[122]), "dtype(float32)")	# Attribute np.float32 (line 27)
         self.assertEqual(str(id2type[126]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[127]), "a15")	# Name dec_z_new (line 29)
+        self.assertEqual(str(id2type[127]), "a13 (from line 29)")	# Name dec_z_new (line 29)
         self.assertEqual(str(id2type[129]), "a13 (from line 29)")	# Call F.reshape(dec_z, (batch, self.dunits)) (line 29)
         self.assertEqual(str(id2type[130]), "a9 -> (int, int) -> a13 (from line 29)")	# Attribute F.reshape (line 29)
         self.assertEqual(str(id2type[134]), "a9")	# Name dec_z (line 29)
