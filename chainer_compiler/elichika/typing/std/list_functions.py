@@ -4,7 +4,7 @@ __all__ = [ 'list_func_ty' ]
 
 def ty_append(ty_args, ty_kwargs):
     ty_list, ty_elem = ty_args
-    unify(ty_list.get(), ty_elem)
+    ty_list._ty = join(ty_list.get(), ty_elem)
     return TyNone()
 
 
