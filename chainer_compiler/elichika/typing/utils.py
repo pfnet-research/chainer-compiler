@@ -138,3 +138,9 @@ def set_attr_if_None(obj1, obj2, attr_name):
 
 def all_same(l):
     return all([e == l[0] for e in l])
+
+
+def foldl(fn, acc, l):
+    for x in l:
+        acc = fn(acc, x)
+    return acc

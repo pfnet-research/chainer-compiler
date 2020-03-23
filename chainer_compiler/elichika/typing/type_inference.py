@@ -644,9 +644,7 @@ class InferenceEngine():
             return TyDict(TyVar(), TyVar())
         ty_keys = [self.infer_expr(key) for key in node.keys]
         ty_vals = [self.infer_expr(val) for val in node.values]
-        assert all_same_ty(ty_keys)
-        assert all_same_ty(ty_vals)
-        return TyDict(ty_keys[0], ty_vals[0])
+        return TyDict(joins(ty_keys), joins(ty_vals))
 
 
     def infer_ListComp(self, node):

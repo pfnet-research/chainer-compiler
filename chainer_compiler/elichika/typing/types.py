@@ -14,11 +14,11 @@ __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
           , 'TyDict', 'TyUserDefinedClass', 'TyDType', 'TyVar', 'TyOptional'
           , 'TyTensor', 'TensorKind'
           , 'TyNdarray', 'TyChainerVariable', 'TyTorchTensor'
-          , 'torch_dtype_to_np_dtype', 'all_same_ty'
+          , 'torch_dtype_to_np_dtype'
           , 'type_of_value', 'extract_value_from_ty'
           , 'lacks_value', 'generate_dummy_value', 'tyobj_to_dtype', 'dtype_to_tyobj'
           , 'copy_ty'
-          , 'unify', 'UnifyError', 'join', 'JoinError'
+          , 'unify', 'UnifyError', 'join', 'JoinError', 'joins'
           , 'match_types', 'MatchFail', 'apply_subst'
           ]
 
@@ -173,9 +173,7 @@ class TySequence(TyObj):
     def get(self):
         # get one type as a representative
         if self.is_fixed_len:
-            ty = TyVar()
-            for t in self._ty:
-                ty = join(ty, t)
+            ty = joins(self._ty)
             return ty.deref()
         return self.get_ty()
 
@@ -375,13 +373,6 @@ class TyVar(TyObj):
 
 
 # ------------------------------------------------------------------------------
-
-def all_same_ty(tys):
-    _tytmp = TyVar()
-    for t in tys:
-        unify(_tytmp, t)
-    return True
-
 
 def type_of_value(value):
     if value is None:
@@ -661,8 +652,11 @@ def unify(ty1, ty2):
         return TySequence(kind, ty)
 
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
-        return TyDict(unify(ty1.keyty, ty2.keyty),
-                unify(ty1.valty, ty2.valty))
+        keyty = unify(ty1.keyty, ty2.keyty)
+        valty = unify(ty1.valty, ty2.valty)
+        ty1.keyty = ty2.keyty = keyty
+        ty1.valty = ty2.valty = valty
+        return TyDict(keyty, valty)
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         utils.set_attr_if_None(ty1, ty2, 'kind')
@@ -772,6 +766,10 @@ def join(ty1, ty2):
             return TyUserDefinedClass(ty1.name, ty1.instance)
 
     raise JoinError(ty1, ty2)
+
+
+def joins(tys):
+    return utils.foldl(join, TyVar(), tys)
 
 
 
