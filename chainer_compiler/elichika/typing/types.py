@@ -624,10 +624,14 @@ def unify(ty1, ty2):
         ty1.kind = ty2.kind = max(ty1.kind, ty2.kind)
         ty1.coerce_value()
         ty2.coerce_value()
-        return copy_ty(ty1)
+        if ty1.value == ty2.value:
+            return TyNum(ty1.kind, ty1.value)
+        return TyNum(ty1.kind)
 
     if isinstance(ty1, TyString) and isinstance(ty2, TyString):
-        return
+        if ty1.value == ty2.value:
+            return TyString(ty1.value)
+        return TyString()
 
     if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
         if ty1.kind:
