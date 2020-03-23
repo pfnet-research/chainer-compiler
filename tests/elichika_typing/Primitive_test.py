@@ -364,6 +364,22 @@ class TestOtherDataTypes(unittest.TestCase):
         self.assertEqual(str(id2type[18]), "string")	# Str (line 3)
 
 
+    def test_dict_optional(self):
+        class Test():
+            def forward(self):
+                return {'foo': 1, 'bar': None}
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "class Test -> {string : optional(int)}")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "{string : optional(int)}")	# Return
+        self.assertEqual(str(id2type[6]), "{string : optional(int)}")	# Dict  (line 2)
+        self.assertEqual(str(id2type[7]), "string")	# Constant 'hoge' (line 2)
+        self.assertEqual(str(id2type[8]), "string")	# Constant 'fuga' (line 2)
+        self.assertEqual(str(id2type[9]), "int")	# Constant 1 (line 2)
+        self.assertEqual(str(id2type[10]), "NoneType")	# Constant None (line 2)
+
+
     def test_optional(self):
         class Test():
             def forward(self):
