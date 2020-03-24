@@ -253,6 +253,7 @@ def unify_shape(shape1, shape2):
     for e1, e2 in zip(shape1, shape2):
         if e1.value != e2.value:
             e1.value = e2.value = None
+    return shape1
 
 
 def join_shape(shape1, shape2):

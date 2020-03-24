@@ -12,11 +12,11 @@ from   chainer_compiler.elichika.typing.types       import *
 from   chainer_compiler.elichika.typing.shape_elem  import *
 from   chainer_compiler.elichika.typing             import utils
 
-from   chainer_compiler.elichika.typing.ext.common            import ty_TensorArith
 from   chainer_compiler.elichika.typing.ext.numpy_functions   import *
 from   chainer_compiler.elichika.typing.ext.chainer_functions import *
 from   chainer_compiler.elichika.typing.ext.pytorch_functions import *
 from   chainer_compiler.elichika.typing.std.builtin_functions import *
+from   chainer_compiler.elichika.typing.std.builtin_ops       import *
 from   chainer_compiler.elichika.typing.std.list_functions    import *
 
 import chainer
@@ -102,40 +102,10 @@ def call_builtin_function(func, node, ty_args):
 
 
 def call_binop(op, node, tyl, tyr):
-    if isinstance(tyl, TySequence) and isinstance(tyr, TyNum) and \
-            isinstance(op, gast.Mult):
-        assert tyr.is_int()
-        if tyr.value is None:
-            return TySequence(tyl.kind, tyl.get())
-        return TySequence(tyl.kind, [tyl.get() for _ in range(tyr.value)])
-
-    semantics = {
-            gast.Add : (lambda x, y: x + y),
-            gast.Sub : (lambda x, y: x - y),
-            gast.Mult : (lambda x, y: x * y),
-            gast.Div : (lambda x, y: x / y),
-            gast.FloorDiv : (lambda x, y: x // y),
-            }
-    func = semantics[type(op)]
-
-    if isinstance(tyl, TyTensor):
-        return ty_TensorArith(tyl.kind, func)([tyl, tyr], {})
-    if isinstance(tyr, TyTensor):
-        return ty_TensorArith(tyr.kind, func)([tyl, tyr], {})
-
     try:
-        vall, valr = generate_dummy_value(tyl), generate_dummy_value(tyr)
-        ty_ret = type_of_value(func(vall, valr))
+        return ty_ops(op, tyl, tyr)
     except Exception as e:
-        ty_ret = handle_inference_error(e, op.__class__.__name__, node)
-
-    if isinstance(ty_ret, TyNum) and (tyl.value is None or tyr.value is None):
-        ty_ret.value = None
-    if isinstance(ty_ret, TySequence) and \
-            not (tyl.is_fixed_len and tyr.is_fixed_len):
-        ty_ret.coerce_to_variable_len()
-
-    return ty_ret
+        return handle_inference_error(e, op.__class__.__name__, node)
 
 
 func_to_ignore = [logging.info]
@@ -486,19 +456,8 @@ class InferenceEngine():
         ty_val = self.infer_expr(node.value)
 
         if isinstance(target, gast.Name):
-            if ty_val.is_mutable() and \
-                    isinstance(node.value, (gast.Name, gast.Attribute)):
-                # XXX: alias
-                self.tyenv[target.id] = ty_val
-                self.nodetype[target] = ty_val
-                return
-
-            # XXX: Changing following 2 lines into
-            #   self.tyenv[target.id] = self.nodetype[target] = copy_ty(ty_val)
-            # will allow self.nodetype[target] to change afterwards, which will
-            # be more suitable for elichika but contradict with python semantics.
-            self.tyenv[target.id] = copy_ty(ty_val)
-            self.nodetype[target] = copy_ty(ty_val)
+            self.tyenv[target.id] = ty_val
+            self.nodetype[target] = ty_val
             return
 
         if isinstance(target, gast.Attribute):
@@ -524,31 +483,21 @@ class InferenceEngine():
 
     def infer_AugAssign(self, node):
         # AugAssign(expr target, operator op, expr value)
-        binop = gast.BinOp(node.target, node.op, node.value)
-        if hasattr(node, 'lineno'):
-            setattr(binop, 'lineno', node.lineno)
-        ty_val = self.infer_expr(binop)
-        ty_target = self.infer_expr(node.target)
-        del self.nodetype[binop]
-        if ty_target.is_mutable():
-            unify(ty_target, ty_val)
+        tyr = self.infer_expr(node.value)
+        tyl = self.infer_expr(node.target)
+        ty_val = call_binop(node.op, node, tyl, tyr)
+        if isinstance(tyl, TySequence) and tyl.is_list():
+            unify(ty_val, tyl)
 
         if isinstance(node.target, gast.Name):
-            if ty_target.is_mutable():
-                self.tyenv[node.target.id] = ty_val
-            else:
-                self.tyenv[node.target.id] = copy_ty(ty_val)
+            self.tyenv[node.target.id] = ty_val
 
         if isinstance(node.target, gast.Attribute):
             ty_obj = self.nodetype[node.target.value]
             assert isinstance(ty_obj, TyUserDefinedClass)
-            if ty_target.is_mutable():
-                self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = \
-                        ty_val
-            else:
-                self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = \
-                        copy_ty(ty_val)
+            self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = ty_val
 
+        self.nodetype[node.op] = TyArrow([tyl, tyr], ty_val)
         self.nodetype[node.target] = ty_val
 
 
@@ -713,8 +662,6 @@ class InferenceEngine():
         if isinstance(ty_iteration, TyTensor):
             ty_i_ = TyTensor(ty_iteration.kind, ty_iteration.dtype,
                     ty_iteration.shape[1:])
-            if ty_iteration.shape is not None:
-                ty_i_.shape = ty_iteration.shape[1:]
             unify(ty_i, ty_i_)
         else:
             unify(TySequence(None, ty_i), ty_iteration)

@@ -312,6 +312,34 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[36]), "int")	# Name x (line 2)
 
 
+    def test_list_optional(self):
+        class Test():
+            def forward(self):
+                xs = [1, 2]
+                ys = xs
+                xs.append(None)
+                return ys
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "class Test -> optional(int) list")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Assign
+        self.assertEqual(str(id2type[6]), "optional(int) list")	# Name xs (line 2)
+        self.assertEqual(str(id2type[8]), "optional(int) list")	# List [1, 2] (line 2)
+        self.assertEqual(str(id2type[9]), "int")	# Constant 1 (line 2)
+        self.assertEqual(str(id2type[10]), "int")	# Constant 2 (line 2)
+        self.assertEqual(str(id2type[12]), "NoneType")	# Assign
+        self.assertEqual(str(id2type[13]), "optional(int) list")	# Name ys (line 3)
+        self.assertEqual(str(id2type[15]), "optional(int) list")	# Name xs (line 3)
+        self.assertEqual(str(id2type[17]), "NoneType")	# Expr
+        self.assertEqual(str(id2type[18]), "NoneType")	# Call xs.append(None) (line 4)
+        self.assertEqual(str(id2type[19]), "NoneType -> NoneType")	# Attribute xs.append (line 4)
+        self.assertEqual(str(id2type[20]), "optional(int) list")	# Name xs (line 4)
+        self.assertEqual(str(id2type[23]), "NoneType")	# Constant None (line 4)
+        self.assertEqual(str(id2type[24]), "optional(int) list")	# Return
+        self.assertEqual(str(id2type[25]), "optional(int) list")	# Name ys (line 5)
+
+
 # ==============================================================================
 
 class TestOtherDataTypes(unittest.TestCase):
@@ -539,8 +567,8 @@ class TestAssign(unittest.TestCase):
 
         self.assertEqual(str(id2type[1]), "class Test -> int list")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
-        self.assertEqual(str(id2type[6]), "[int, int, int]")	# Name x (line 2)
-        self.assertEqual(str(id2type[8]), "[int, int, int]")	# List (line 2)
+        self.assertEqual(str(id2type[6]), "int list")	# Name x (line 2)
+        self.assertEqual(str(id2type[8]), "int list")	# List (line 2)
         self.assertEqual(str(id2type[9]), "int")	# Num (line 2)
         self.assertEqual(str(id2type[10]), "int")	# Num (line 2)
         self.assertEqual(str(id2type[11]), "int")	# Num (line 2)

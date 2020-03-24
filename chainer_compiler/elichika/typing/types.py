@@ -31,8 +31,6 @@ class TyObj():  # base type, meaning 'unknown'
     def __repr__(self):
         return self.__str__()
 
-    def is_mutable(self):
-        pass
     # dereference internal type
     def deref(self):
         return self
@@ -44,8 +42,6 @@ class TyNone(TyObj):
         return "NoneType"
     def __eq__(self, other):
         return isinstance(other, TyNone)
-    def is_mutable(self):
-        return False
 
 
 class NumKind(IntEnum):
@@ -74,9 +70,6 @@ class TyNum(TyObj):
     def __eq__(self, other):
         return isinstance(other, TyNum) and self.kind == other.kind
 
-    def is_mutable(self):
-        return False
-
     def coerce_value(self):
         if self.value is None:
             return
@@ -104,8 +97,6 @@ class TyString(TyObj):
         return "string"
     def __eq__(self, other):
         return isinstance(other, TyString)
-    def is_mutable(self):
-        return False
 
 
 class TyArrow(TyObj):
@@ -122,9 +113,6 @@ class TyArrow(TyObj):
     def __eq__(self, other):
         return isinstance(other, TyArrow) and self.argty == other.argty and \
                 self.retty == other.retty
-
-    def is_mutable(self):
-        return False
 
     def deref(self):
         self.argty = [t.deref() for t in self.argty]
@@ -168,9 +156,6 @@ class TySequence(TyObj):
     def __getitem__(self, i):
         assert self.is_fixed_len
         return self._ty[i]
-
-    def is_mutable(self):
-        return self.kind == SequenceKind.LIST
 
     def size(self):
         if self.is_fixed_len:
@@ -236,9 +221,6 @@ class TyDict(TyObj):
         return isinstance(other, TyDict) and self.keyty == other.keyty and \
                 self.valty == other.valty
 
-    def is_mutable(self):
-        return True
-
     def deref(self):
         self.keyty = self.keyty.deref()
         self.valty = self.valty.deref()
@@ -254,9 +236,6 @@ class TyUserDefinedClass(TyObj):
 
     def show(self):
         return "class " + self.name
-
-    def is_mutable(self):
-        return True
 
 
 class TyOptional(TyObj):
@@ -307,9 +286,6 @@ class TyTensor(TyObj):
     def __eq__(self, other):
         # TODO: shape?
         return isinstance(other, TyTensor) and self.dtype == other.dtype
-
-    def is_mutable(self):
-        return True
 
     def is_ndarray(self):
         return self.kind == TensorKind.ndarray
@@ -384,11 +360,6 @@ class TyVar(TyObj):
         if self.ty is None:
             return self is other
         return self.deref() == other.deref()
-
-    def is_mutable(self):
-        if self.is_set:
-            return self.ty.is_mutable()
-        return False
 
     def set(self, ty):
         assert self.is_set == False
@@ -556,8 +527,7 @@ def copy_ty(ty):
             return TySequence(ty.kind, [copy_ty(t) for t in ty.get_tys()])
         return TySequence(ty.kind, copy_ty(ty.get_ty()))
     elif isinstance(ty, TyDict):
-        # XXX: do not copy instance
-        return TyDict(ty.keyty, ty.valty)
+        return TyDict(copy_ty(ty.keyty), copy_ty(ty.valty))
     elif isinstance(ty, TyUserDefinedClass):
         return TyUserDefinedClass(ty.name, ty.instance)
     elif isinstance(ty, TyDType):
@@ -565,10 +535,9 @@ def copy_ty(ty):
     elif isinstance(ty, TyTensor):
         return TyTensor(ty.kind, ty.dtype, ty.shape)
     elif isinstance(ty, TyVar):
-        ret = TyVar(None)
         if ty.ty is not None:
-            ret.set(ty.deref())
-        return ret
+            return ty.deref()
+        return ty
     elif isinstance(ty, TyOptional):
         return TyOptional(ty.ty)
     assert False, "copy_ty: {}".format(ty)
@@ -612,61 +581,79 @@ def occur(var, ty):
     return False
 
 
+# Solves constraint over type variables and the element of TyList,
+# which needs a special care since it is an invariant type
 def unify(ty1, ty2):
     ty1 = ty1.deref()
     ty2 = ty2.deref()
 
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
-        return
+        return TyNone()
+
+    if isinstance(ty1, TyNone):
+        if isinstance(ty2, TyOptional):
+            return ty2
+        return TyOptional(ty2)
+    if isinstance(ty2, TyNone):
+        if isinstance(ty1, TyOptional):
+            return ty1
+        return TyOptional(ty1)
+
+    if isinstance(ty1, TyOptional) and isinstance(ty2, TyOptional):
+        return TyOptional(unify(ty1.ty, ty2.ty))
+    if isinstance(ty1, TyOptional):
+        return TyOptional(unify(ty1.ty, ty2))
+    if isinstance(ty2, TyOptional):
+        return TyOptional(unify(ty1, ty2.ty))
 
     if isinstance(ty1, TyVar):
         if isinstance(ty2, TyVar) and ty1 is ty2:
-            return
+            return ty1
         if occur(ty1, ty2):
             raise UnifyError(ty1, ty2)
         ty1.set(ty2)
-        return
+        return ty2
 
     if isinstance(ty2, TyVar):
         if occur(ty2, ty1):
             raise UnifyError(ty1, ty2)
         ty2.set(ty1)
-        return
+        return ty1
 
     if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
         ty1.kind = ty2.kind = max(ty1.kind, ty2.kind)
         ty1.coerce_value()
         ty2.coerce_value()
-        return
+        if ty1.value == ty2.value:
+            return TyNum(ty1.kind, ty1.value)
+        return TyNum(ty1.kind)
 
     if isinstance(ty1, TyString) and isinstance(ty2, TyString):
-        return
-
-    if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow) and \
-            len(ty1.argty) == len(ty2.argty):
-        for at1, at2 in zip(ty1.argty, ty2.argty):
-            unify(at1, at2)
-        unify(ty1.retty, ty2.retty)
-        return
+        if ty1.value == ty2.value:
+            return TyString(ty1.value)
+        return TyString()
 
     if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
-        if ty1.is_fixed_len and ty2.is_fixed_len:
-            if not len(ty1.get_tys()) == len(ty2.get_tys()):
-                ty1.coerce_to_variable_len()
-                ty2.coerce_to_variable_len()
-                unify(ty1.get_ty(), ty2.get_ty())
-                return
-            for t1, t2 in zip(ty1.get_tys(), ty2.get_tys()):
-                unify(t1, t2)
-            return
-        if ty1.is_fixed_len and not ty2.is_fixed_len:
-            ty1.coerce_to_variable_len()
-            unify(ty1.get_ty(), ty2.get_ty())
-        elif (not ty1.is_fixed_len) and ty2.is_fixed_len:
-            ty2.coerce_to_variable_len()
-            unify(ty1.get_ty(), ty2.get_ty())
-        unify(ty1.get_ty(), ty2.get_ty())
-        return
+        if ty1.kind:
+            if ty2.kind and not ty1.kind == ty2.kind:
+                raise UnifyError(ty1, ty2)
+            kind = ty1.kind
+        else:
+            kind = ty2.kind
+
+        if ty1.is_fixed_len and ty2.is_fixed_len and \
+                len(ty1.get_tys()) == len(ty2.get_tys()):
+            # Overwrite the content of the sequence
+            tys = [unify(t1, t2) for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())]
+            ty1._ty = tys
+            ty2._ty = tys
+            return TySequence(kind, tys)
+        ty1.coerce_to_variable_len()
+        ty2.coerce_to_variable_len()
+        ty = unify(ty1.get(), ty2.get())
+        ty1._ty = ty
+        ty2._ty = ty
+        return TySequence(kind, ty)
 
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
         keyty = unify(ty1.keyty, ty2.keyty)
@@ -679,30 +666,29 @@ def unify(ty1, ty2):
         utils.set_attr_if_None(ty1, ty2, 'kind')
 
         if ty1.dtype == ty2.dtype and ty1.ndim == ty2.ndim:
-            unify_shape(ty1.shape, ty2.shape)
-            return
+            return TyTensor(ty1.kind, ty1.dtype, unify_shape(ty1.shape, ty2.shape))
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyNum):
         if ty1.ndim == 0:
-            return
+            return ty1 # TODO
 
     if isinstance(ty1, TyNum) and isinstance(ty2, TyTensor):
         if ty2.ndim == 0:
-            return
+            return ty2 # TODO
 
     if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
         assert ty1.t == ty2.t
-        return
+        return ty1
 
     if isinstance(ty1, TyUserDefinedClass) and \
             isinstance(ty2, TyUserDefinedClass):
         if ty1.name == ty2.name:
-            return
+            return ty1
         # TODO(momohatt): Find least common superclass and check that
         # it is not 'object'
         if isinstance(ty1.instance, torch.nn.Module) and \
                 isinstance(ty2.instance, torch.nn.Module):
-            return
+            return ty1 # TODO
 
     raise UnifyError(ty1, ty2)
 
@@ -761,15 +747,13 @@ def join(ty1, ty2):
         if ty1.kind == ty2.kind:
             kind = ty1.kind
             if ty1.is_fixed_len and ty2.is_fixed_len:
-                if not len(ty1.get_tys()) == len(ty2.get_tys()):
-                    return TySequence(kind, join(ty1.get(), ty2.get()))
-                return TySequence(kind, [join(t1, t2)
-                    for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())])
+                if len(ty1.get_tys()) == len(ty2.get_tys()):
+                    return TySequence(kind, [join(t1, t2)
+                        for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())])
             return TySequence(kind, join(ty1.get(), ty2.get()))
 
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
-        if ty1.keyty == ty2.keyty and ty1.valty == ty2.valty:
-            return TyDict(ty1.keyty, ty1.valty)
+        return TyDict(join(ty1.keyty, ty2.keyty), join(ty1.valty, ty2.valty))
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         if ty1.kind == ty2.kind and ty1.dtype == ty2.dtype and \
