@@ -22,8 +22,9 @@ class IDAssignor(gast.NodeVisitor):
     def run(self, node, subroutine_node):
         self.visit(node)
 
-        for n in subroutine_node.values():
-            self.visit(n)
+        for ns in subroutine_node.values():
+            for n in ns:
+                self.visit(n)
 
         return self.node2id
 
