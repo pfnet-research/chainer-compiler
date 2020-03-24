@@ -130,7 +130,7 @@ class InferenceEngine():
         self.is_debug = is_debug
         self.module = module
 
-        # map from user-defined function call points to inlined function ASTs
+        # map from user-defined function call points to a list of inlined function ASTs
         # Node (Call) -> Node (FunctionDef)
         self.subroutine_node = collections.OrderedDict()
 
@@ -365,7 +365,10 @@ class InferenceEngine():
         code = clip_head(inspect.getsource(func_body))
         # FunctionDef of called subroutine
         func_node = gast.ast_to_gast(ast.parse(code)).body[0]
-        self.subroutine_node[node] = func_node
+        if node not in self.subroutine_node.keys():
+            self.subroutine_node[node] = [func_node]
+        else:
+            self.subroutine_node[node].append(func_node)
         tc = InferenceEngine(is_debug=self.is_debug,
                 module=sys.modules[func.__module__])
         tc.infer_function(func_node, ty_args,
