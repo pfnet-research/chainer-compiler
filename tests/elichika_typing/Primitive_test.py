@@ -408,6 +408,32 @@ class TestOtherDataTypes(unittest.TestCase):
         self.assertEqual(str(id2type[10]), "NoneType")	# Constant None (line 2)
 
 
+    def test_dict_assign(self):
+        class Test():
+            def forward(self):
+                d = {}
+                d[None] = 0
+                d[1] = 1.0
+                return d
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "class Test -> {optional(int) : float}")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Assign
+        self.assertEqual(str(id2type[6]), "{optional(int) : float}")	# Name d (line 2)
+        self.assertEqual(str(id2type[8]), "{optional(int) : float}")	# Dict  (line 2)
+        self.assertEqual(str(id2type[9]), "NoneType")	# Assign
+        self.assertEqual(str(id2type[11]), "{optional(int) : float}")	# Name d (line 3)
+        self.assertEqual(str(id2type[14]), "NoneType")	# Constant None (line 3)
+        self.assertEqual(str(id2type[16]), "float")	# Constant 0 (line 3)
+        self.assertEqual(str(id2type[17]), "NoneType")	# Assign
+        self.assertEqual(str(id2type[19]), "{optional(int) : float}")	# Name d (line 4)
+        self.assertEqual(str(id2type[22]), "int")	# Constant 1 (line 4)
+        self.assertEqual(str(id2type[24]), "float")	# Constant 1.0 (line 4)
+        self.assertEqual(str(id2type[25]), "{optional(int) : float}")	# Return
+        self.assertEqual(str(id2type[26]), "{optional(int) : float}")	# Name d (line 5)
+
+
     def test_optional(self):
         class Test():
             def forward(self):
