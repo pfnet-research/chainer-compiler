@@ -490,7 +490,7 @@ class InferenceEngine():
             ty_index  = self.infer_expr(target.slice.value).deref()
 
             if isinstance(ty_target, TySequence) and ty_target.is_list():
-                unify(ty_index, TyInt())
+                unify(ty_index, TyInt()) # TODO: Should be a subtype constraint
                 unify(ty_target, TyList(ty_val))
                 return
 
@@ -514,6 +514,18 @@ class InferenceEngine():
             ty_obj = self.nodetype[node.target.value]
             assert isinstance(ty_obj, TyUserDefinedClass)
             self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = ty_val
+
+        if isinstance(node.target, gast.Subscript):
+            assert isinstance(node.target.slice, gast.Index)
+            ty_target = self.infer_expr(node.target.value).deref()
+            ty_index  = self.infer_expr(node.target.slice.value).deref()
+
+            if isinstance(ty_target, TySequence) and ty_target.is_list():
+                unify(ty_index, TyInt()) # TODO: Should be a subtype constraint
+                unify(ty_target, TyList(ty_val))
+
+            if isinstance(ty_target, TyDict):
+                unify(ty_target, TyDict(ty_index, ty_val))
 
         self.nodetype[node.op] = TyArrow([tyl, tyr], ty_val)
         self.nodetype[node.target] = ty_val

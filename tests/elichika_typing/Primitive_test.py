@@ -340,6 +340,31 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[25]), "optional(int) list")	# Name ys (line 5)
 
 
+    def test_list_augassign(self):
+        class Test():
+            def forward(self):
+                l = [1, 2, 3]
+                l[1] += 1.0
+                return l
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "class Test -> float list")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Assign
+        self.assertEqual(str(id2type[6]), "float list")	# Name l (line 2)
+        self.assertEqual(str(id2type[8]), "float list")	# List [1, 2, 3] (line 2)
+        self.assertEqual(str(id2type[9]), "int")	# Constant 1 (line 2)
+        self.assertEqual(str(id2type[10]), "int")	# Constant 2 (line 2)
+        self.assertEqual(str(id2type[11]), "int")	# Constant 3 (line 2)
+        self.assertEqual(str(id2type[13]), "NoneType")	# AugAssign
+        self.assertEqual(str(id2type[14]), "float")	# Subscript d[1] (line 3)
+        self.assertEqual(str(id2type[15]), "float list")	# Name l (line 3)
+        self.assertEqual(str(id2type[18]), "int")	# Constant 1 (line 3)
+        self.assertEqual(str(id2type[21]), "float")	# Constant 1.0 (line 3)
+        self.assertEqual(str(id2type[22]), "float list")	# Return
+        self.assertEqual(str(id2type[23]), "float list")	# Name l (line 4)
+
+
 # ==============================================================================
 
 class TestOtherDataTypes(unittest.TestCase):
