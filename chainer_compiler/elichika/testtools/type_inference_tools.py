@@ -6,7 +6,7 @@ import typing
 
 from chainer_compiler.elichika.typing import types
 from chainer_compiler.elichika.typing.type_inference import InferenceEngine
-from chainer_compiler.elichika.typing.utils import node_description
+from chainer_compiler.elichika.typing.utils import node_description, is_expr
 from chainer_compiler.elichika.parser import utils
 
 class IDAssignor(gast.NodeVisitor):
@@ -67,9 +67,14 @@ def generate_id2type(node2type, node2id):
 def generate_assertion(type_table_name, id2type, id2node, ofile=None):
     for i, t in sorted(id2type.items()):
         node = id2node[i]
-        comment = "\t# " + node_description(node)
-        output = "        self.assertEqual(str({}[{}]), \"{}\"){}".format( \
-                type_table_name, i, t, comment)
+        if not is_expr(node):
+            if not isinstance(node, gast.FunctionDef):
+                continue
+            output = "        # === function {} ===".format(node.name)
+        else:
+            comment = "\t# " + node_description(node)
+            output = "        self.assertEqual(str({}[{}]), \"{}\"){}".format( \
+                    type_table_name, i, t, comment)
         if ofile is None:
             print(output)
         else:
