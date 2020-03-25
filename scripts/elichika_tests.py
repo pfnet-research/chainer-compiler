@@ -132,6 +132,8 @@ def print_test_generators(dirname):
         tests.append(
             os.path.join('testcases/elichika_tests', gen.dirname,
                          gen.filename + '.py'))
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    tests = [os.path.join(base_dir, t) for t in tests]
     print(';'.join(tests))
 
 
