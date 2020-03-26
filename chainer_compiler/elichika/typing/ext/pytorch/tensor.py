@@ -96,41 +96,11 @@ class ty_TorchCat():
 
     def __call__(self, ty_args, ty_kwargs):
         xs_type, = ty_args
-        assert isinstance(xs_type, TySequence)
+        assert isinstance(xs_type, TyList)
         self.dim, lacks_dim = get_kwarg(ty_kwargs, 'dim', default=0)
 
-        if lacks_value(xs_type) or lacks_dim:
-            x_type = xs_type.get()
-            return TyTorchTensor(x_type.dtype, ndim=x_type.ndim)
-
-        self.check_type_forward(type_check.Variable(xs_type, 'xs'))
-        return self.infer_return(xs_type)
-
-    def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() > 0)
-        type_check.expect(in_types[0].ndim >
-                          type_check.make_variable(self.dim, 'dim'))
-
-        type_check.expect(
-            -in_types[0].ndim <= self.dim,
-            self.dim < in_types[0].ndim
-        )
-        ndim = type_check.eval(in_types[0].ndim)
-        dim = self.dim % ndim
-        for i in range(1, type_check.eval(in_types.size())):
-            type_check.expect(
-                in_types[0].dtype == in_types[i].dtype,
-                in_types[0].ndim == in_types[i].ndim,
-            )
-            for d in range(0, ndim):
-                if d == dim:
-                    continue
-                type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
-
-    def infer_return(self, xs_type):
-        ret_shape = list(xs_type[0].shape)
-        ret_shape[self.dim] = sum([x_type.shape[self.dim] for x_type in xs_type])
-        return TyTorchTensor(xs_type[0].dtype, shape=ret_shape)
+        x_type = xs_type.ty
+        return TyTorchTensor(x_type.dtype, ndim=x_type.ndim)
 
 
 class ty_TorchChunk():
@@ -173,7 +143,7 @@ class ty_TorchNumpy():
 class ty_TorchReshape():
     def __call__(self, ty_args, ty_kwargs):
         x_type, shape_type = ty_args
-        assert isinstance(shape_type, TySequence)
+        assert isinstance(shape_type, TyTuple)
         assert shape_type.is_fixed_len
 
         self.shape = extract_value_from_ty(shape_type)
@@ -211,7 +181,7 @@ class ty_TorchSplit():
             return self.infer_return_size(x_type, size)
 
         sections_type = split_size_or_sections_type
-        assert isinstance(sections_type, TySequence)
+        assert isinstance(sections_type, TyTuple)
         return self.infer_return_sections(x_type, sections_type)
 
     def infer_return_size(self, x_type, size):
@@ -279,25 +249,21 @@ class ty_TorchStack():
 
     def __call__(self, ty_args, ty_kwargs):
         xs_type, = ty_args
-        assert isinstance(xs_type, TySequence)
-
-        if xs_type.is_fixed_len:
-            for ty in xs_type.get_tys():
-                unify(xs_type.get(), ty)
+        assert isinstance(xs_type, TyList)
 
         self.dim, lacks_dim = get_kwarg(ty_kwargs, 'dim', default=0)
 
         if lacks_dim:
-            x_type = xs_type.get()
+            x_type = xs_type.ty
             return TyTorchTensor(x_type.dtype, ndim=x_type.ndim + 1)
 
-        self.dim %= xs_type.get().ndim + 1
+        self.dim %= xs_type.ty.ndim + 1
         return self.infer_return(xs_type)
 
     def infer_return(self, xs_type):
-        ret_shape = list(xs_type.get().shape)
-        ret_shape.insert(self.dim, ShapeElem(xs_type.size()))
-        return TyTorchTensor(xs_type.get().dtype, shape=ret_shape)
+        ret_shape = list(xs_type.ty.shape)
+        ret_shape.insert(self.dim, ShapeElem(None))
+        return TyTorchTensor(xs_type.ty.dtype, shape=ret_shape)
 
 
 class ty_TorchTranspose():

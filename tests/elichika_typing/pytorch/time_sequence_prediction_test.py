@@ -17,8 +17,8 @@ class TestSequence(unittest.TestCase):
 
         # === BEGIN ASSERTIONS for Sequence ===
         # === function forward ===
-        self.assertEqual(str(id2type[10]), "[]")	# Name outputs (line 2)
-        self.assertEqual(str(id2type[12]), "[]")	# List [] (line 2)
+        self.assertEqual(str(id2type[10]), "torch.Tensor(float64, (3, 1)) list")	# Name outputs (line 2)
+        self.assertEqual(str(id2type[12]), "torch.Tensor(float64, (3, 1)) list")	# List [] (line 2)
         self.assertEqual(str(id2type[15]), "torch.Tensor(float64, (3, 51))")	# Name h_t (line 3)
         self.assertEqual(str(id2type[17]), "torch.Tensor(float64, (3, 51))")	# Call torch.zeros(input.size(0), 51, dtype=torch.double) (line 3)
         self.assertEqual(str(id2type[22]), "int")	# Call input.size(0) (line 3)
@@ -80,7 +80,7 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[162]), "class Sequence")	# Name self (line 11)
         self.assertEqual(str(id2type[165]), "torch.Tensor(float64, (3, 51))")	# Name h_t2 (line 11)
         self.assertEqual(str(id2type[168]), "torch.Tensor(float64, (3, 1)) list")	# Name outputs (line 12)
-        self.assertEqual(str(id2type[171]), "[torch.Tensor(float64, (3, 1))]")	# List [output] (line 12)
+        self.assertEqual(str(id2type[171]), "torch.Tensor(float64, (3, 1)) list")	# List [output] (line 12)
         self.assertEqual(str(id2type[172]), "torch.Tensor(float64, (3, 1))")	# Name output (line 12)
         self.assertEqual(str(id2type[176]), "int")	# Name i (line 13)
         self.assertEqual(str(id2type[178]), "int list")	# Call range(future) (line 13)
@@ -108,7 +108,7 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[228]), "class Sequence")	# Name self (line 16)
         self.assertEqual(str(id2type[231]), "torch.Tensor(float64, (3, 51))")	# Name h_t2 (line 16)
         self.assertEqual(str(id2type[234]), "torch.Tensor(float64, (3, 1)) list")	# Name outputs (line 17)
-        self.assertEqual(str(id2type[237]), "[torch.Tensor(float64, (3, 1))]")	# List [output] (line 17)
+        self.assertEqual(str(id2type[237]), "torch.Tensor(float64, (3, 1)) list")	# List [output] (line 17)
         self.assertEqual(str(id2type[238]), "torch.Tensor(float64, (3, 1))")	# Name output (line 17)
         self.assertEqual(str(id2type[242]), "torch.Tensor(float64, (3, None))")	# Name outputs (line 19)
         self.assertEqual(str(id2type[244]), "torch.Tensor(float64, (3, None))")	# Call torch.stack(outputs, dim=1).squeeze(dim=2) (line 19)

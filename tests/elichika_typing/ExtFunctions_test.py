@@ -22,9 +22,9 @@ class TestNumpy(unittest.TestCase):
 
         self.assertEqual(str(id2type[1]), "class Test -> NoneType")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[5]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[6]), "ndarray(int64, (1,))")	# Name x (line 2)
-        self.assertEqual(str(id2type[8]), "ndarray(int64, (1,))")	# Call np.array([0]) (line 2)
-        self.assertEqual(str(id2type[13]), "[int]")	# List [0] (line 2)
+        self.assertEqual(str(id2type[6]), "ndarray(int64, (None,))")	# Name x (line 2)
+        self.assertEqual(str(id2type[8]), "ndarray(int64, (None,))")	# Call np.array([0]) (line 2)
+        self.assertEqual(str(id2type[13]), "int list")	# List [0] (line 2)
         self.assertEqual(str(id2type[14]), "int")	# Num 0 (line 2)
         self.assertEqual(str(id2type[16]), "NoneType")	# Assign
         self.assertEqual(str(id2type[17]), "ndarray(float64, ())")	# Name y (line 3)
@@ -32,9 +32,9 @@ class TestNumpy(unittest.TestCase):
         self.assertEqual(str(id2type[24]), "int")	# Num 0 (line 3)
         self.assertEqual(str(id2type[26]), "dtype(float64)")	# Attribute np.float64 (line 3)
         self.assertEqual(str(id2type[30]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[31]), "ndarray(float32, (1,))")	# Name z (line 4)
-        self.assertEqual(str(id2type[33]), "ndarray(float32, (1,))")	# Call np.array([0], dtype='float32') (line 4)
-        self.assertEqual(str(id2type[38]), "[int]")	# List [0] (line 4)
+        self.assertEqual(str(id2type[31]), "ndarray(float32, (None,))")	# Name z (line 4)
+        self.assertEqual(str(id2type[33]), "ndarray(float32, (None,))")	# Call np.array([0], dtype='float32') (line 4)
+        self.assertEqual(str(id2type[38]), "int list")	# List [0] (line 4)
         self.assertEqual(str(id2type[39]), "int")	# Num 0 (line 4)
         self.assertEqual(str(id2type[42]), "string")	# Str 'float32' (line 4)
         self.assertEqual(str(id2type[43]), "NoneType")	# Assign
@@ -216,18 +216,6 @@ class TestNumpy(unittest.TestCase):
         self.assertEqual(str(id2type[22]), "int")	# Num 1 (line 3)
 
 
-    def test_concat(self):
-        pass
-
-
-    def test_stack(self):
-        pass
-
-
-    def test_hstack(self):
-        pass
-
-
     def test_vstack(self):
         class Test():
             def forward(self):
@@ -237,8 +225,8 @@ class TestNumpy(unittest.TestCase):
 
         self.assertEqual(str(id2type[1]), "class Test -> NoneType")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[5]), "NoneType")	# Expr
-        self.assertEqual(str(id2type[6]), "Variable(float64, (3, 3, 4))")	# Call F.vstack([np.zeros((1, 3, 4)), np.zeros((2, 3, 4))]) (line 2)
-        self.assertEqual(str(id2type[11]), "[ndarray(float64, (1, 3, 4)), ndarray(float64, (2, 3, 4))]")	# List [np.zeros((1, 3, 4)), np.zeros((2, 3, 4))] (line 2)
+        self.assertEqual(str(id2type[6]), "Variable(float64, (None, 3, 4))")	# Call F.vstack([np.zeros((1, 3, 4)), np.zeros((2, 3, 4))]) (line 2)
+        self.assertEqual(str(id2type[11]), "ndarray(float64, (None, 3, 4)) list")	# List [np.zeros((1, 3, 4)), np.zeros((2, 3, 4))] (line 2)
         self.assertEqual(str(id2type[12]), "ndarray(float64, (1, 3, 4))")	# Call np.zeros((1, 3, 4)) (line 2)
         self.assertEqual(str(id2type[17]), "(int, int, int)")	# Tuple (1, 3, 4) (line 2)
         self.assertEqual(str(id2type[18]), "int")	# Num 1 (line 2)

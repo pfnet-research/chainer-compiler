@@ -7,20 +7,27 @@ __all__ = [ 'ty_ops' ]
 
 
 def ty_ops(op, tyl, tyr):
-    if isinstance(tyl, TySequence) and isinstance(tyr, TyNum):
+    if isinstance(tyl, TyList) and isinstance(tyr, TyNum):
+        assert tyr.is_int()
+        assert isinstance(op, gast.Mult)
+        return copy_ty(tyl)
+
+    if isinstance(tyl, TyTuple) and isinstance(tyr, TyNum):
         assert tyr.is_int()
         assert isinstance(op, gast.Mult)
         if tyr.value is None:
-            return TySequence(tyl.kind, tyl.get())
-        return TySequence(tyl.kind, [tyl.get() for _ in range(tyr.value)])
+            return TyTuple(tyl.get())
+        return TyTuple([tyl.get() for _ in range(tyr.value)])
 
-    if isinstance(tyl, TySequence) and isinstance(tyr, TySequence):
-        assert tyl.kind == tyr.kind
+    if isinstance(tyl, TyList) and isinstance(tyr, TyList):
         assert isinstance(op, gast.Add)
-        if tyl.is_fixed_len and tyr.is_fixed_len and tyl.is_tuple():
-            return TySequence(tyl.kind, tyl.get_tys() + tyr.get_tys())
-        # Always make the length unknown for lists.
-        return TySequence(tyl.kind, join(tyl.get(), tyr.get()))
+        return TyList(join(tyl.ty, tyr.ty))
+
+    if isinstance(tyl, TyTuple) and isinstance(tyr, TyTuple):
+        assert isinstance(op, gast.Add)
+        if tyl.is_fixed_len and tyr.is_fixed_len:
+            return TyTuple(tyl.get_tys() + tyr.get_tys())
+        return TyTuple(join(tyl.get(), tyr.get()))
 
     if isinstance(tyl, TyString) and (tyr, TyString):
         if tyl.value is not None and tyr.value is not None:

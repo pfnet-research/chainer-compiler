@@ -472,10 +472,8 @@ class InferenceEngine():
             return
 
         if isinstance(target, (gast.Tuple, gast.List)):
-            if isinstance(target, gast.Tuple):
-                ty_target = TyTuple([self.generate_fresh_TyVar(e) for e in target.elts])
-            else:
-                ty_target = TyList([self.generate_fresh_TyVar(e) for e in target.elts])
+            assert isinstance(target, gast.Tuple)
+            ty_target = TyTuple([self.generate_fresh_TyVar(e) for e in target.elts])
             self.nodetype[target] = ty_target
             unify(ty_target, ty_val)
             for (var, ty) in zip(target.elts, ty_val.deref().get_tys()):
@@ -483,13 +481,28 @@ class InferenceEngine():
                 self.nodetype[var] = ty
             return
 
+        if isinstance(target, gast.Subscript):
+            # Subscript(expr value, slice slice, expr_context ctx)
+            assert isinstance(target.slice, gast.Index)
+            ty_target = self.infer_expr(target.value).deref()
+            ty_index  = self.infer_expr(target.slice.value).deref()
+
+            if isinstance(ty_target, TySequence) and ty_target.is_list():
+                unify(ty_index, TyInt()) # TODO: Should be a subtype constraint
+                unify(ty_target, TyList(ty_val))
+                return
+
+            if isinstance(ty_target, TyDict):
+                unify(ty_target, TyDict(ty_index, ty_val))
+                return
+
 
     def infer_AugAssign(self, node):
         # AugAssign(expr target, operator op, expr value)
         tyr = self.infer_expr(node.value)
         tyl = self.infer_expr(node.target)
         ty_val = call_binop(node.op, node, tyl, tyr)
-        if isinstance(tyl, TySequence) and tyl.is_list():
+        if isinstance(tyl, TyList):
             unify(ty_val, tyl)
 
         if isinstance(node.target, gast.Name):
@@ -499,6 +512,18 @@ class InferenceEngine():
             ty_obj = self.nodetype[node.target.value]
             assert isinstance(ty_obj, TyUserDefinedClass)
             self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = ty_val
+
+        if isinstance(node.target, gast.Subscript):
+            assert isinstance(node.target.slice, gast.Index)
+            ty_target = self.infer_expr(node.target.value).deref()
+            ty_index  = self.infer_expr(node.target.slice.value).deref()
+
+            if isinstance(ty_target, TySequence) and ty_target.is_list():
+                unify(ty_index, TyInt()) # TODO: Should be a subtype constraint
+                unify(ty_target, TyList(ty_val))
+
+            if isinstance(ty_target, TyDict):
+                unify(ty_target, TyDict(ty_index, ty_val))
 
         self.nodetype[node.target] = ty_val
 
@@ -512,8 +537,10 @@ class InferenceEngine():
         if isinstance(ty_iteration, TyTensor):
             unify(ty_i, TyTensor(ty_iteration.kind, ty_iteration.dtype,
                 ty_iteration.shape[1:]))
+        elif isinstance(ty_iteration, TyList):
+            unify(ty_iteration, TyList(ty_i))
         else:
-            unify(ty_iteration, TySequence(None, ty_i))
+            unify(ty_iteration, TyTuple(ty_i))
 
         for _ in range(2):
             tc = copy_InferenceEngine(self)
@@ -594,7 +621,7 @@ class InferenceEngine():
         elif isinstance(node, gast.List):
             # List(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
-            self.nodetype[node] = TyList(elts_ty)
+            self.nodetype[node] = TyList(joins(elts_ty))
         elif isinstance(node, gast.Tuple):
             # Tuple(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
@@ -659,11 +686,12 @@ class InferenceEngine():
         ty_iteration = tc.infer_expr(gen.iter)
         ty_i = tc.generate_fresh_TyVar(gen.target)
         if isinstance(ty_iteration, TyTensor):
-            ty_i_ = TyTensor(ty_iteration.kind, ty_iteration.dtype,
-                    ty_iteration.shape[1:])
-            unify(ty_i, ty_i_)
+            unify(ty_i, TyTensor(ty_iteration.kind, ty_iteration.dtype,
+                ty_iteration.shape[1:]))
+        elif isinstance(ty_iteration, TyList):
+            unify(ty_iteration, TyList(ty_i))
         else:
-            unify(TySequence(None, ty_i), ty_iteration)
+            unify(ty_iteration, TyTuple(ty_i))
         tc.infer_expr(node.elt)
 
         utils.add_dict(self.nodetype, tc.nodetype)
@@ -683,8 +711,7 @@ class InferenceEngine():
 
             ty_obj = self.infer_expr(node.value).deref()
 
-            if isinstance(ty_obj, TySequence) and ty_obj.is_list():
-                ty_obj.coerce_to_variable_len()
+            if isinstance(ty_obj, TyList):
                 return getattr(list, node.attr, None), ty_obj
 
             if isinstance(ty_obj, TyTensor):
@@ -777,21 +804,25 @@ class InferenceEngine():
         # Subscript(expr value, slice slice, expr_context ctx)
         ty_obj = self.infer_expr(node.value)
 
-        if isinstance(ty_obj, TySequence):
+        if isinstance(ty_obj, TyList):
+            self.infer_slice(node.slice)
+            if isinstance(node.slice, gast.Index):
+                return ty_obj.ty
+            if isinstance(node.slice, gast.Slice):
+                return ty_obj
+            assert False, "ExtSlice for lists is not supported"
+
+        if isinstance(ty_obj, TyTuple):
             self.infer_slice(node.slice)
 
-            if ty_obj.is_fixed_len and \
-                    isinstance(node.slice, gast.Index):
+            if ty_obj.is_fixed_len and isinstance(node.slice, gast.Index):
                 t = self.infer_expr(node.slice.value)
                 if isinstance(t, TyNum) and t.value is not None:
                     return ty_obj.get_tys()[t.value]
 
-            if ty_obj.is_fixed_len and \
-                    isinstance(node.slice, gast.Slice) and \
+            if ty_obj.is_fixed_len and isinstance(node.slice, gast.Slice) and \
                     self.is_const_slice(node.slice):
                 slice_ = self.extract_slice(node.slice)
-                if ty_obj.is_list():
-                    return TyList(ty_obj.get_tys()[slice_])
                 return TyTuple(ty_obj.get_tys()[slice_])
 
             ty_obj.coerce_to_variable_len()
@@ -799,7 +830,7 @@ class InferenceEngine():
                 return ty_obj.get_ty()
             if isinstance(node.slice, gast.Slice):
                 return ty_obj
-            assert False, "ExtSlice for lists/tuples is not supported"
+            assert False, "ExtSlice for tuples is not supported"
 
         if isinstance(ty_obj, TyDict):
             self.infer_slice(node.slice, ty_obj.keyty)

@@ -10,7 +10,7 @@ from   chainer_compiler.elichika.typing import utils
 from   chainer_compiler.elichika.typing.shape_elem import *
 
 __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
-          , 'TyString', 'TyArrow', 'TySequence', 'TyList', 'TyTuple'
+          , 'TyString', 'TyArrow', 'TyList', 'TyTuple'
           , 'TyDict', 'TyUserDefinedClass', 'TyDType', 'TyVar', 'TyOptional'
           , 'TyTensor', 'TensorKind'
           , 'TyNdarray', 'TyChainerVariable', 'TyTorchTensor'
@@ -120,38 +120,40 @@ class TyArrow(TyObj):
         return self
 
 
-class SequenceKind(Enum):
-    LIST = 0
-    TUPLE = 1
-
-class TySequence(TyObj):
-    def __init__(self, kind, ty):
+class TyList(TyObj):
+    def __init__(self, ty):
         super().__init__()
-        self.kind = kind
+        self.ty = ty
+
+    def show(self):
+        return "{} list".format(self.ty)
+
+    def __eq__(self, other):
+        return self.ty == other.ty
+
+    def deref(self):
+        self.ty = self.ty.deref()
+        return self
+
+    def get(self):
+        return self.ty
+
+
+class TyTuple(TyObj):
+    def __init__(self, ty):
+        super().__init__()
         self.is_fixed_len = isinstance(ty, list)
         self._ty = ty
 
     def show(self):
         if self.is_fixed_len:
-            if self.kind == SequenceKind.LIST:
-                return "[" + utils.intercalate([str(t) for t in self._ty], ", ") + "]"
-
-            if self.kind == SequenceKind.TUPLE:
-                if len(self._ty) == 1:
-                    return "(" + str(self._ty[0]) + ",)"
-                return "(" + utils.intercalate([str(t) for t in self._ty], ", ") + ")"
-
-            return "{" + utils.intercalate([str(t) for t in self._ty], ", ") + "}"
-
-        if self.kind == SequenceKind.LIST:
-            return str(self._ty) + " list"
-        if self.kind == SequenceKind.TUPLE:
-            return str(self._ty) + " tuple"
-
-        return str(self._ty) + " sequence"
+            if len(self._ty) == 1:
+                return "(" + str(self._ty[0]) + ",)"
+            return "(" + utils.intercalate([str(t) for t in self._ty], ", ") + ")"
+        return str(self._ty) + " tuple"
 
     def __eq__(self, other):
-        return isinstance(other, TySequence) and self._ty == other._ty
+        return isinstance(other, TyTuple) and self._ty == other._ty
 
     def __getitem__(self, i):
         assert self.is_fixed_len
@@ -191,19 +193,6 @@ class TySequence(TyObj):
             self._ty = self.get()
             self.is_fixed_len = False
         return
-
-    def is_list(self):
-        return self.kind == SequenceKind.LIST
-
-    def is_tuple(self):
-        return self.kind == SequenceKind.TUPLE
-
-
-def TyList(ty):  # shorthand notation
-    return TySequence(SequenceKind.LIST, ty)
-
-def TyTuple(ty):  # shorthand notation
-    return TySequence(SequenceKind.TUPLE, ty)
 
 
 class TyDict(TyObj):
@@ -386,13 +375,13 @@ def type_of_value(value):
     if isinstance(value, str):
         return TyString(value=value)
     if isinstance(value, list):
-        return TyList([type_of_value(v) for v in value])
+        return TyList(joins([type_of_value(v) for v in value]))
     if isinstance(value, range):
-        return TyList([type_of_value(v) for v in value])
+        return TyList(joins([type_of_value(v) for v in value]))
     if isinstance(value, enumerate):
-        return TyList([type_of_value(v) for v in value])
+        return TyList(joins([type_of_value(v) for v in value]))
     if isinstance(value, zip):
-        return TyList([type_of_value(v) for v in value])
+        return TyList(joins([type_of_value(v) for v in value]))
     if isinstance(value, tuple):
         return TyTuple([type_of_value(v) for v in value])
     if isinstance(value, dict):
@@ -417,8 +406,6 @@ def type_of_value(value):
         if isinstance(value.value, int):
             return TyInt(value.value)
         return TyInt()
-    if isinstance(value, torch.nn.ModuleList):
-        return TyList([type_of_value(m) for m in value])
 
     return TyUserDefinedClass(type(value).__name__, value)
 
@@ -432,7 +419,9 @@ def lacks_value(ty) -> bool:
         return ty.value is None
     if isinstance(ty, TyString):
         return ty.value is None
-    if isinstance(ty, TySequence):
+    if isinstance(ty, TyList):
+        return True
+    if isinstance(ty, TyTuple):
         if not ty.is_fixed_len:
             return True
         return any([lacks_value(t) for t in ty.get_tys()])
@@ -459,14 +448,12 @@ def generate_dummy_value(ty) -> object:
         if ty.value is not None:
             return ty.value
         return ""
-    if isinstance(ty, TySequence):
+    if isinstance(ty, TyList):
+        return [generate_dummy_value(ty.ty)]
+    if isinstance(ty, TyTuple):
         if ty.is_fixed_len:
-            ret = [generate_dummy_value(t) for t in ty.get_tys()]
-        else:
-            ret = [generate_dummy_value(ty.get_ty())]
-        if ty.is_list():
-            return ret
-        return tuple(ret)
+            return tuple([generate_dummy_value(t) for t in ty.get_tys()])
+        return tuple([generate_dummy_value(ty.get_ty())])
     if isinstance(ty, TyDict):
         return { generate_dummy_value(ty.keyty) : generate_dummy_value(ty.valty) }
     if isinstance(ty, TyTensor):
@@ -500,13 +487,10 @@ def extract_value_from_ty(ty):
         if ty.value is not None:
             return ty.value
         return None
-    if isinstance(ty, TySequence):
+    if isinstance(ty, TyTuple):
         if not ty.is_fixed_len:
             return None
-        ret = [extract_value_from_ty(t) for t in ty.get_tys()]
-        if ty.is_list():
-            return ret
-        return tuple(ret)
+        return tuple([extract_value_from_ty(t) for t in ty.get_tys()])
     if isinstance(ty, TyDict):
         return None
     if isinstance(ty, TyTensor):
@@ -520,25 +504,27 @@ def extract_value_from_ty(ty):
 def copy_ty(ty):
     if isinstance(ty, (TyNone, TyNum, TyString)):
         return deepcopy(ty)
-    elif isinstance(ty, TyArrow):
+    if isinstance(ty, TyArrow):
         return TyArrow([copy_ty(t) for t in ty.argty], copy_ty(ty.retty))
-    elif isinstance(ty, TySequence):
+    if isinstance(ty, TyList):
+        return TyList(copy_ty(ty.ty))
+    if isinstance(ty, TyTuple):
         if ty.is_fixed_len:
-            return TySequence(ty.kind, [copy_ty(t) for t in ty.get_tys()])
-        return TySequence(ty.kind, copy_ty(ty.get_ty()))
-    elif isinstance(ty, TyDict):
+            return TyTuple([copy_ty(t) for t in ty.get_tys()])
+        return TyTuple(copy_ty(ty.get_ty()))
+    if isinstance(ty, TyDict):
         return TyDict(copy_ty(ty.keyty), copy_ty(ty.valty))
-    elif isinstance(ty, TyUserDefinedClass):
+    if isinstance(ty, TyUserDefinedClass):
         return TyUserDefinedClass(ty.name, ty.instance)
-    elif isinstance(ty, TyDType):
+    if isinstance(ty, TyDType):
         return TyDType(ty.t)
-    elif isinstance(ty, TyTensor):
+    if isinstance(ty, TyTensor):
         return TyTensor(ty.kind, ty.dtype, ty.shape)
-    elif isinstance(ty, TyVar):
+    if isinstance(ty, TyVar):
         if ty.ty is not None:
             return ty.deref()
         return ty
-    elif isinstance(ty, TyOptional):
+    if isinstance(ty, TyOptional):
         return TyOptional(ty.ty)
     assert False, "copy_ty: {}".format(ty)
 
@@ -572,7 +558,9 @@ def occur(var, ty):
         return occur(var, ty.ty)
     if isinstance(ty, TyArrow):
         return any([occur(var, t) for t in ty.argty]) or occur(var, ty.retty)
-    if isinstance(ty, TySequence):
+    if isinstance(ty, TyList):
+        return occur(var, ty.ty)
+    if isinstance(ty, TyTuple):
         if ty.is_fixed_len:
             return any([occur(var, t) for t in ty.get_tys()])
         return occur(var, ty.get_ty())
@@ -633,27 +621,24 @@ def unify(ty1, ty2):
             return TyString(ty1.value)
         return TyString()
 
-    if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
-        if ty1.kind:
-            if ty2.kind and not ty1.kind == ty2.kind:
-                raise UnifyError(ty1, ty2)
-            kind = ty1.kind
-        else:
-            kind = ty2.kind
+    if isinstance(ty1, TyList) and isinstance(ty2, TyList):
+        ty = unify(ty1.ty, ty2.ty)
+        ty1.ty = ty2.ty = ty
+        return TyList(ty)
 
+    if isinstance(ty1, TyTuple) and isinstance(ty2, TyTuple):
         if ty1.is_fixed_len and ty2.is_fixed_len and \
                 len(ty1.get_tys()) == len(ty2.get_tys()):
             # Overwrite the content of the sequence
             tys = [unify(t1, t2) for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())]
             ty1._ty = tys
             ty2._ty = tys
-            return TySequence(kind, tys)
+            return TyTuple(tys)
         ty1.coerce_to_variable_len()
         ty2.coerce_to_variable_len()
         ty = unify(ty1.get(), ty2.get())
-        ty1._ty = ty
-        ty2._ty = ty
-        return TySequence(kind, ty)
+        ty1._ty = ty2._ty = ty
+        return TyTuple(ty)
 
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
         keyty = unify(ty1.keyty, ty2.keyty)
@@ -743,14 +728,15 @@ def join(ty1, ty2):
             return TyString(ty1.value)
         return TyString()
 
-    if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
-        if ty1.kind == ty2.kind:
-            kind = ty1.kind
-            if ty1.is_fixed_len and ty2.is_fixed_len:
-                if len(ty1.get_tys()) == len(ty2.get_tys()):
-                    return TySequence(kind, [join(t1, t2)
-                        for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())])
-            return TySequence(kind, join(ty1.get(), ty2.get()))
+    if isinstance(ty1, TyList) and isinstance(ty2, TyList):
+        return TyList(join(ty1.ty, ty2.ty))
+
+    if isinstance(ty1, TyTuple) and isinstance(ty2, TyTuple):
+        if ty1.is_fixed_len and ty2.is_fixed_len:
+            if len(ty1.get_tys()) == len(ty2.get_tys()):
+                return TyTuple([join(t1, t2)
+                    for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())])
+        return TyTuple(join(ty1.get(), ty2.get()))
 
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
         return TyDict(join(ty1.keyty, ty2.keyty), join(ty1.valty, ty2.valty))
@@ -778,9 +764,13 @@ def joins(tys):
 
 
 def apply_subst(subst, ty):
-    if isinstance(ty, TySequence):
-        return TySequence(ty.kind,
-                [apply_subst(subst, t) for t in ty.get_tys()])
+    if isinstance(ty, TyList):
+        return TyList(apply_subst(subst, ty.ty))
+
+    if isinstance(ty, TyTuple):
+        if ty.is_fixed_len:
+            return TyTuple([apply_subst(subst, t) for t in ty.get_tys()])
+        return TyTuple(apply_subst(subst, ty.ty))
 
     if isinstance(ty, TyDict):
         return TyDict(apply_subst(subst, ty.keyty),
@@ -813,7 +803,10 @@ def match_type(ty1, ty2):
     if isinstance(ty1, TyString) and isinstance(ty2, TyString):
         return {}
 
-    if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
+    if isinstance(ty1, TyList) and isinstance(ty2, TyList):
+        return match_types(ty1.ty, ty2.ty)
+
+    if isinstance(ty1, TyTuple) and isinstance(ty2, TyTuple):
         assert ty1.is_fixed_len and ty2.is_fixed_len
         if len(ty1.get_tys()) == len(ty2.get_tys()):
             return match_types(ty1.get_tys(), ty2.get_tys())
