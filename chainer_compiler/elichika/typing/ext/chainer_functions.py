@@ -113,17 +113,17 @@ class ty_ChainerConcat():
 
     def __call__(self, ty_args, ty_kwargs):
         xs_type, = ty_args
-
-        if isinstance(xs_type, TyList):
-            x_type = xs_type.ty
-            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
-
-        assert isinstance(xs_type, TyTuple)
+        assert isinstance(xs_type, (TyList, TyTuple))
+        x_type = xs_type.get()
         self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', default=1)
 
-        if lacks_value(xs_type) or lacks_axis:
-            x_type = xs_type.get()
+        if lacks_axis:
             return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
+
+        if lacks_value(xs_type):
+            ret_shape = list(x_type.shape)
+            ret_shape[self.axis] = None
+            return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
         self.check_type_forward(type_check.Variable(xs_type, 'xs'))
         return self.infer_return(xs_type)
@@ -585,12 +585,6 @@ class ty_ChainerPadSequence():
 
         if isinstance(xs_type, TyList) or \
                 (isinstance(xs_type, TyTuple) and not xs_type.is_fixed_len):
-            ret_shape = list((None,) * (xs_type.ty.ndim + 1))
-            if not lacks_length:
-                ret_shape[1] = self.length
-            return TyChainerVariable(xs_type.ty.dtype, shape=ret_shape)
-
-        if not xs_type.is_fixed_len:
             ret_shape = list((None,) * (xs_type.get().ndim + 1))
             if not lacks_length:
                 ret_shape[1] = self.length
