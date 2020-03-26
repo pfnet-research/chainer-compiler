@@ -487,7 +487,7 @@ class InferenceEngine():
             ty_target = self.infer_expr(target.value).deref()
             ty_index  = self.infer_expr(target.slice.value).deref()
 
-            if isinstance(ty_target, TySequence) and ty_target.is_list():
+            if isinstance(ty_target, TyList):
                 unify(ty_index, TyInt()) # TODO: Should be a subtype constraint
                 unify(ty_target, TyList(ty_val))
                 return
@@ -518,7 +518,7 @@ class InferenceEngine():
             ty_target = self.infer_expr(node.target.value).deref()
             ty_index  = self.infer_expr(node.target.slice.value).deref()
 
-            if isinstance(ty_target, TySequence) and ty_target.is_list():
+            if isinstance(ty_target, TyList):
                 unify(ty_index, TyInt()) # TODO: Should be a subtype constraint
                 unify(ty_target, TyList(ty_val))
 
