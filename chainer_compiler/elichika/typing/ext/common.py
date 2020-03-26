@@ -27,27 +27,14 @@ def ty_DType(ty_obj):
 
 class ty_MakeTensor():
     def calculate_shape(self, x_type):
-        if not isinstance(x_type, TySequence):
+        if not isinstance(x_type, TyList):
             return ()
-        if not x_type.is_fixed_len:
-            return (None,)
-
-        x_tys = x_type.get_tys()
-
-        if isinstance(x_tys[0], TySequence):
-            list_lengths = [t.size() if t.is_fixed_len else None for t in x_tys]
-            list_lengths_nonnull = [l for l in list_lengths if l is not None]
-
-            # for example, we will not accept np.array([[1,2,3], [4,5]])
-            assert all_same(list_lengths_nonnull), \
-                    "incompatible list length"
-
-        return (len(x_tys),) + self.calculate_shape(x_tys[0])
+        return (None,) + self.calculate_shape(x_type.ty)
 
     def get_element_dtype(self, ty):
-        # get element dtype of nested TySequence
-        if isinstance(ty, TySequence):
-            return self.get_element_dtype(ty.get())
+        # get element dtype of nested TyList
+        if isinstance(ty, TyList):
+            return self.get_element_dtype(ty.ty)
         if isinstance(ty, TyTensor):
             return ty.dtype
         return tyobj_to_dtype(ty)
@@ -122,7 +109,4 @@ class ty_TensorToList():
     def get_out_type(self, dtype, shape):
         if shape == ():
             return dtype_to_tyobj(dtype)
-        if shape[0].value is None:
-            return TyList(self.get_out_type(dtype, shape[1:]))
-        return TyList([self.get_out_type(dtype, shape[1:])
-            for _ in range(shape[0].value)])
+        return TyList(self.get_out_type(dtype, shape[1:]))

@@ -196,7 +196,7 @@ class ty_TorchLSTMCell():
         input_size = obj.input_size
         hidden_size = obj.hidden_size
         input_type = ty_args[0]
-        assert isinstance(ty_args[1], TySequence)
+        assert isinstance(ty_args[1], TyTuple)
         assert ty_args[1].is_fixed_len
         h_0_type, c_0_type = ty_args[1].get_tys()
 
