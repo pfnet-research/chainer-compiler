@@ -66,7 +66,7 @@ class ty_NumpyFull():
         assert isinstance(shape_type, (TyNum, TyTuple))
 
         shape = extract_value_from_ty(shape_type)
-        if not isinstance(shape_type, TySequence):
+        if not isinstance(shape_type, TyTuple):
             shape = (shape,)
         return TyNdarray(dtype, shape=shape)
 

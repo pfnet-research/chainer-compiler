@@ -125,14 +125,14 @@ class TestSequence(unittest.TestCase):
 
         self.assertEqual(str(id2type[1]), "class Test -> int list list")	# FunctionDef (line 1)
         self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
-        self.assertEqual(str(id2type[6]), "[int, int, int]")	# Name (line 2)
-        self.assertEqual(str(id2type[8]), "[int, int, int]")	# List (line 2)
+        self.assertEqual(str(id2type[6]), "int list")	# Name (line 2)
+        self.assertEqual(str(id2type[8]), "int list")	# List (line 2)
         self.assertEqual(str(id2type[9]), "int")	# Num (line 2)
         self.assertEqual(str(id2type[10]), "int")	# Num (line 2)
         self.assertEqual(str(id2type[11]), "int")	# Num (line 2)
         self.assertEqual(str(id2type[13]), "NoneType")	# Assign (line 3)
-        self.assertEqual(str(id2type[14]), "[]")	# Name (line 3)
-        self.assertEqual(str(id2type[16]), "[]")	# List (line 3)
+        self.assertEqual(str(id2type[14]), "int list list")	# Name (line 3)
+        self.assertEqual(str(id2type[16]), "int list list")	# List (line 3)
         self.assertEqual(str(id2type[18]), "NoneType")	# For (line 4)
         self.assertEqual(str(id2type[19]), "int")	# Name (line 4)
         self.assertEqual(str(id2type[21]), "int list")	# Call (line 4)
@@ -235,17 +235,17 @@ class TestSequence(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), ())
 
-        self.assertEqual(str(id2type[1]), "class Test -> [int]")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[1]), "class Test -> int list")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[5]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[6]), "[int, int, int, int]")	# Name x (line 2)
-        self.assertEqual(str(id2type[8]), "[int, int, int, int]")	# List [0, 1, 2, 3] (line 2)
+        self.assertEqual(str(id2type[6]), "int list")	# Name x (line 2)
+        self.assertEqual(str(id2type[8]), "int list")	# List [0, 1, 2, 3] (line 2)
         self.assertEqual(str(id2type[9]), "int")	# Num 0 (line 2)
         self.assertEqual(str(id2type[10]), "int")	# Num 1 (line 2)
         self.assertEqual(str(id2type[11]), "int")	# Num 2 (line 2)
         self.assertEqual(str(id2type[12]), "int")	# Num 3 (line 2)
-        self.assertEqual(str(id2type[14]), "[int]")	# Return
-        self.assertEqual(str(id2type[15]), "[int]")	# Subscript x[1:2:] (line 3)
-        self.assertEqual(str(id2type[16]), "[int, int, int, int]")	# Name x (line 3)
+        self.assertEqual(str(id2type[14]), "int list")	# Return
+        self.assertEqual(str(id2type[15]), "int list")	# Subscript x[1:2:] (line 3)
+        self.assertEqual(str(id2type[16]), "int list")	# Name x (line 3)
         self.assertEqual(str(id2type[19]), "int")	# Num 1 (line 3)
         self.assertEqual(str(id2type[20]), "int")	# Num 2 (line 3)
 
@@ -577,8 +577,7 @@ class TestAssign(unittest.TestCase):
         self.assertEqual(str(id2type[16]), "int list")	# Name x (line 3)
         self.assertEqual(str(id2type[18]), "NoneType")	# AugAssign (line 4)
         self.assertEqual(str(id2type[19]), "int list")	# Name x (line 4)
-        self.assertEqual(str(id2type[21]), "int list -> [int] -> int list")	# Add
-        self.assertEqual(str(id2type[22]), "[int]")	# List (line 4)
+        self.assertEqual(str(id2type[22]), "int list")	# List (line 4)
         self.assertEqual(str(id2type[23]), "int")	# Num (line 4)
         self.assertEqual(str(id2type[25]), "int list")	# Return (line 5)
         self.assertEqual(str(id2type[26]), "int list")	# Name y (line 5)
@@ -603,8 +602,7 @@ class TestAssign(unittest.TestCase):
         self.assertEqual(str(id2type[9]), "class Test")	# Name self (line 2)
         self.assertEqual(str(id2type[12]), "NoneType")	# AugAssign (line 3)
         self.assertEqual(str(id2type[13]), "int list")	# Name b (line 3)
-        self.assertEqual(str(id2type[15]), "int list -> [int] -> int list")	# Add
-        self.assertEqual(str(id2type[16]), "[int]")	# List (line 3)
+        self.assertEqual(str(id2type[16]), "int list")	# List (line 3)
         self.assertEqual(str(id2type[17]), "int")	# Num (line 3)
         self.assertEqual(str(id2type[19]), "int list")	# Return (line 4)
         self.assertEqual(str(id2type[20]), "int list")	# Attribute a (line 4)
