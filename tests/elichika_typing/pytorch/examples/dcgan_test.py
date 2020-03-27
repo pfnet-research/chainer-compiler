@@ -18,9 +18,7 @@ class TestDCGAN(unittest.TestCase):
 
         self.assertEqual(str(id2type[1]), "class Generator -> torch.Tensor(float32, (5, 6, 1, 1)) -> torch.Tensor(float32, (5, 3, 64, 64))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[8]), "torch.Tensor(float32, (5, 3, 64, 64))")	# Name output (line 6)
         self.assertEqual(str(id2type[10]), "torch.Tensor(float32, (5, 3, 64, 64))")	# Call self.main(input) (line 6)
-        self.assertEqual(str(id2type[11]), "torch.Tensor(float32, (5, 6, 1, 1)) -> torch.Tensor(float32, (5, 3, 64, 64))")	# Attribute self.main (line 6)
         self.assertEqual(str(id2type[12]), "class Generator")	# Name self (line 6)
         self.assertEqual(str(id2type[15]), "torch.Tensor(float32, (5, 6, 1, 1))")	# Name input (line 6)
         self.assertEqual(str(id2type[17]), "torch.Tensor(float32, (5, 3, 64, 64))")	# Return
@@ -35,16 +33,12 @@ class TestDCGAN(unittest.TestCase):
 
         self.assertEqual(str(id2type[1]), "class Discriminator -> torch.Tensor(float32, (5, 3, 64, 64)) -> torch.Tensor(float32, (5,))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[8]), "torch.Tensor(float32, (5, 1, 1, 1))")	# Name output (line 6)
         self.assertEqual(str(id2type[10]), "torch.Tensor(float32, (5, 1, 1, 1))")	# Call self.main(input) (line 6)
-        self.assertEqual(str(id2type[11]), "torch.Tensor(float32, (5, 3, 64, 64)) -> torch.Tensor(float32, (5, 1, 1, 1))")	# Attribute self.main (line 6)
         self.assertEqual(str(id2type[12]), "class Discriminator")	# Name self (line 6)
         self.assertEqual(str(id2type[15]), "torch.Tensor(float32, (5, 3, 64, 64))")	# Name input (line 6)
         self.assertEqual(str(id2type[17]), "torch.Tensor(float32, (5,))")	# Return
         self.assertEqual(str(id2type[18]), "torch.Tensor(float32, (5,))")	# Call output.view(-1, 1).squeeze(dim=1) (line 8)
-        self.assertEqual(str(id2type[19]), "(no argument) -> torch.Tensor(float32, (5,))")	# Attribute output.view(-1, 1).squeeze (line 8)
         self.assertEqual(str(id2type[20]), "torch.Tensor(float32, (5, 1))")	# Call output.view(-1, 1) (line 8)
-        self.assertEqual(str(id2type[21]), "int -> int -> torch.Tensor(float32, (5, 1))")	# Attribute output.view (line 8)
         self.assertEqual(str(id2type[22]), "torch.Tensor(float32, (5, 1, 1, 1))")	# Name output (line 8)
         self.assertEqual(str(id2type[25]), "int")	# UnaryOp -1 (line 8)
         self.assertEqual(str(id2type[27]), "int")	# Constant 1 (line 8)

@@ -487,7 +487,7 @@ class InferenceEngine():
             ty_target = self.infer_expr(target.value).deref()
             ty_index  = self.infer_expr(target.slice.value).deref()
 
-            if isinstance(ty_target, TySequence) and ty_target.is_list():
+            if isinstance(ty_target, TyList):
                 unify(ty_index, TyInt()) # TODO: Should be a subtype constraint
                 unify(ty_target, TyList(ty_val))
                 return
@@ -518,14 +518,13 @@ class InferenceEngine():
             ty_target = self.infer_expr(node.target.value).deref()
             ty_index  = self.infer_expr(node.target.slice.value).deref()
 
-            if isinstance(ty_target, TySequence) and ty_target.is_list():
+            if isinstance(ty_target, TyList):
                 unify(ty_index, TyInt()) # TODO: Should be a subtype constraint
                 unify(ty_target, TyList(ty_val))
 
             if isinstance(ty_target, TyDict):
                 unify(ty_target, TyDict(ty_index, ty_val))
 
-        self.nodetype[node.op] = TyArrow([tyl, tyr], ty_val)
         self.nodetype[node.target] = ty_val
 
 
@@ -640,7 +639,6 @@ class InferenceEngine():
         ty_vals = [self.infer_expr(val) for val in node.values]
         for ty in ty_vals:
             unify(ty, TyBool())
-        self.nodetype[node.op] = TyArrow([TyBool(), TyBool()], TyBool())
         return TyBool()
 
 
@@ -648,9 +646,7 @@ class InferenceEngine():
         # BinOp(expr left, operator op, expr right)
         tyl = self.infer_expr(node.left).deref()
         tyr = self.infer_expr(node.right).deref()
-        ty_ret = call_binop(node.op, node, tyl, tyr)
-        self.nodetype[node.op] = TyArrow([tyl, tyr], ty_ret)
-        return ty_ret
+        return call_binop(node.op, node, tyl, tyr)
 
 
     def infer_UnaryOp(self, node):
@@ -764,7 +760,6 @@ class InferenceEngine():
             ty_args_ = ty_args
 
         ty_ret = self.infer_function_instance(node, func, ty_args_, ty_kwargs)
-        self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
         return ty_ret.deref()
 
 
