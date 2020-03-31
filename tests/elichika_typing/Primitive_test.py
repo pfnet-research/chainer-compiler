@@ -295,58 +295,6 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[36]), "int")	# Name x (line 2)
 
 
-    def test_list_optional(self):
-        class Test():
-            def forward(self):
-                xs = [1, 2]
-                ys = xs
-                xs.append(None)
-                return ys
-
-        id2type = generate_id2type_from_forward(Test(), ())
-
-        self.assertEqual(str(id2type[1]), "class Test -> optional(int) list")	# FunctionDef forward (line 1)
-        self.assertEqual(str(id2type[5]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[6]), "optional(int) list")	# Name xs (line 2)
-        self.assertEqual(str(id2type[8]), "optional(int) list")	# List [1, 2] (line 2)
-        self.assertEqual(str(id2type[9]), "int")	# Constant 1 (line 2)
-        self.assertEqual(str(id2type[10]), "int")	# Constant 2 (line 2)
-        self.assertEqual(str(id2type[12]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[13]), "optional(int) list")	# Name ys (line 3)
-        self.assertEqual(str(id2type[15]), "optional(int) list")	# Name xs (line 3)
-        self.assertEqual(str(id2type[17]), "NoneType")	# Expr
-        self.assertEqual(str(id2type[18]), "NoneType")	# Call xs.append(None) (line 4)
-        self.assertEqual(str(id2type[20]), "optional(int) list")	# Name xs (line 4)
-        self.assertEqual(str(id2type[23]), "NoneType")	# Constant None (line 4)
-        self.assertEqual(str(id2type[24]), "optional(int) list")	# Return
-        self.assertEqual(str(id2type[25]), "optional(int) list")	# Name ys (line 5)
-
-
-    def test_list_augassign(self):
-        class Test():
-            def forward(self):
-                l = [1, 2, 3]
-                l[1] += 1.0
-                return l
-
-        id2type = generate_id2type_from_forward(Test(), ())
-
-        self.assertEqual(str(id2type[1]), "class Test -> float list")	# FunctionDef forward (line 1)
-        self.assertEqual(str(id2type[5]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[6]), "float list")	# Name l (line 2)
-        self.assertEqual(str(id2type[8]), "float list")	# List [1, 2, 3] (line 2)
-        self.assertEqual(str(id2type[9]), "int")	# Constant 1 (line 2)
-        self.assertEqual(str(id2type[10]), "int")	# Constant 2 (line 2)
-        self.assertEqual(str(id2type[11]), "int")	# Constant 3 (line 2)
-        self.assertEqual(str(id2type[13]), "NoneType")	# AugAssign
-        self.assertEqual(str(id2type[14]), "float")	# Subscript d[1] (line 3)
-        self.assertEqual(str(id2type[15]), "float list")	# Name l (line 3)
-        self.assertEqual(str(id2type[18]), "int")	# Constant 1 (line 3)
-        self.assertEqual(str(id2type[21]), "float")	# Constant 1.0 (line 3)
-        self.assertEqual(str(id2type[22]), "float list")	# Return
-        self.assertEqual(str(id2type[23]), "float list")	# Name l (line 4)
-
-
 # ==============================================================================
 
 class TestOtherDataTypes(unittest.TestCase):
@@ -412,32 +360,6 @@ class TestOtherDataTypes(unittest.TestCase):
         self.assertEqual(str(id2type[8]), "string")	# Constant 'fuga' (line 2)
         self.assertEqual(str(id2type[9]), "int")	# Constant 1 (line 2)
         self.assertEqual(str(id2type[10]), "NoneType")	# Constant None (line 2)
-
-
-    def test_dict_assign(self):
-        class Test():
-            def forward(self):
-                d = {}
-                d[None] = 0
-                d[1] = 1.0
-                return d
-
-        id2type = generate_id2type_from_forward(Test(), ())
-
-        self.assertEqual(str(id2type[1]), "class Test -> {optional(int) : float}")	# FunctionDef forward (line 1)
-        self.assertEqual(str(id2type[5]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[6]), "{optional(int) : float}")	# Name d (line 2)
-        self.assertEqual(str(id2type[8]), "{optional(int) : float}")	# Dict  (line 2)
-        self.assertEqual(str(id2type[9]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[11]), "{optional(int) : float}")	# Name d (line 3)
-        self.assertEqual(str(id2type[14]), "NoneType")	# Constant None (line 3)
-        self.assertEqual(str(id2type[16]), "float")	# Constant 0 (line 3)
-        self.assertEqual(str(id2type[17]), "NoneType")	# Assign
-        self.assertEqual(str(id2type[19]), "{optional(int) : float}")	# Name d (line 4)
-        self.assertEqual(str(id2type[22]), "int")	# Constant 1 (line 4)
-        self.assertEqual(str(id2type[24]), "float")	# Constant 1.0 (line 4)
-        self.assertEqual(str(id2type[25]), "{optional(int) : float}")	# Return
-        self.assertEqual(str(id2type[26]), "{optional(int) : float}")	# Name d (line 5)
 
 
     def test_optional(self):

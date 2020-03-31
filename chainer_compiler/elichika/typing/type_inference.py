@@ -488,7 +488,7 @@ class InferenceEngine():
             ty_index  = self.infer_expr(target.slice.value).deref()
 
             if isinstance(ty_target, TyList):
-                unify(ty_index, TyInt()) # TODO: Should be a subtype constraint
+                assert is_subtype(ty_index, TyInt())
                 unify(ty_target, TyList(ty_val))
                 return
 
