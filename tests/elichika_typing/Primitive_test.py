@@ -139,7 +139,7 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[39]), "int list list")	# Name (line 6)
 
 
-    def test_tuple_coercion(self):
+    def test_tuple(self):
         class Test():
             def forward(self):
                 x = (1, 2, 3)
@@ -164,13 +164,13 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[21]), "NoneType")	# Assign (line 4)
         self.assertEqual(str(id2type[22]), "int")	# Name (line 4)
         self.assertEqual(str(id2type[24]), "int")	# Subscript (line 4)
-        self.assertEqual(str(id2type[25]), "int tuple")	# Name (line 4)
+        self.assertEqual(str(id2type[25]), "(int, int, int)")	# Name (line 4)
         self.assertEqual(str(id2type[28]), "int")	# Name (line 4)
         self.assertEqual(str(id2type[31]), "int")	# Return (line 5)
         self.assertEqual(str(id2type[32]), "int")	# Name (line 5)
 
 
-    def test_tuple_coercion_2(self):
+    def test_tuple_2(self):
         class Test():
             def forward(self):
                 x = (1, 2)

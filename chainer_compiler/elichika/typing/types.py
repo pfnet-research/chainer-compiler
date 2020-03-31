@@ -187,13 +187,6 @@ class TyTuple(TyObj):
         assert self.is_fixed_len
         return self._ty
 
-    def coerce_to_variable_len(self):
-        # does nothing if self is not fixed-length
-        if self.is_fixed_len:
-            self._ty = self.get()
-            self.is_fixed_len = False
-        return
-
 
 class TyDict(TyObj):
     # TODO(momohatt): Support hetero-value dicts (simply set valty to 'TyObj',
