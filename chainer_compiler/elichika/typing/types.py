@@ -18,7 +18,7 @@ __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
           , 'type_of_value', 'extract_value_from_ty'
           , 'lacks_value', 'generate_dummy_value', 'tyobj_to_dtype', 'dtype_to_tyobj'
           , 'copy_ty'
-          , 'unify', 'UnifyError', 'join', 'JoinError', 'joins'
+          , 'unify', 'UnifyError', 'join', 'JoinError', 'joins', 'is_subtype'
           , 'match_types', 'MatchFail', 'apply_subst'
           ]
 
@@ -576,23 +576,11 @@ def unify(ty1, ty2):
     ty2 = ty2.deref()
 
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
-        return TyNone()
-
-    if isinstance(ty1, TyNone):
-        if isinstance(ty2, TyOptional):
-            return ty2
-        return TyOptional(ty2)
-    if isinstance(ty2, TyNone):
-        if isinstance(ty1, TyOptional):
-            return ty1
-        return TyOptional(ty1)
+        return
 
     if isinstance(ty1, TyOptional) and isinstance(ty2, TyOptional):
-        return TyOptional(unify(ty1.ty, ty2.ty))
-    if isinstance(ty1, TyOptional):
-        return TyOptional(unify(ty1.ty, ty2))
-    if isinstance(ty2, TyOptional):
-        return TyOptional(unify(ty1, ty2.ty))
+        unify(ty1.ty, ty2.ty)
+        return
 
     if isinstance(ty1, TyVar):
         if isinstance(ty2, TyVar) and ty1 is ty2:
@@ -608,74 +596,102 @@ def unify(ty1, ty2):
         ty2.set(ty1)
         return ty1
 
-    if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
-        ty1.kind = ty2.kind = max(ty1.kind, ty2.kind)
-        ty1.coerce_value()
-        ty2.coerce_value()
-        if ty1.value == ty2.value:
-            return TyNum(ty1.kind, ty1.value)
-        return TyNum(ty1.kind)
+    if (isinstance(ty1, TyNum) and isinstance(ty2, TyNum) and
+            ty1.kind == ty2.kind):
+        return
 
     if isinstance(ty1, TyString) and isinstance(ty2, TyString):
-        if ty1.value == ty2.value:
-            return TyString(ty1.value)
-        return TyString()
+        return
 
     if isinstance(ty1, TyList) and isinstance(ty2, TyList):
-        ty = unify(ty1.ty, ty2.ty)
-        ty1.ty = ty2.ty = ty
-        return TyList(ty)
+        unify(ty1.ty, ty2.ty)
+        return
 
     if isinstance(ty1, TyTuple) and isinstance(ty2, TyTuple):
         if ty1.is_fixed_len and ty2.is_fixed_len and \
                 len(ty1.get_tys()) == len(ty2.get_tys()):
-            # Overwrite the content of the sequence
-            tys = [unify(t1, t2) for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())]
-            ty1._ty = tys
-            ty2._ty = tys
-            return TyTuple(tys)
-        ty1.coerce_to_variable_len()
-        ty2.coerce_to_variable_len()
-        ty = unify(ty1.get(), ty2.get())
-        ty1._ty = ty2._ty = ty
-        return TyTuple(ty)
+            for t1, t2 in zip(ty1.get_tys(), ty2.get_tys()):
+                unify(t1, t2)
+            return
+        unify(ty1.get(), ty2.get())
+        return
 
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
-        keyty = unify(ty1.keyty, ty2.keyty)
-        valty = unify(ty1.valty, ty2.valty)
-        ty1.keyty = ty2.keyty = keyty
-        ty1.valty = ty2.valty = valty
-        return TyDict(keyty, valty)
+        unify(ty1.keyty, ty2.keyty)
+        unify(ty1.valty, ty2.valty)
+        return
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         utils.set_attr_if_None(ty1, ty2, 'kind')
 
         if ty1.dtype == ty2.dtype and ty1.ndim == ty2.ndim:
-            return TyTensor(ty1.kind, ty1.dtype, unify_shape(ty1.shape, ty2.shape))
+            return
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyNum):
         if ty1.ndim == 0:
-            return ty1 # TODO
+            return
 
     if isinstance(ty1, TyNum) and isinstance(ty2, TyTensor):
         if ty2.ndim == 0:
-            return ty2 # TODO
+            return
 
     if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
         assert ty1.t == ty2.t
-        return ty1
+        return
 
     if isinstance(ty1, TyUserDefinedClass) and \
             isinstance(ty2, TyUserDefinedClass):
         if ty1.name == ty2.name:
-            return ty1
+            return
         # TODO(momohatt): Find least common superclass and check that
         # it is not 'object'
         if isinstance(ty1.instance, torch.nn.Module) and \
                 isinstance(ty2.instance, torch.nn.Module):
-            return ty1 # TODO
+            return
 
     raise UnifyError(ty1, ty2)
+
+
+# return True iff ty1 <= ty2
+def is_subtype(ty1, ty2):
+    if isinstance(ty1, TyNone) and isinstance(ty2, (TyNone, TyOptional)):
+        return True
+    if isinstance(ty1, TyOptional) and isinstance(ty2, TyOptional):
+        return is_subtype(ty1.ty, ty2.ty)
+    if isinstance(ty1, TyVar) and ty1 is ty2:
+        return True
+    if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
+        return ty1.kind <= ty2.kind
+    if isinstance(ty1, TyString) and isinstance(ty2, TyString):
+        return True
+    if isinstance(ty1, TyList) and isinstance(ty2, TyList):
+        return is_subtype(ty1.ty, ty2.ty) and is_subtype(ty2.ty, ty1.ty)
+    if isinstance(ty1, TyTuple) and isinstance(ty2, TyTuple):
+        if ty1.is_fixed_len:
+            if ty2.is_fixed_len and len(ty1.get_tys()) == len(ty2.get_tys()):
+                return all([is_subtype(t1, t2)
+                    for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())])
+            return all([is_subtype(t1, ty2.get_ty()) for t1 in ty1.get_tys()])
+        if ty2.is_fixed_len:
+            return False
+        return is_subtype(ty1.get_ty(), ty2.get_ty())
+    if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
+        return (is_subtype(ty1.keyty, ty2.keyty) and
+                is_subtype(ty2.keyty, ty1.keyty) and
+                is_subtype(ty1.valty, ty2.valty) and
+                is_subtype(ty2.valty, ty1.valty))
+    if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
+        if (isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor) and
+                ty1.kind == ty2.kind and ty1.dtype == ty2.dtype and
+                ty1.ndim == ty2.ndim):
+            return is_subshape(ty1.shape, ty2.shape)
+    if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
+        return ty1.t == ty2.t
+    if (isinstance(ty1, TyUserDefinedClass) and
+            isinstance(ty2, TyUserDefinedClass) and
+            ty1.name == ty2.name):
+        return True
+    return False
 
 
 class JoinError(Exception):
@@ -728,8 +744,9 @@ def join(ty1, ty2):
             return TyString(ty1.value)
         return TyString()
 
-    if isinstance(ty1, TyList) and isinstance(ty2, TyList):
-        return TyList(join(ty1.ty, ty2.ty))
+    if (isinstance(ty1, TyList) and isinstance(ty2, TyList) and
+            is_subtype(ty1, ty2)):
+        return ty1
 
     if isinstance(ty1, TyTuple) and isinstance(ty2, TyTuple):
         if ty1.is_fixed_len and ty2.is_fixed_len:
@@ -738,8 +755,9 @@ def join(ty1, ty2):
                     for t1, t2 in zip(ty1.get_tys(), ty2.get_tys())])
         return TyTuple(join(ty1.get(), ty2.get()))
 
-    if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
-        return TyDict(join(ty1.keyty, ty2.keyty), join(ty1.valty, ty2.valty))
+    if (isinstance(ty1, TyDict) and isinstance(ty2, TyDict) and
+            is_subtype(ty1, ty2)):
+        return ty1
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         if ty1.kind == ty2.kind and ty1.dtype == ty2.dtype and \
