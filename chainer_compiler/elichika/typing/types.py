@@ -26,7 +26,7 @@ __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
 
 class TyObj():  # base type, meaning 'unknown'
     def __str__(self):
-        return self.show()
+        assert False, "Not implemented"
     # TODO(momohatt): fix __repr__
     def __repr__(self):
         return self.__str__()
@@ -38,7 +38,7 @@ class TyObj():  # base type, meaning 'unknown'
 # --------------------------- python primivite types ---------------------------
 
 class TyNone(TyObj):
-    def show(self):
+    def __str__(self):
         return "NoneType"
     def __eq__(self, other):
         return isinstance(other, TyNone)
@@ -64,7 +64,7 @@ class TyNum(TyObj):
         self.kind = kind
         self.value = value
 
-    def show(self):
+    def __str__(self):
         return str(NumKind(self.kind))
 
     def __eq__(self, other):
@@ -93,7 +93,7 @@ class TyString(TyObj):
     def __init__(self, value=None):
         super().__init__()
         self.value = value
-    def show(self):
+    def __str__(self):
         return "string"
     def __eq__(self, other):
         return isinstance(other, TyString)
@@ -105,7 +105,7 @@ class TyArrow(TyObj):
         self.argty = argty  # Arguments are uncurried
         self.retty = retty
 
-    def show(self):
+    def __str__(self):
         if self.argty == []:
             return "(no argument) -> {}".format(self.retty)
         return "".join([str(t) + " -> " for t in self.argty]) + str(self.retty)
@@ -125,7 +125,7 @@ class TyList(TyObj):
         super().__init__()
         self.ty = ty
 
-    def show(self):
+    def __str__(self):
         return "{} list".format(self.ty)
 
     def __eq__(self, other):
@@ -145,7 +145,7 @@ class TyTuple(TyObj):
         self.is_fixed_len = isinstance(ty, list)
         self._ty = ty
 
-    def show(self):
+    def __str__(self):
         if self.is_fixed_len:
             if len(self._ty) == 1:
                 return "(" + str(self._ty[0]) + ",)"
@@ -187,13 +187,6 @@ class TyTuple(TyObj):
         assert self.is_fixed_len
         return self._ty
 
-    def coerce_to_variable_len(self):
-        # does nothing if self is not fixed-length
-        if self.is_fixed_len:
-            self._ty = self.get()
-            self.is_fixed_len = False
-        return
-
 
 class TyDict(TyObj):
     # TODO(momohatt): Support hetero-value dicts (simply set valty to 'TyObj',
@@ -203,7 +196,7 @@ class TyDict(TyObj):
         self.keyty = keyty
         self.valty = valty
 
-    def show(self):
+    def __str__(self):
         return "{" + str(self.keyty) + " : " + str(self.valty) + "}"
 
     def __eq__(self, other):
@@ -223,7 +216,7 @@ class TyUserDefinedClass(TyObj):
         # XXX: we will assume that an instance already exists
         self.instance = instance
 
-    def show(self):
+    def __str__(self):
         return "class " + self.name
 
 
@@ -232,7 +225,7 @@ class TyOptional(TyObj):
         super().__init__()
         self.ty = ty
 
-    def show(self):
+    def __str__(self):
         return "optional(" + str(self.ty) + ")"
 
 # --------------------- numpy ndarray / chainer variable -----------------------
@@ -264,7 +257,7 @@ class TyTensor(TyObj):
         self.ndim = len(shape)
         self.shape = wrap_shape(shape)  # Tuple[ShapeElem]
 
-    def show(self):
+    def __str__(self):
         if self.kind == TensorKind.ndarray:
             return "ndarray({}, {})".format(self.dtype, self.shape)
         if self.kind == TensorKind.chainer_variable:
@@ -338,7 +331,7 @@ class TyVar(TyObj):
         self.is_set = False
         self.lineno = lineno
 
-    def show(self):
+    def __str__(self):
         if self.ty is not None:
             return str(self.ty)
         if self.lineno is not None:

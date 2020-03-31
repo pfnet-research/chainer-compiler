@@ -825,11 +825,10 @@ class InferenceEngine():
                 slice_ = self.extract_slice(node.slice)
                 return TyTuple(ty_obj.get_tys()[slice_])
 
-            ty_obj.coerce_to_variable_len()
             if isinstance(node.slice, gast.Index):
-                return ty_obj.get_ty()
+                return ty_obj.get()
             if isinstance(node.slice, gast.Slice):
-                return ty_obj
+                return TyTuple(ty_obj.get())
             assert False, "ExtSlice for tuples is not supported"
 
         if isinstance(ty_obj, TyDict):
