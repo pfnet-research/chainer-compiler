@@ -519,7 +519,7 @@ class InferenceEngine():
             ty_index  = self.infer_expr(node.target.slice.value).deref()
 
             if isinstance(ty_target, TyList):
-                unify(ty_index, TyInt()) # TODO: Should be a subtype constraint
+                unify(ty_index, TyInt())
                 unify(ty_target, TyList(ty_val))
 
             if isinstance(ty_target, TyDict):

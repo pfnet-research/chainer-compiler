@@ -27,7 +27,6 @@ __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
 class TyObj():  # base type, meaning 'unknown'
     def __str__(self):
         assert False, "Not implemented"
-    # TODO(momohatt): fix __repr__
     def __repr__(self):
         return self.__str__()
 
@@ -172,8 +171,6 @@ class TyTuple(TyObj):
 
 
 class TyDict(TyObj):
-    # TODO(momohatt): Support hetero-value dicts (simply set valty to 'TyObj',
-    # or infer type of each fields (ideally))
     def __init__(self, keyty, valty):
         super().__init__()
         self.keyty = keyty
@@ -269,7 +266,6 @@ def TyTorchTensor(dtype, shape=None, ndim=None):
     return TyTensor(TensorKind.torch_tensor, dtype, shape)
 
 def torch_dtype_to_np_dtype(dtype):
-    # TODO(momohatt): Better way to do this?
     dtype_dict = {
             torch.bool    : np.dtype(np.bool),
             torch.uint8   : np.dtype(np.uint8),
