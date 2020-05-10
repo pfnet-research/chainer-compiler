@@ -40,8 +40,6 @@ class TyObj():  # base type, meaning 'unknown'
 class TyNone(TyObj):
     def __str__(self):
         return "NoneType"
-    def __eq__(self, other):
-        return isinstance(other, TyNone)
 
 
 class NumKind(IntEnum):
@@ -66,9 +64,6 @@ class TyNum(TyObj):
 
     def __str__(self):
         return str(NumKind(self.kind))
-
-    def __eq__(self, other):
-        return isinstance(other, TyNum) and self.kind == other.kind
 
     def coerce_value(self):
         if self.value is None:
@@ -95,8 +90,6 @@ class TyString(TyObj):
         self.value = value
     def __str__(self):
         return "string"
-    def __eq__(self, other):
-        return isinstance(other, TyString)
 
 
 class TyArrow(TyObj):
@@ -109,10 +102,6 @@ class TyArrow(TyObj):
         if self.argty == []:
             return "(no argument) -> {}".format(self.retty)
         return "".join([str(t) + " -> " for t in self.argty]) + str(self.retty)
-
-    def __eq__(self, other):
-        return isinstance(other, TyArrow) and self.argty == other.argty and \
-                self.retty == other.retty
 
     def deref(self):
         self.argty = [t.deref() for t in self.argty]
@@ -127,9 +116,6 @@ class TyList(TyObj):
 
     def __str__(self):
         return "{} list".format(self.ty)
-
-    def __eq__(self, other):
-        return self.ty == other.ty
 
     def deref(self):
         self.ty = self.ty.deref()
@@ -151,9 +137,6 @@ class TyTuple(TyObj):
                 return "(" + str(self._ty[0]) + ",)"
             return "(" + utils.intercalate([str(t) for t in self._ty], ", ") + ")"
         return str(self._ty) + " tuple"
-
-    def __eq__(self, other):
-        return isinstance(other, TyTuple) and self._ty == other._ty
 
     def __getitem__(self, i):
         assert self.is_fixed_len
@@ -199,10 +182,6 @@ class TyDict(TyObj):
     def __str__(self):
         return "{" + str(self.keyty) + " : " + str(self.valty) + "}"
 
-    def __eq__(self, other):
-        return isinstance(other, TyDict) and self.keyty == other.keyty and \
-                self.valty == other.valty
-
     def deref(self):
         self.keyty = self.keyty.deref()
         self.valty = self.valty.deref()
@@ -242,8 +221,6 @@ class TyDType(TyObj):
         self.t = np.dtype(t)
     def __str__(self):
         return "dtype({})".format(str(self.t))
-    def __eq__(self, other):
-        return self.t == other.t
 
 
 class TyTensor(TyObj):
@@ -264,10 +241,6 @@ class TyTensor(TyObj):
             return "Variable({}, {})".format(self.dtype, self.shape)
         if self.kind == TensorKind.torch_tensor:
             return "torch.Tensor({}, {})".format(self.dtype, self.shape)
-
-    def __eq__(self, other):
-        # TODO: shape?
-        return isinstance(other, TyTensor) and self.dtype == other.dtype
 
     def is_ndarray(self):
         return self.kind == TensorKind.ndarray
@@ -337,11 +310,6 @@ class TyVar(TyObj):
         if self.lineno is not None:
             return "a{} (from line {})".format(self.i, self.lineno)
         return "a{}".format(self.i)
-
-    def __eq__(self, other):
-        if self.ty is None:
-            return self is other
-        return self.deref() == other.deref()
 
     def set(self, ty):
         assert self.is_set == False
