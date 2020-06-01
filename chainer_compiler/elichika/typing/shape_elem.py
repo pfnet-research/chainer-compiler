@@ -12,8 +12,6 @@ __all__ = [ 'ShapeElem'
           , 'unify_shape'
           , 'join_shape'
           , 'is_subshape'
-          , 'apply_subst_shape'
-          , 'match_shape'
           ]
 
 
@@ -271,22 +269,4 @@ def is_subshape(shape1, shape2):
     return all([is_subShapeElem(e1, e2) for e1, e2 in zip(shape1, shape2)])
 
 
-def apply_subst_shapeElem(subst, e):
-    if e.value in subst.keys():
-        return ShapeElem(subst[e.value], expr=type_check.Variable(None, e.value))
-    return e
 
-
-def apply_subst_shape(subst, shape):
-    return [apply_subst_shapeElem(subst, e) for e in shape]
-
-
-def match_shape(shape1, shape2):
-    subst = {}
-    for e1, e2 in zip(shape1, shape2):
-        e2 = apply_subst_shapeElem(subst, e2)
-        if isinstance(e2.value, str):
-            subst[e2.value] = e1.value
-        else:
-            assert e1.value == e2.value
-    return subst

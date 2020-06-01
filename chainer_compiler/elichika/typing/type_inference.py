@@ -8,6 +8,7 @@ import types
 import typing
 
 from   chainer_compiler.elichika.parser.utils       import clip_head
+from   chainer_compiler.elichika.typing.annotation  import *
 from   chainer_compiler.elichika.typing.types       import *
 from   chainer_compiler.elichika.typing.shape_elem  import *
 from   chainer_compiler.elichika.typing             import utils
