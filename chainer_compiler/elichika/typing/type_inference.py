@@ -249,7 +249,7 @@ class InferenceEngine():
         self.infer_stmt(node)
 
         if self.is_debug:
-            print('==================== Type Environment ====================')
+            print('==================== Inference Results ====================')
             self.dump_nodetype()
         return self.nodetype
 
