@@ -8,6 +8,7 @@ import types
 import typing
 
 from   chainer_compiler.elichika.parser.utils       import clip_head
+from   chainer_compiler.elichika.typing.annotation  import *
 from   chainer_compiler.elichika.typing.types       import *
 from   chainer_compiler.elichika.typing.shape_elem  import *
 from   chainer_compiler.elichika.typing             import utils
@@ -248,7 +249,7 @@ class InferenceEngine():
         self.infer_stmt(node)
 
         if self.is_debug:
-            print('==================== Type Environment ====================')
+            print('==================== Inference Results ====================')
             self.dump_nodetype()
         return self.nodetype
 
@@ -519,7 +520,7 @@ class InferenceEngine():
             ty_index  = self.infer_expr(node.target.slice.value).deref()
 
             if isinstance(ty_target, TyList):
-                unify(ty_index, TyInt()) # TODO: Should be a subtype constraint
+                unify(ty_index, TyInt())
                 unify(ty_target, TyList(ty_val))
 
             if isinstance(ty_target, TyDict):

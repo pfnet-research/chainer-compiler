@@ -19,7 +19,6 @@ __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
           , 'lacks_value', 'generate_dummy_value', 'tyobj_to_dtype', 'dtype_to_tyobj'
           , 'copy_ty'
           , 'unify', 'UnifyError', 'join', 'JoinError', 'joins', 'is_subtype'
-          , 'match_types', 'MatchFail', 'apply_subst'
           ]
 
 
@@ -27,7 +26,6 @@ __all__ = [ 'TyObj', 'TyNone', 'TyNum', 'TyBool', 'TyInt', 'TyFloat'
 class TyObj():  # base type, meaning 'unknown'
     def __str__(self):
         assert False, "Not implemented"
-    # TODO(momohatt): fix __repr__
     def __repr__(self):
         return self.__str__()
 
@@ -40,8 +38,6 @@ class TyObj():  # base type, meaning 'unknown'
 class TyNone(TyObj):
     def __str__(self):
         return "NoneType"
-    def __eq__(self, other):
-        return isinstance(other, TyNone)
 
 
 class NumKind(IntEnum):
@@ -66,9 +62,6 @@ class TyNum(TyObj):
 
     def __str__(self):
         return str(NumKind(self.kind))
-
-    def __eq__(self, other):
-        return isinstance(other, TyNum) and self.kind == other.kind
 
     def coerce_value(self):
         if self.value is None:
@@ -95,8 +88,6 @@ class TyString(TyObj):
         self.value = value
     def __str__(self):
         return "string"
-    def __eq__(self, other):
-        return isinstance(other, TyString)
 
 
 class TyArrow(TyObj):
@@ -109,10 +100,6 @@ class TyArrow(TyObj):
         if self.argty == []:
             return "(no argument) -> {}".format(self.retty)
         return "".join([str(t) + " -> " for t in self.argty]) + str(self.retty)
-
-    def __eq__(self, other):
-        return isinstance(other, TyArrow) and self.argty == other.argty and \
-                self.retty == other.retty
 
     def deref(self):
         self.argty = [t.deref() for t in self.argty]
@@ -127,9 +114,6 @@ class TyList(TyObj):
 
     def __str__(self):
         return "{} list".format(self.ty)
-
-    def __eq__(self, other):
-        return self.ty == other.ty
 
     def deref(self):
         self.ty = self.ty.deref()
@@ -151,9 +135,6 @@ class TyTuple(TyObj):
                 return "(" + str(self._ty[0]) + ",)"
             return "(" + utils.intercalate([str(t) for t in self._ty], ", ") + ")"
         return str(self._ty) + " tuple"
-
-    def __eq__(self, other):
-        return isinstance(other, TyTuple) and self._ty == other._ty
 
     def __getitem__(self, i):
         assert self.is_fixed_len
@@ -189,8 +170,6 @@ class TyTuple(TyObj):
 
 
 class TyDict(TyObj):
-    # TODO(momohatt): Support hetero-value dicts (simply set valty to 'TyObj',
-    # or infer type of each fields (ideally))
     def __init__(self, keyty, valty):
         super().__init__()
         self.keyty = keyty
@@ -198,10 +177,6 @@ class TyDict(TyObj):
 
     def __str__(self):
         return "{" + str(self.keyty) + " : " + str(self.valty) + "}"
-
-    def __eq__(self, other):
-        return isinstance(other, TyDict) and self.keyty == other.keyty and \
-                self.valty == other.valty
 
     def deref(self):
         self.keyty = self.keyty.deref()
@@ -242,8 +217,6 @@ class TyDType(TyObj):
         self.t = np.dtype(t)
     def __str__(self):
         return "dtype({})".format(str(self.t))
-    def __eq__(self, other):
-        return self.t == other.t
 
 
 class TyTensor(TyObj):
@@ -264,10 +237,6 @@ class TyTensor(TyObj):
             return "Variable({}, {})".format(self.dtype, self.shape)
         if self.kind == TensorKind.torch_tensor:
             return "torch.Tensor({}, {})".format(self.dtype, self.shape)
-
-    def __eq__(self, other):
-        # TODO: shape?
-        return isinstance(other, TyTensor) and self.dtype == other.dtype
 
     def is_ndarray(self):
         return self.kind == TensorKind.ndarray
@@ -296,7 +265,6 @@ def TyTorchTensor(dtype, shape=None, ndim=None):
     return TyTensor(TensorKind.torch_tensor, dtype, shape)
 
 def torch_dtype_to_np_dtype(dtype):
-    # TODO(momohatt): Better way to do this?
     dtype_dict = {
             torch.bool    : np.dtype(np.bool),
             torch.uint8   : np.dtype(np.uint8),
@@ -337,11 +305,6 @@ class TyVar(TyObj):
         if self.lineno is not None:
             return "a{} (from line {})".format(self.i, self.lineno)
         return "a{}".format(self.i)
-
-    def __eq__(self, other):
-        if self.ty is None:
-            return self is other
-        return self.deref() == other.deref()
 
     def set(self, ty):
         assert self.is_set == False
@@ -771,83 +734,3 @@ def join(ty1, ty2):
 
 def joins(tys):
     return utils.foldl(join, TyVar(), tys)
-
-
-
-def apply_subst(subst, ty):
-    if isinstance(ty, TyList):
-        return TyList(apply_subst(subst, ty.ty))
-
-    if isinstance(ty, TyTuple):
-        if ty.is_fixed_len:
-            return TyTuple([apply_subst(subst, t) for t in ty.get_tys()])
-        return TyTuple(apply_subst(subst, ty.ty))
-
-    if isinstance(ty, TyDict):
-        return TyDict(apply_subst(subst, ty.keyty),
-                apply_subst(subst, ty.valty))
-
-    if isinstance(ty, TyTensor):
-        return TyTensor(ty.kind, ty.dtype, apply_subst_shape(subst, ty.shape))
-
-    return ty
-
-
-class MatchFail(Exception):
-    def __init__(self, ty1, ty2):
-        self.msg = "MatchFail: couldn't match {} and {}".format(ty1, ty2)
-
-
-def match_type(ty1, ty2):
-    assert not isinstance(ty1, (TyVar, TyArrow))
-    assert not isinstance(ty2, (TyVar, TyArrow))
-
-    if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
-        return {}
-
-    if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
-        ty1.kind = ty2.kind = max(ty1.kind, ty2.kind)
-        ty1.coerce_value()
-        ty2.coerce_value()
-        return {}
-
-    if isinstance(ty1, TyString) and isinstance(ty2, TyString):
-        return {}
-
-    if isinstance(ty1, TyList) and isinstance(ty2, TyList):
-        return match_types(ty1.ty, ty2.ty)
-
-    if isinstance(ty1, TyTuple) and isinstance(ty2, TyTuple):
-        assert ty1.is_fixed_len and ty2.is_fixed_len
-        if len(ty1.get_tys()) == len(ty2.get_tys()):
-            return match_types(ty1.get_tys(), ty2.get_tys())
-
-    if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
-        return match_types([ty1.keyty, ty1.valty], [ty2.keyty, ty2.valty])
-
-    if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
-        if ty1.dtype == ty2.dtype and ty1.ndim == ty2.ndim:
-            try:
-                return match_shape(ty1.shape, ty2.shape)
-            except Exception:
-                raise MatchFail(ty1, ty2)
-
-    if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
-        if ty1.t == ty2.t:
-            return {}
-
-    if isinstance(ty1, TyUserDefinedClass) and \
-            isinstance(ty2, TyUserDefinedClass):
-        if ty1.name == ty2.name:
-            return {}
-
-    raise MatchFail(ty1, ty2)
-
-
-def match_types(tys1, tys2):
-    subst = {}
-    for t1, t2 in zip(tys1, tys2):
-        t1 = apply_subst(subst, t1)
-        t2 = apply_subst(subst, t2)
-        utils.add_dict(subst, match_type(t1, t2))
-    return subst
