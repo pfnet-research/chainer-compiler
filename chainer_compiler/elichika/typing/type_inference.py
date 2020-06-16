@@ -21,7 +21,6 @@ from   chainer_compiler.elichika.typing.std.builtin_ops       import *
 from   chainer_compiler.elichika.typing.std.list_functions    import *
 
 import chainer
-from   chainer.backends import cuda
 import chainer.links as L
 import numpy as np
 import logging
