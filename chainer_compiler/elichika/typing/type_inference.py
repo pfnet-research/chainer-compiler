@@ -137,8 +137,6 @@ class InferenceEngine():
 
 
     def dump_tyenv(self):
-        if not self.is_debug:
-            return
         print("=== tyenv ===")
         for name, ty in self.tyenv.items():
             print("{} : \x1b[35m{}\x1b[39m".format(name, ty))
@@ -150,8 +148,6 @@ class InferenceEngine():
 
 
     def dump_nodetype(self):
-        if not self.is_debug:
-            return
         for node, ty in self.nodetype.items():
             print("{} : \x1b[36m{}\x1b[39m".format(
                 utils.node_description(node), ty))
