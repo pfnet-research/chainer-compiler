@@ -192,13 +192,8 @@ class InferenceEngine():
                 tc1.attribute_tyenv[(obj, x.attr)] = TyNone()
 
 
-    def infer(self, node):
-        self.infer_mod(node)
-        return self.nodetype
-
-
     def infer_function_value_args(self, node, args, type_hints={}):
-        # args: argument value
+        # args: example inputs
         ty_args = [type_of_value(arg) for arg in args]
         return self.infer_function(node, ty_args, type_hints)
 
@@ -243,10 +238,6 @@ class InferenceEngine():
             self.tyenv[n] = apply_subst(subst, type_hints[n])
 
         self.infer_stmt(node)
-
-        if self.is_debug:
-            print('==================== Inference Results ====================')
-            self.dump_nodetype()
         return self.nodetype
 
 

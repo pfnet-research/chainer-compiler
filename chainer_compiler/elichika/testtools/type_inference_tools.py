@@ -81,6 +81,12 @@ def generate_assertion(type_table_name, id2type, id2node, ofile=None):
             ofile.write(output + '\n')
 
 
+def print_inference_results(id2type, id2node):
+    for i, t in sorted(id2type.items()):
+        node = id2node[i]
+        print("{} : \x1b[36m{}\x1b[39m".format(node_description(node), t))
+
+
 # For testing
 def generate_id2type_from_forward(model, args, is_debug=False):
     code = utils.clip_head(inspect.getsource(model.forward))
