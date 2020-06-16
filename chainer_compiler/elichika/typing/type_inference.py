@@ -115,23 +115,26 @@ func_to_ignore = [logging.info]
 
 class InferenceEngine():
     def __init__(self, tyenv=None, attribute_tyenv=None, is_debug=False, module=None):
-        # type environments for local objects
+        # Type environments for local objects
         # string -> TyObj
         self.tyenv = {} if tyenv is None else copy_tyenv(tyenv)
 
-        # type environments for model attributes
+        # Type environments for model attributes
         # (object, str) -> TyObj
         self.attribute_tyenv = {} if attribute_tyenv is None \
                 else copy_tyenv(attribute_tyenv)
 
-        # annotation to input AST
+        # Annotation to input AST
         # Node -> TyObj
         self.nodetype = {}
 
         self.is_debug = is_debug
         self.module = module
 
-        # map from user-defined function call points to a list of inlined function ASTs
+        # Map from user-defined function call points to a list of inlined function ASTs
+        # The length of the list is usually 1, but becomes >= 2 for the case
+        # where multiple user-defined functions are called at once with
+        # nn.Sequence
         # Node (Call) -> Node (FunctionDef)
         self.subroutine_node = collections.OrderedDict()
 
