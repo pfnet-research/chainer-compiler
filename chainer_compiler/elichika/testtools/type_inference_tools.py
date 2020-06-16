@@ -101,7 +101,7 @@ def generate_id2type_from_forward(model, args, is_debug=False):
 
 
 # For debug
-def generate_type_inference_results(model, forward_args, is_debug=True):
+def generate_type_inference_results(model, forward_args, is_debug=False):
     code = utils.clip_head(inspect.getsource(model.forward))
     node = gast.ast_to_gast(ast.parse(code))
     # node = Canonicalizer().visit(node)
