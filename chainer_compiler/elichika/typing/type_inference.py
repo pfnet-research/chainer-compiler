@@ -21,7 +21,6 @@ from   chainer_compiler.elichika.typing.std.builtin_ops       import *
 from   chainer_compiler.elichika.typing.std.list_functions    import *
 
 import chainer
-from   chainer.backends import cuda
 import chainer.links as L
 import numpy as np
 import logging
@@ -115,30 +114,31 @@ func_to_ignore = [logging.info]
 
 class InferenceEngine():
     def __init__(self, tyenv=None, attribute_tyenv=None, is_debug=False, module=None):
-        # type environments for local objects
+        # Type environments for local objects
         # string -> TyObj
         self.tyenv = {} if tyenv is None else copy_tyenv(tyenv)
 
-        # type environments for model attributes
+        # Type environments for model attributes
         # (object, str) -> TyObj
         self.attribute_tyenv = {} if attribute_tyenv is None \
                 else copy_tyenv(attribute_tyenv)
 
-        # annotation to input AST
+        # Annotation to input AST
         # Node -> TyObj
         self.nodetype = {}
 
         self.is_debug = is_debug
         self.module = module
 
-        # map from user-defined function call points to a list of inlined function ASTs
+        # Map from user-defined function call points to a list of inlined function ASTs
+        # The length of the list is usually 1, but becomes >= 2 for the case
+        # where multiple user-defined functions are called at once with
+        # nn.Sequence
         # Node (Call) -> Node (FunctionDef)
         self.subroutine_node = collections.OrderedDict()
 
 
     def dump_tyenv(self):
-        if not self.is_debug:
-            return
         print("=== tyenv ===")
         for name, ty in self.tyenv.items():
             print("{} : \x1b[35m{}\x1b[39m".format(name, ty))
@@ -150,8 +150,6 @@ class InferenceEngine():
 
 
     def dump_nodetype(self):
-        if not self.is_debug:
-            return
         for node, ty in self.nodetype.items():
             print("{} : \x1b[36m{}\x1b[39m".format(
                 utils.node_description(node), ty))
@@ -196,13 +194,8 @@ class InferenceEngine():
                 tc1.attribute_tyenv[(obj, x.attr)] = TyNone()
 
 
-    def infer(self, node):
-        self.infer_mod(node)
-        return self.nodetype
-
-
     def infer_function_value_args(self, node, args, type_hints={}):
-        # args: argument value
+        # args: example inputs
         ty_args = [type_of_value(arg) for arg in args]
         return self.infer_function(node, ty_args, type_hints)
 
@@ -247,10 +240,6 @@ class InferenceEngine():
             self.tyenv[n] = apply_subst(subst, type_hints[n])
 
         self.infer_stmt(node)
-
-        if self.is_debug:
-            print('==================== Inference Results ====================')
-            self.dump_nodetype()
         return self.nodetype
 
 

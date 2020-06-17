@@ -81,6 +81,12 @@ def generate_assertion(type_table_name, id2type, id2node, ofile=None):
             ofile.write(output + '\n')
 
 
+def print_inference_results(id2type, id2node):
+    for i, t in sorted(id2type.items()):
+        node = id2node[i]
+        print("{} : \x1b[36m{}\x1b[39m".format(node_description(node), t))
+
+
 # For testing
 def generate_id2type_from_forward(model, args, is_debug=False):
     code = utils.clip_head(inspect.getsource(model.forward))
@@ -95,7 +101,7 @@ def generate_id2type_from_forward(model, args, is_debug=False):
 
 
 # For debug
-def generate_type_inference_results(model, forward_args, is_debug=True):
+def generate_type_inference_results(model, forward_args, is_debug=False):
     code = utils.clip_head(inspect.getsource(model.forward))
     node = gast.ast_to_gast(ast.parse(code))
     # node = Canonicalizer().visit(node)
@@ -112,50 +118,3 @@ def generate_type_inference_results(model, forward_args, is_debug=True):
 def reset_state():
     np.random.seed(42)
     types.var_counter = 0
-
-
-if __name__ == '__main__':
-    import argparse
-
-    import numpy as np
-    import chainer
-    import chainer.functions as F
-    import chainer.links as L
-
-    from tests.elichika_typing.EspNet_test import *
-    from tests.elichika_typing.Models_test import *
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-e", help="Execute the script", action="store_true")
-    parser.add_argument("-o",
-            help="Specify file name to output the assertions", type=str)
-    args = parser.parse_args()
-
-
-    class Test():
-        def forward(self):
-            x = np.zeros((1, 1)).astype('float32')
-            y = F.pad_sequence([x], length=5)
-            return y
-
-
-    # model, forward_args = gen_MLP_model()
-    model, forward_args = gen_GoogLeNet_model()
-    # model, forward_args = gen_AttDot_model()
-    # model, forward_args = gen_AttLoc_model()
-    # model, forward_args = gen_BLSTM_model()
-    # model, forward_args = gen_VGG2L_model()
-    # model, forward_args = gen_StatelessLSTM_model()
-    # model, forward_args = gen_Decoder_model()
-    # model, forward_args = gen_E2E_model()
-
-    # model, forward_args = Test(), ()
-
-    if args.e:
-        model.forward(*forward_args)
-    else:
-        id2type, id2node = generate_type_inference_results(model, forward_args)
-
-        if args.o:
-            ofile = open(args.o, 'w')
-            generate_assertion("id2type", id2type, id2node, ofile)

@@ -32,5 +32,5 @@ This project is still in the early stage and is not expected to be used by end-u
 Artifacts for the paper "Semi-static type, shape, and symbolic shape inference for dynamic computation graphs" (MAPL 2020) are in the following directories:
 
 - Implementation: [chainer\_compiler/elichika/typing](chainer_compiler/elichika/typing)
-- Test cases (Experiment Targets): [testcases/pytorch] (testcases/pytorch)
+- Test cases (Experiment Targets): [testcases/pytorch](testcases/pytorch)
 - Tests (Experiment Results): [tests/elichika\_typing/pytorch](tests/elichika_typing/pytorch)
